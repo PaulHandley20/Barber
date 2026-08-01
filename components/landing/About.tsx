@@ -4,80 +4,206 @@ import { motion } from "framer-motion";
 
 export default function About() {
   return (
-    <section className="bg-black py-32">
-      <div className="mx-auto grid max-w-7xl items-center gap-16 px-8 lg:grid-cols-2">
+    <section
+      id="about"
+      className="relative overflow-hidden py-40"
+      style={{
+        background:
+          "linear-gradient(to bottom,#1a1918 0%,#bfb5a6 5%,#d5ccbf 16%,#d5ccbf 100%)",
+      }}
+    >
+      <div className="mx-auto grid max-w-7xl items-center gap-24 px-8 lg:grid-cols-[1fr_1.05fr]">
 
-        {/* Imagen */}
+        {/* TEXTO */}
+
         <motion.div
           initial={{ opacity: 0, x: -60 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="relative h-[600px] overflow-hidden rounded-3xl"
+          transition={{ duration: .8 }}
         >
-          <img
-            src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1200&auto=format&fit=crop"
-            alt="Barbero"
-            className="h-full w-full object-cover"
-          />
+
+          <div className="mb-10 h-px w-28 bg-[#59624f]" />
+
+          <span className="text-lg uppercase tracking-[0.45em] text-[#59624f]">
+
+            Nosotros
+
+          </span>
+
+          <h2
+            className="
+              mt-7
+              font-serif
+              text-[clamp(2.8rem,4vw,4.2rem)]
+              leading-[1.08]
+              text-[#263028]
+            "
+          >
+
+            Donde un buen corte es apenas
+            <br />
+            el comienzo.
+
+          </h2>
+
+          <p
+            className="
+              mt-12
+              text-[22px]
+              leading-[2.1rem]
+              text-[#435046]
+            "
+          >
+
+            En Don Segundo creemos que una barbería sigue siendo uno
+            de esos pocos lugares donde todavía existe el tiempo para
+            una buena conversación.
+
+            <br />
+            <br />
+
+            Cada cliente llega con una historia distinta. Por eso nos
+            gusta escuchar, entender qué busca y dedicarle el tiempo
+            necesario para que cada detalle esté a la altura.
+
+            <br />
+            <br />
+
+            Más que un servicio, buscamos que cada visita sea un momento
+            para desconectar de la rutina, compartir una charla y salir
+            sintiéndote renovado.
+
+          </p>
+
+          {/* EXPERIENCIA */}
+
+          <div className="mt-20 border-t border-[#b6ab99] pt-12">
+
+            <div className="grid gap-10 md:grid-cols-2">
+
+              <div>
+
+                <h3 className="font-serif text-5xl text-[#55624F]">
+
+                  +8
+
+                </h3>
+
+                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+
+                  Años perfeccionando el oficio
+
+                </p>
+
+              </div>
+
+              <div>
+
+                <h3 className="font-serif text-5xl text-[#55624F]">
+
+                  +1000
+
+                </h3>
+
+                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+
+                  Clientes felices
+
+                </p>
+
+              </div>
+
+              <div>
+
+                <h3 className="font-serif text-5xl text-[#55624F]">
+
+                  5
+
+                </h3>
+
+                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+
+                  Continentes recorridos
+
+                </p>
+
+              </div>
+
+              <div>
+
+                <h3 className="font-serif text-5xl text-[#55624F]">
+
+                  ∞
+
+                </h3>
+
+                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+
+                  de Historias compartidas
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
         </motion.div>
 
-        {/* Texto */}
+        {/* FOTO */}
+
         <motion.div
           initial={{ opacity: 0, x: 60 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: .8 }}
+          className="relative"
         >
-          <span className="uppercase tracking-[6px] text-[#C8A25A]">
-            Nuestra Historia
-          </span>
 
-          <h2 className="mt-6 text-5xl font-black leading-tight">
-            Mucho más
-            <br />
-            que un corte.
-          </h2>
+          <img
+            src="/images/about.jpg"
+            alt="Don Segundo Barbería"
+            className="
+              h-[760px]
+              w-full
+              object-cover
+              brightness-90
+              contrast-95
+              saturate-75
+              shadow-[0_45px_90px_rgba(0,0,0,.18)]
+            "
+          />
 
-          <p className="mt-8 text-lg leading-9 text-zinc-400">
-            En Don Segundo creemos que una barbería es un lugar donde cada
-            cliente merece tiempo, dedicación y atención a los detalles.
-          </p>
+          {/* Caja */}
 
-          <p className="mt-6 text-lg leading-9 text-zinc-400">
-            Nuestro objetivo no es solamente que salgas con un buen corte,
-            sino que disfrutes de una experiencia cómoda, profesional y
-            personalizada desde que entrás hasta que te vas.
-          </p>
+          <div
+            className="
+              absolute
+              -bottom-10
+              -left-10
+              max-w-sm
+              bg-[#2E372F]/95
+              px-10
+              py-9
+              backdrop-blur-lg
+            "
+          >
 
-          <div className="mt-14 grid grid-cols-3 gap-8">
+            <p className="text-xs uppercase tracking-[0.45em] text-[#B7A88F]">
 
-            <div>
-              <h3 className="text-5xl font-black text-[#C8A25A]">
-                5★
-              </h3>
-              <p className="mt-2 text-zinc-400">
-                Atención
-              </p>
-            </div>
+              Don Segundo
 
-            <div>
-              <h3 className="text-5xl font-black text-[#C8A25A]">
-                +500
-              </h3>
-              <p className="mt-2 text-zinc-400">
-                Cortes
-              </p>
-            </div>
+            </p>
 
-            <div>
-              <h3 className="text-5xl font-black text-[#C8A25A]">
-                100%
-              </h3>
-              <p className="mt-2 text-zinc-400">
-                Pasión
-              </p>
-            </div>
+            <h4 className="mt-5 font-serif text-3xl leading-tight text-[#EFE8DD]">
+
+              Mas que un corte.
+              <br />
+              Una experiencia.
+
+            </h4>
 
           </div>
 
