@@ -6,6 +6,7 @@ import Gallery from "@/components/landing/Gallery";
 import Testimonials from "@/components/landing/Testimonials";
 import CTA from "@/components/landing/CTA";
 import Footer from "@/components/landing/Footer";
+import Timeline from "@/components/landing/Timeline";
 
 export default function Home() {
   return (
@@ -14,9 +15,10 @@ export default function Home() {
 
       <main>
         <Hero />
-        <Services />
         <About />
+        <Services />
         <Gallery />
+        <Timeline />
         <Testimonials />
         <CTA />
       </main>

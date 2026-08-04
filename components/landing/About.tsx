@@ -7,10 +7,19 @@ export default function About() {
     <section
       id="about"
       className="relative overflow-hidden py-40"
-      style={{
-        background:
-          "linear-gradient(to bottom,#1a1918 0%,#bfb5a6 5%,#d5ccbf 16%,#d5ccbf 100%)",
-      }}
+     style={{
+  background: `
+    linear-gradient(
+      to bottom,
+      #1A1918 0%,
+      #D6CCC0 3%,
+      #CEC4B7 10%,
+      #B7A28B 75%,
+      #B7A28B 95%,
+      #4A3A2D 100%
+    )
+  `,
+}}
     >
       <div className="mx-auto grid max-w-7xl items-center gap-24 px-8 lg:grid-cols-[1fr_1.05fr]">
 
@@ -41,9 +50,7 @@ export default function About() {
             "
           >
 
-            Donde un buen corte es apenas
-            <br />
-            el comienzo.
+            Manuel Cladera
 
           </h2>
 
@@ -56,23 +63,23 @@ export default function About() {
             "
           >
 
-            En Don Segundo creemos que una barbería sigue siendo uno
+            "En Don Segundo creemos que una barbería sigue siendo uno
             de esos pocos lugares donde todavía existe el tiempo para
-            una buena conversación.
+            una buena conversación."
 
             <br />
             <br />
-
-            Cada cliente llega con una historia distinta. Por eso nos
+           
+            "Cada cliente llega con una historia distinta. Por eso nos
             gusta escuchar, entender qué busca y dedicarle el tiempo
-            necesario para que cada detalle esté a la altura.
+            necesario para que cada detalle esté a la altura."
 
             <br />
             <br />
-
-            Más que un servicio, buscamos que cada visita sea un momento
+           
+            "Más que un servicio, buscamos que cada visita sea un momento
             para desconectar de la rutina, compartir una charla y salir
-            sintiéndote renovado.
+            sintiéndote renovado."
 
           </p>
 
@@ -199,9 +206,9 @@ export default function About() {
 
             <h4 className="mt-5 font-serif text-3xl leading-tight text-[#EFE8DD]">
 
-              Mas que un corte.
+               " Mas que un corte.
               <br />
-              Una experiencia.
+              Una experiencia."
 
             </h4>
 
