@@ -19,7 +19,6 @@ export default function Home() {
         <Services />
         <Gallery />
         <Timeline />
-        <Testimonials />
         <CTA />
       </main>
 

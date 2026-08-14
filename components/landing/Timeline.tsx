@@ -1,40 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const timeline = [
   {
     year: "2016",
     location: "CONCEPCIÓN DEL URUGUAY",
-    title: "Todo empezó",
+    title: "Donde empezó todo",
     text:
-      "La pasión por este oficio nació mucho antes de viajar por el mundo. Todo comenzó con una máquina, una silla y muchas ganas de aprender.",
-    image: "/images/timeline-1.jpg",
+      "Empecé a cortar el pelo en 2003, cuando tenía 14 años. Antes, a los 7 u 8, ya jugaba a ponerle ruleros a mi abuela María del Valle. Mi abuela paterna, Juana, también era peluquera. Con el tiempo estudié estilismo y encontré un gran mentor: Claudio Gatt.",
+    images: [
+      "/images/timeline-1-1.jpg",
+      "/images/timeline-1-2.jpg",
+      "/images/timeline-1-3.jpg",
+    ],
   },
+
   {
-    year: "2018",
+    year: "2019",
     location: "NUEVA ZELANDA",
-    title: "Nuevos comienzos",
+    title: "El mundo como escuela",
     text:
-      "Vivir lejos de casa significó aprender nuevas técnicas, conocer otras culturas y trabajar con clientes de todas partes del mundo.",
-    image: "/images/timeline-2.jpg",
+      "En Nueva Zelanda conocí nuevas formas de trabajar, culturas e historias de personas de todo el mundo. Aprendí que cuando algo se hace con pasión, no existen barreras: ni el idioma, ni la cultura, ni la distancia.",
+    images: [
+      "/images/timeline-2-1.jpg",
+      "/images/timeline-2-2.jpg",
+      "/images/timeline-2-3.jpg",
+    ],
   },
+
   {
-    year: "2021 · 2025",
+    year: "2019 · 2025",
     location: "ASIA · OCEANÍA · EUROPA",
     title: "Seguir aprendiendo",
     text:
-      "Cada país dejó una enseñanza distinta. Nuevas formas de trabajar, nuevas personas y una visión mucho más amplia del oficio.",
-    image: "/images/timeline-3.jpg",
+      "Corté el pelo a personas de muchísimos lugares y cada una dejó algo distinto. Conocí culturas, historias y formas de vivir que ampliaron mi manera de ver el oficio. Bali, especialmente, me enseñó a valorar el presente y disfrutar cada día.",
+    images: [
+      "/images/timeline-3-1.jpg",
+      "/images/timeline-3-2.jpg",
+      "/images/timeline-3-3.jpg",
+    ],
   },
+
   {
     year: "2026",
     location: "DON SEGUNDO",
-    title: "El sueño",
+    title: "Volver a casa",
     text:
-      "Todo el camino recorrido hoy vive dentro de Don Segundo. Cada corte representa un poco de esa historia.",
-    image: "/images/timeline-5.jpg",
+      "Después de más de siete años lejos, decidí volver a Argentina. A mi tierra, mi cultura y la ciudad que me vio crecer. Don Segundo nació en 2016 y lleva el nombre de mi abuelo Manuel Segundo. Hoy, todo lo aprendido vuelve a casa.",
+    images: [
+      "/images/timeline-4-1.jpg",
+      "/images/timeline-4-2.jpg",
+      "/images/timeline-4-3.jpg",
+    ],
   },
 ];
 
@@ -64,7 +83,26 @@ const positions = [
 export default function TimelineV3() {
   const [active, setActive] = useState(2);
 
+  const [photoIndexes, setPhotoIndexes] = useState(
+    timeline.map(() => 0)
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPhotoIndexes((prev) =>
+        prev.map((photoIndex, timelineIndex) => {
+          const totalPhotos = timeline[timelineIndex].images.length;
+
+          return (photoIndex + 1) % totalPhotos;
+        })
+      );
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
+
     <section className="relative overflow-hidden bg-[#15120F]">
 
       <img
@@ -178,17 +216,44 @@ export default function TimelineV3() {
       "
       />
 
-      {/* FOTO */}
+        {/* FOTO */}
 
-      <img
-        src={item.image}
-        alt=""
-        className="
-        w-full
-        h-[235px]
-        object-cover
-      "
-      />
+      <div className="relative w-full h-[235px] overflow-hidden">
+
+        <AnimatePresence mode="wait">
+
+          <motion.img
+            key={photoIndexes[index]}
+            src={item.images[photoIndexes[index]]}
+            alt=""
+            initial={{
+              opacity: 0,
+              scale: 1.03,
+            }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+            }}
+            exit={{
+              opacity: 0,
+              scale: 0.98,
+            }}
+            transition={{
+              duration: 0.5,
+              ease: "easeInOut",
+            }}
+            className="
+              absolute
+              inset-0
+              h-full
+              w-full
+              object-cover
+            "
+          />
+
+  </AnimatePresence>
+
+</div>
 
       {/* PIE */}
 

@@ -69,7 +69,7 @@ export default function Navbar() {
       Galería
        </a>
 
-     <a href="#contact" className="transition hover:text-[#C79A5A]">
+     <a href="#footer" className="transition hover:text-[#C79A5A]">
       Contacto
         </a>
 
