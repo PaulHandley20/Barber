@@ -102,8 +102,13 @@ export default function TimelineV3() {
   }, []);
 
   return (
-
-    <section className="relative overflow-hidden bg-[#15120F]">
+    <section
+      id="timeline"
+      className="relative scroll-mt-24 overflow-hidden bg-[#15120F]"
+    >
+      {/* ====================================================== */}
+      {/* FONDO */}
+      {/* ====================================================== */}
 
       <img
         src="/images/timeline.jpg"
@@ -113,271 +118,268 @@ export default function TimelineV3() {
 
       <div className="absolute inset-0 bg-black/65" />
 
-      <div className="relative mx-auto max-w-[1800px] min-h-[1100px]">
+      {/* ====================================================== */}
+      {/* CONTENEDOR */}
+      {/* ====================================================== */}
 
+      <div className="relative mx-auto min-h-[1100px] max-w-[1800px]">
+
+        {/* ====================================================== */}
         {/* HEADER */}
-        {/* ================= HEADER ================= */}
+        {/* ====================================================== */}
 
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  whileInView={{ opacity: 1, y: 0 }}
-  viewport={{ once: true }}
-  transition={{ duration: 0.7 }}
-  className="pt-16 text-center"
->
-  <p className="uppercase tracking-[0.45em] text-[25px] text-[#C7A467]">
-    EL CAMINO DE MANU
-  </p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="pt-16 text-center"
+        >
+          <p className="text-[25px] uppercase tracking-[0.45em] text-[#C7A467]">
+            EL CAMINO DE MANU
+          </p>
 
-  <div className="mt-3 mx-auto flex items-center w-[320px]">
-  <div className="flex-1 h-px bg-[#6C5638]" />
+          <div className="mx-auto mt-3 flex w-[320px] items-center">
+            <div className="h-px flex-1 bg-[#6C5638]" />
 
-  <div className="mx-4 h-[6px] w-[6px] rotate-45 border border-[#C7A467]" />
+            <div className="mx-4 h-[6px] w-[6px] rotate-45 border border-[#C7A467]" />
 
-  <div className="flex-1 h-px bg-[#6C5638]" />
-</div>
-</motion.div>
+            <div className="h-px flex-1 bg-[#6C5638]" />
+          </div>
+        </motion.div>
 
-{/* ================= CAMINO ================= */}
+        {/* ====================================================== */}
+        {/* CAMINO */}
+        {/* ====================================================== */}
 
-<svg
-  className="absolute left-[7%] top-[42%] w-[86%] h-[170px]"
-  viewBox="0 0 1500 170"
-  preserveAspectRatio="none"
->
-  <path
-    d="
-    M20 90
+        <svg
+          className="absolute left-[7%] top-[42%] h-[170px] w-[86%]"
+          viewBox="0 0 1500 170"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="
+              M20 90
+              C180 0 320 0 430 90
+              S720 180 860 90
+              S1160 0 1480 90
+            "
+            fill="none"
+            stroke="#B38B54"
+            strokeWidth="2.4"
+            strokeDasharray="5 10"
+            strokeLinecap="round"
+          />
+        </svg>
 
-    C180 0 320 0 430 90
+        {/* ====================================================== */}
+        {/* POLAROIDS */}
+        {/* ====================================================== */}
 
-    S720 180 860 90
-
-    S1160 0 1480 90
-    "
-    fill="none"
-    stroke="#B38B54"
-    strokeWidth="2.4"
-    strokeDasharray="5 10"
-    strokeLinecap="round"
-  />
-</svg>
-
-{/* ================= POLAROIDS ================= */}
-
-{timeline.map((item, index) => (
-  <motion.div
-    key={item.year}
-    style={{
-      left: positions[index].left,
-      top: positions[index].top,
-    }}
-    className="absolute"
-    whileHover={{
-      y: -12,
-      rotate: 0,
-      scale: 1.03,
-    }}
-    transition={{ duration: .25 }}
-    onClick={() => setActive(index)}
-  >
-    <motion.div
-      animate={{
-        scale: active === index ? 1.05 : 1,
-      }}
-      transition={{ duration: .25 }}
-      style={{
-        rotate: `${positions[index].rotate}deg`,
-      }}
-      className="
-      relative
-      w-[270px]
-      bg-[#F1ECE3]
-      p-[10px]
-      shadow-[0_25px_40px_rgba(0,0,0,.45)]
-      "
-    >
-      {/* Chinche */}
-
-      <div
-        className="
-        absolute
-        left-1/2
-        -top-[8px]
-        -translate-x-1/2
-        h-4
-        w-4
-        rounded-full
-        bg-gradient-to-b
-        from-[#D6B67E]
-        to-[#8B6336]
-        shadow-lg
-        z-20
-      "
-      />
-
-        {/* FOTO */}
-
-      <div className="relative w-full h-[235px] overflow-hidden">
-
-        <AnimatePresence mode="wait">
-
-          <motion.img
-            key={photoIndexes[index]}
-            src={item.images[photoIndexes[index]]}
-            alt=""
-            initial={{
-              opacity: 0,
+        {timeline.map((item, index) => (
+          <motion.div
+            key={item.year}
+            style={{
+              left: positions[index].left,
+              top: positions[index].top,
+            }}
+            className="absolute cursor-pointer"
+            whileHover={{
+              y: -12,
+              rotate: 0,
               scale: 1.03,
             }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-            }}
-            exit={{
-              opacity: 0,
-              scale: 0.98,
-            }}
-            transition={{
-              duration: 0.5,
-              ease: "easeInOut",
-            }}
+            transition={{ duration: 0.25 }}
+            onClick={() => setActive(index)}
+          >
+            <motion.div
+              animate={{
+                scale: active === index ? 1.05 : 1,
+              }}
+              transition={{ duration: 0.25 }}
+              style={{
+                rotate: `${positions[index].rotate}deg`,
+              }}
+              className="
+                relative
+                w-[270px]
+                bg-[#F1ECE3]
+                p-[10px]
+                shadow-[0_25px_40px_rgba(0,0,0,.45)]
+              "
+            >
+              {/* Chinche */}
+
+              <div
+                className="
+                  absolute
+                  left-1/2
+                  -top-[8px]
+                  z-20
+                  h-4
+                  w-4
+                  -translate-x-1/2
+                  rounded-full
+                  bg-gradient-to-b
+                  from-[#D6B67E]
+                  to-[#8B6336]
+                  shadow-lg
+                "
+              />
+
+              {/* FOTO */}
+
+              <div className="relative h-[235px] w-full overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={photoIndexes[index]}
+                    src={item.images[photoIndexes[index]]}
+                    alt=""
+                    initial={{
+                      opacity: 0,
+                      scale: 1.03,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
+                    }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.98,
+                    }}
+                    transition={{
+                      duration: 0.5,
+                      ease: "easeInOut",
+                    }}
+                    className="
+                      absolute
+                      inset-0
+                      h-full
+                      w-full
+                      object-cover
+                    "
+                  />
+                </AnimatePresence>
+              </div>
+
+              {/* PIE */}
+
+              <div className="pb-2 pt-4 text-center">
+                <h2
+                  className="
+                    font-serif
+                    text-[30px]
+                    leading-none
+                    text-[#3B4332]
+                  "
+                >
+                  {item.year}
+                </h2>
+
+                <p
+                  className="
+                    mt-2
+                    text-[10px]
+                    font-medium
+                    uppercase
+                    tracking-[0.40em]
+                    text-[#3F4A33]
+                  "
+                >
+                  {item.location}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        ))}
+
+        {/* ====================================================== */}
+        {/* TARJETA */}
+        {/* ====================================================== */}
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active}
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.35 }}
             className="
               absolute
-              inset-0
-              h-full
-              w-full
-              object-cover
+              bottom-[8%]
+              left-1/2
+              w-[650px]
+              -translate-x-1/2
+              text-center
             "
-          />
-
-  </AnimatePresence>
-
-</div>
-
-      {/* PIE */}
-
-      <div className="pt-4 pb-2 text-center">
-
-        <h2
-         className="
-             font-serif
-             text-[30px]
-             leading-none
-             text-[#3B4332]
-            "
+          >
+            <p
+              className="
+                text-[11px]
+                uppercase
+                tracking-[0.45em]
+                text-[#B89259]
+              "
             >
-          {item.year}
-        </h2>
+              {timeline[active].location}
+            </p>
 
-        <p
-         
-         className="
-             mt-2
-             text-[10px]
-             uppercase
-             tracking-[0.40em]
-             font-medium
-             text-[#3F4A33]
-          "
-        >
-          {item.location}
-        </p>
-      </div>
-    </motion.div>
-  </motion.div>
-))}
+            <h2
+              className="
+                mt-2
+                font-serif
+                text-[48px]
+                leading-none
+                text-[#EFE7DB]
+              "
+            >
+              {timeline[active].title}
+            </h2>
 
-{/* ================= TARJETA ================= */}
+            <div className="mt-5 flex items-center justify-center gap-4">
+              <div className="h-px w-20 bg-[#7A603A]" />
 
-<AnimatePresence mode="wait">
-  <motion.div
-    key={active}
-    initial={{ opacity: 0, y: 25 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: .35 }}
-    className="
-      absolute
-      left-1/2
-      bottom-[8%]
-      -translate-x-1/2
-      text-center
-      w-[650px]
-    "
-  >
+              <div className="h-[7px] w-[7px] rotate-45 bg-[#C7A467]" />
 
-    <p
-      className="
-        uppercase
-        tracking-[0.45em]
-        text-[11px]
-        text-[#B89259]
-      "
-    >
-      {timeline[active].location}
-    </p>
+              <div className="h-px w-20 bg-[#7A603A]" />
+            </div>
 
-    <h2
-      className="
-        mt-2
-        font-serif
-        text-[48px]
-        leading-none
-        text-[#EFE7DB]
-      "
-    >
-      {timeline[active].title}
-    </h2>
+            <p
+              className="
+                mx-auto
+                mt-7
+                max-w-[560px]
+                text-[18px]
+                leading-8
+                text-[#DDD5CA]
+              "
+            >
+              {timeline[active].text}
+            </p>
 
-    <div className="mt-5 flex justify-center items-center gap-4">
+            {/* INDICADORES */}
 
-      <div className="h-px w-20 bg-[#7A603A]" />
-
-      <div className="w-[7px] h-[7px] rotate-45 bg-[#C7A467]" />
-
-      <div className="h-px w-20 bg-[#7A603A]" />
-
-    </div>
-
-    <p
-      className="
-        mt-7
-        mx-auto
-        max-w-[560px]
-        text-[18px]
-        leading-8
-        text-[#DDD5CA]
-      "
-    >
-      {timeline[active].text}
-    </p>
-
-    <div className="mt-10 flex justify-center gap-3">
-
-      {timeline.map((_, i) => (
-
-        <button
-          key={i}
-          onClick={() => setActive(i)}
-          className={`
-            transition-all
-            rounded-full
-            ${
-              active === i
-                ? "w-8 h-[8px] bg-[#C7A467]"
-                : "w-[8px] h-[8px] bg-[#666055]"
-            }
-          `}
-        />
-
-      ))}
-
-    </div>
-
-  </motion.div>
-</AnimatePresence>
-
+            <div className="mt-10 flex justify-center gap-3">
+              {timeline.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActive(i)}
+                  aria-label={`Ver historia ${i + 1}`}
+                  className={`
+                    rounded-full
+                    transition-all
+                    ${
+                      active === i
+                        ? "h-[8px] w-8 bg-[#C7A467]"
+                        : "h-[8px] w-[8px] bg-[#666055]"
+                    }
+                  `}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );

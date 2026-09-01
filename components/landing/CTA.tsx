@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function CTA() {
@@ -28,19 +29,13 @@ export default function CTA() {
           initial={{ opacity: 0, x: 50 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: .8 }}
+          transition={{ duration: 0.8 }}
           className="max-w-[560px] text-right"
         >
 
           <div className="ml-auto mb-8 h-px w-24 bg-[#C7A467]" />
 
-          <p
-            className="
-              uppercase
-              tracking-[0.45em]
-              text-[#C7A467]
-            "
-          >
+          <p className="uppercase tracking-[0.45em] text-[#C7A467]">
             Don Segundo
           </p>
 
@@ -54,8 +49,6 @@ export default function CTA() {
             "
           >
             La próxima conversación empieza acá.
-            <br />
-            
           </h2>
 
           <p
@@ -71,10 +64,10 @@ export default function CTA() {
             Hecho con tiempo, Hecho para vos.
           </p>
 
-          <a
-            href="https://wa.me/5493442XXXXXXXX"
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* Reservar turno */}
+
+          <Link
+            href="/reservar"
             className="
               mt-16
               inline-flex
@@ -101,7 +94,7 @@ export default function CTA() {
             "
           >
             Reservar turno →
-          </a>
+          </Link>
 
         </motion.div>
 

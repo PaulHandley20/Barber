@@ -1,11 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden">
+    <section 
+      id="hero"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden">
 
       {/* Fondo */}
       <img
@@ -35,10 +38,10 @@ export default function Hero() {
           alt="Don Segundo"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: .8 }}
+          transition={{ duration: 0.8 }}
           style={{
             width: "clamp(150px, 12vw, 250px)",
-            marginBottom: "clamp(18px,2vw,35px)",
+            marginBottom: "clamp(18px, 2vw, 35px)",
           }}
         />
 
@@ -46,7 +49,7 @@ export default function Hero() {
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: .8 }}
+          transition={{ duration: 0.8 }}
           className="font-serif uppercase text-white leading-none"
           style={{
             fontSize: "clamp(3rem, 7vw, 6rem)",
@@ -60,11 +63,11 @@ export default function Hero() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: .3 }}
+          transition={{ delay: 0.3 }}
           className="uppercase text-[#C79A5A]"
           style={{
-            marginTop: "clamp(12px,1vw,18px)",
-            fontSize: "clamp(.75rem,.9vw,1rem)",
+            marginTop: "clamp(12px, 1vw, 18px)",
+            fontSize: "clamp(.75rem, .9vw, 1rem)",
             letterSpacing: ".45em",
           }}
         >
@@ -75,11 +78,11 @@ export default function Hero() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: .6 }}
+          transition={{ delay: 0.6 }}
           className="font-serif italic text-white/90"
           style={{
-            marginTop: "clamp(18px,2vw,30px)",
-            fontSize: "clamp(1.4rem,2vw,2.4rem)",
+            marginTop: "clamp(18px, 2vw, 30px)",
+            fontSize: "clamp(1.4rem, 2vw, 2.4rem)",
           }}
         >
           La tradición del buen detalle.
@@ -89,26 +92,33 @@ export default function Hero() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: .9 }}
+          transition={{ delay: 0.9 }}
           className="flex flex-wrap justify-center gap-5"
           style={{
-            marginTop: "clamp(25px,2vw,40px)",
+            marginTop: "clamp(25px, 2vw, 40px)",
           }}
         >
-          <button className="group flex items-center gap-3 bg-[#C79A5A] px-10 py-4 uppercase tracking-[4px] text-black transition hover:bg-[#d8ab6d]">
 
+          {/* RESERVAR */}
+          <Link
+            href="/reservar"
+            className="group flex items-center gap-3 bg-[#C79A5A] px-10 py-4 uppercase tracking-[4px] text-black transition hover:bg-[#d8ab6d]"
+          >
             Reservar
 
             <ArrowRight
               size={18}
               className="transition group-hover:translate-x-1"
             />
+          </Link>
 
-          </button>
-
-          <button className="border border-white/40 px-10 py-4 uppercase tracking-[4px] text-white transition hover:bg-white hover:text-black">
+          {/* CONOCER MÁS */}
+          <a
+            href="#timeline"
+            className="border border-white/40 px-10 py-4 uppercase tracking-[4px] text-white transition hover:bg-white hover:text-black"
+          >
             Conocer más
-          </button>
+          </a>
 
         </motion.div>
 
