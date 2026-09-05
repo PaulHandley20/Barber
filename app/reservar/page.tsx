@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -31,6 +32,7 @@ type Slot = {
 type AppointmentResult = {
   id?: string;
   appointment_id?: string;
+  reservation_code?: string;
 };
 
 const MONTHS = [
@@ -55,6 +57,9 @@ const inputClass =
 
 const secondaryButtonClass =
   "inline-flex items-center justify-center gap-2 border border-white/10 px-6 py-4 text-xs font-semibold uppercase tracking-[0.24em] text-[#aaa198] transition-all duration-300 hover:border-[#b08a5a]/70 hover:bg-white/[0.03] hover:text-[#F4EEE5]";
+
+const CONFIRMED_RESERVATION_STORAGE_KEY =
+  "don-segundo-reserva-confirmada";
 
 export default function ReservarPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -128,6 +133,42 @@ export default function ReservarPage() {
             : selectedService
               ? 2
               : 1;
+
+  /*
+    ============================================================
+    DETECTAR F5 / RELOAD DESPUÉS DE UNA RESERVA CONFIRMADA
+    ============================================================
+  */
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const navigationEntry =
+      performance.getEntriesByType("navigation")[0] as
+        | PerformanceNavigationTiming
+        | undefined;
+
+    const isReload = navigationEntry?.type === "reload";
+
+    const reservationWasConfirmed =
+      sessionStorage.getItem(
+        CONFIRMED_RESERVATION_STORAGE_KEY
+      ) === "true";
+
+    if (isReload && reservationWasConfirmed) {
+      sessionStorage.removeItem(
+        CONFIRMED_RESERVATION_STORAGE_KEY
+      );
+
+      window.location.replace("/");
+    }
+  }, []);
+
+  /*
+    ============================================================
+    CARGAR SERVICIOS
+    ============================================================
+  */
 
   useEffect(() => {
     async function loadServices() {
@@ -365,11 +406,27 @@ export default function ReservarPage() {
     const appointmentResult: AppointmentResult = {
       id: appointmentData?.id,
       appointment_id: appointmentData?.appointment_id,
+      reservation_code: appointmentData?.reservation_code,
     };
 
     console.log(
       "Reserva creada correctamente:",
       appointmentResult
+    );
+
+    /*
+      Guardamos una marca en sessionStorage.
+
+      Esto nos permite saber que si el usuario hace F5
+      inmediatamente después de confirmar, debe volver
+      al inicio.
+
+      No guardamos datos personales ni de la reserva.
+    */
+
+    sessionStorage.setItem(
+      CONFIRMED_RESERVATION_STORAGE_KEY,
+      "true"
     );
 
     setConfirmedAppointment(appointmentResult);
@@ -387,21 +444,10 @@ export default function ReservarPage() {
   }
 
   function getAppointmentId() {
-    if (confirmedAppointment?.id) {
-      return `DS-${confirmedAppointment.id
-        .replace(/-/g, "")
-        .slice(0, 8)
-        .toUpperCase()}`;
-    }
-
-    if (confirmedAppointment?.appointment_id) {
-      return `DS-${confirmedAppointment.appointment_id
-        .replace(/-/g, "")
-        .slice(0, 8)
-        .toUpperCase()}`;
-    }
-
-    return "DS-CONFIRMADA";
+    return (
+      confirmedAppointment?.reservation_code ||
+      "DS-CONFIRMADA"
+    );
   }
 
   function getCalendarDays() {
@@ -741,7 +787,7 @@ export default function ReservarPage() {
                   </p>
 
                   <p className="mt-2 flex items-center gap-2 text-sm text-[#b08a5a]">
-                    <span className="h-2 w-2 rounded-full rounded-full bg-[#b08a5a]" />
+                    <span className="h-2 w-2 rounded-full bg-[#b08a5a]" />
                     Confirmado
                   </p>
                 </div>
@@ -796,6 +842,14 @@ export default function ReservarPage() {
         <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#b08a5a]/[0.035] blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl">
+          <Link
+            href="/"
+            className="mb-8 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#777169] transition-all duration-300 hover:text-[#b08a5a]"
+          >
+            <ArrowLeft size={14} />
+            Volver
+          </Link>
+
           <div className="mb-7 h-px w-20 bg-[#b08a5a]" />
 
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">

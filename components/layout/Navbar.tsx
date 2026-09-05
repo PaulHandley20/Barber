@@ -88,15 +88,22 @@ export default function Navbar() {
 
         </nav>
 
-        {/* Botón Reservar */}
-        <div className="absolute right-8">
-          <Link
-            href="/reservar"
-            className="border border-white px-7 py-3 text-xs uppercase tracking-[0.25em] transition hover:bg-white hover:text-black"
-          >
-            Reservar
-          </Link>
-        </div>
+        {/* Acciones */}
+      <div className="absolute right-8 flex items-center gap-3">
+        <Link
+          href="/gestionar-reserva"
+          className="border border-white px-7 py-3 text-xs uppercase tracking-[0.25em] text-white transition hover:bg-white hover:text-black"
+        >
+          Mi reserva
+        </Link>
+
+        <Link
+          href="/reservar"
+          className="border border-white px-7 py-3 text-xs uppercase tracking-[0.25em] text-white transition hover:bg-white hover:text-black"
+        >
+          Reservar
+        </Link>
+      </div>
 
       </div>
     </header>

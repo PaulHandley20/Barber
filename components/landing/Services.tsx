@@ -24,11 +24,10 @@ export default function Services() {
 
       const { data, error } = await supabase
         .from("services")
-        .select(
-          "id, name, description, duration_minutes, price, active"
-        )
-        .eq("active", true)
-        .order("price", { ascending: true });
+        .select("*");
+
+      console.log("SERVICES DATA:", data);
+      console.log("SERVICES ERROR:", error);
 
       if (error) {
         console.error("Error loading services:", error);
