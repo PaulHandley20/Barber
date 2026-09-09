@@ -51,9 +51,9 @@ type BarberWithStats = Barber & {
   averageTicket: number;
   lastAppointment: string | null;
   recentAppointments: number;
-  recentRevenue: number;
+  recentIngresos: number;
   previousRecentAppointments: number;
-  previousRecentRevenue: number;
+  previousRecentIngresos: number;
   growth: number;
   revenueShare: number;
   services: string[];
@@ -203,7 +203,7 @@ export default function EquipoPage() {
       (appointment) => appointment.status !== "cancelled"
     );
 
-    const totalRevenue = valid.reduce(
+    const totalIngresos = valid.reduce(
       (total, appointment) =>
         total + Number(appointment.service?.price ?? 0),
       0
@@ -236,7 +236,7 @@ export default function EquipoPage() {
         );
       });
 
-      const recentRevenue = recent
+      const recentIngresos = recent
         .filter((appointment) => appointment.status === "completed")
         .reduce(
           (total, appointment) =>
@@ -244,7 +244,7 @@ export default function EquipoPage() {
           0
         );
 
-      const previousRecentRevenue = previousRecent
+      const previousRecentIngresos = previousRecent
         .filter((appointment) => appointment.status === "completed")
         .reduce(
           (total, appointment) =>
@@ -276,15 +276,15 @@ export default function EquipoPage() {
             : 0,
         lastAppointment,
         recentAppointments: recent.length,
-        recentRevenue,
+        recentIngresos,
         previousRecentAppointments: previousRecent.length,
-        previousRecentRevenue,
+        previousRecentIngresos,
         growth: getPercentageChange(
-          recentRevenue,
-          previousRecentRevenue
+          recentIngresos,
+          previousRecentIngresos
         ),
         revenueShare:
-          totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0,
+          totalIngresos > 0 ? (revenue / totalIngresos) * 100 : 0,
         services,
       };
     });
@@ -326,14 +326,14 @@ export default function EquipoPage() {
     0
   );
 
-  const totalRevenue = team.reduce(
+  const totalIngresos = team.reduce(
     (total, barber) => total + barber.revenue,
     0
   );
 
   const averageTicket =
     completedAppointments > 0
-      ? totalRevenue / completedAppointments
+      ? totalIngresos / completedAppointments
       : 0;
 
   const topPerformer = rankedTeam[0] ?? null;
@@ -457,7 +457,12 @@ export default function EquipoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070707] text-[#F5F5F4]">
+    <div className="barberos-page min-h-screen bg-[#070707] text-[#F5F5F4]">
+      <style>{`
+        .barberos-page{font-family:var(--font-manrope,Manrope,ui-sans-serif,system-ui,sans-serif)}
+        .barberos-page .page-display,.barberos-page .page-number{font-family:var(--font-sora,Sora,ui-sans-serif,system-ui,sans-serif);font-variant-numeric:tabular-nums}
+        .barberos-page button:focus-visible,.barberos-page input:focus-visible,.barberos-page textarea:focus-visible,.barberos-page select:focus-visible{outline:1px solid rgba(255,90,0,.65);outline-offset:2px}
+      `}</style>
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -right-40 top-0 h-96 w-96 rounded-full bg-[#FF5A00]/[0.045] blur-3xl" />
         <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-white/[0.018] blur-3xl" />
@@ -468,18 +473,18 @@ export default function EquipoPage() {
         <header className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[#71717A]">
-              <span>Workspace</span>
+              <span>Espacio de trabajo</span>
               <span className="text-[#3F3F46]">/</span>
               <span className="text-[#A1A1AA]">Equipo</span>
             </div>
 
             <div className="flex items-center gap-3">
-              <h1 className="text-[30px] font-semibold tracking-[-0.035em]">
+              <h1 className="page-display text-[38px] font-semibold tracking-[-0.045em]">
                 Equipo
               </h1>
 
-              <span className="rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] px-2.5 py-1 text-[11px] font-medium text-[#FF7A33]">
-                Team Management
+              <span className="rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] px-2.5 py-1 text-[11px] font-medium text-[#FF6A18]">
+                Gestión del equipo
               </span>
             </div>
 
@@ -492,7 +497,7 @@ export default function EquipoPage() {
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(255,90,0,0.15)] transition hover:bg-[#FF6A18]"
+            className="group inline-flex items-center justify-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(255,90,0,0.15)] transition hover:bg-[#FF6A18]"
           >
             <Plus size={17} />
             Nuevo barbero
@@ -519,8 +524,8 @@ export default function EquipoPage() {
               icon: CalendarDays,
             },
             {
-              label: "Revenue generado",
-              value: formatPrice(totalRevenue),
+              label: "Ingresos generado",
+              value: formatPrice(totalIngresos),
               helper: "Según turnos completados",
               icon: DollarSign,
             },
@@ -544,7 +549,7 @@ export default function EquipoPage() {
             return (
               <div
                 key={item.label}
-                className="rounded-2xl border border-white/[0.07] bg-[#101010] p-4 transition hover:border-white/[0.11]"
+                className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4 transition hover:border-white/[0.11]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -552,7 +557,7 @@ export default function EquipoPage() {
                       {item.label}
                     </div>
 
-                    <div className="mt-3 truncate text-[23px] font-semibold tracking-[-0.035em]">
+                    <div className="mt-3 truncate page-number text-[23px] font-semibold tracking-[-0.035em]">
                       {item.value}
                     </div>
 
@@ -561,7 +566,7 @@ export default function EquipoPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.035] p-2.5">
+                  <div className="rounded-[11px] border border-white/[0.06] bg-white/[0.035] p-2.5">
                     <Icon size={16} className="text-[#A1A1AA]" />
                   </div>
                 </div>
@@ -572,20 +577,20 @@ export default function EquipoPage() {
 
         {/* ANALYTICS */}
         <section className="mb-7 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_0.8fr]">
-          <div className="rounded-2xl border border-white/[0.07] bg-[#101010] p-5">
+          <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold">
                   Rendimiento del equipo
                 </div>
                 <div className="mt-1 text-xs text-[#71717A]">
-                  Revenue generado por cada miembro
+                  Ingresos generado por cada miembro
                 </div>
               </div>
 
               <div className="flex items-center gap-2 text-[11px] text-[#71717A]">
                 <span className="h-2 w-2 rounded-full bg-[#FF5A00]" />
-                Revenue
+                Ingresos
               </div>
             </div>
 
@@ -596,7 +601,7 @@ export default function EquipoPage() {
                 </div>
               ) : (
                 rankedTeam.map((barber, index) => {
-                  const maxRevenue =
+                  const maxIngresos =
                     rankedTeam[0]?.revenue || 1;
 
                   return (
@@ -632,7 +637,7 @@ export default function EquipoPage() {
                           style={{
                             width: `${Math.max(
                               3,
-                              (barber.revenue / maxRevenue) * 100
+                              (barber.revenue / maxIngresos) * 100
                             )}%`,
                           }}
                         />
@@ -644,7 +649,7 @@ export default function EquipoPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.07] bg-[#101010] p-5">
+          <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
             <div className="mb-5">
               <div className="text-sm font-semibold">
                 Distribución del trabajo
@@ -690,7 +695,7 @@ export default function EquipoPage() {
         </section>
 
         {/* TOOLBAR */}
-        <section className="mb-5 flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-[#101010] p-3 md:flex-row md:items-center md:justify-between">
+        <section className="mb-5 flex flex-col gap-3 rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-3 md:flex-row md:items-center md:justify-between">
           <div className="relative w-full md:max-w-md">
             <Search
               size={16}
@@ -701,11 +706,11 @@ export default function EquipoPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar miembro del equipo..."
-              className="h-10 w-full rounded-xl border border-white/[0.06] bg-[#0B0B0B] pl-10 pr-4 text-sm text-[#F5F5F4] outline-none placeholder:text-[#55555C] focus:border-[#FF5A00]/40"
+              className="h-10 w-full rounded-[11px] border border-white/[0.06] bg-[#0B0B0B] pl-10 pr-4 text-sm text-[#F5F5F4] outline-none placeholder:text-[#55555C] focus:border-[#FF5A00]/40"
             />
           </div>
 
-          <div className="flex items-center gap-1 rounded-xl bg-[#0B0B0B] p-1">
+          <div className="flex items-center gap-1 rounded-[11px] bg-[#0B0B0B] p-1">
             {[
               { key: "all", label: "Todos" },
               { key: "active", label: "Activos" },
@@ -737,17 +742,17 @@ export default function EquipoPage() {
             {[1, 2, 3].map((item) => (
               <div
                 key={item}
-                className="h-56 animate-pulse rounded-2xl border border-white/[0.07] bg-[#101010]"
+                className="h-56 animate-pulse rounded-[14px] border border-white/[0.07] bg-[#0F0F0F]"
               />
             ))}
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-400/10 bg-red-400/[0.04] p-10 text-center text-sm text-red-300">
+          <div className="rounded-[14px] border border-red-400/10 bg-red-400/[0.04] p-10 text-center text-sm text-red-300">
             {error}
           </div>
         ) : filteredTeam.length === 0 ? (
-          <div className="rounded-2xl border border-white/[0.07] bg-[#101010] p-14 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.035]">
+          <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-14 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] border border-white/[0.07] bg-white/[0.035]">
               <UserRound size={20} className="text-[#71717A]" />
             </div>
 
@@ -771,20 +776,20 @@ export default function EquipoPage() {
                   key={barber.id}
                   type="button"
                   onClick={() => setSelectedBarber(barber)}
-                  className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#101010] p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-[#121212]"
+                  className="group relative overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-[#121212]"
                 >
                   {isTop && (
-                    <div className="absolute right-4 top-4 rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] px-2 py-1 text-[10px] font-semibold text-[#FF7A33]">
-                      Top performer
+                    <div className="absolute right-4 top-4 rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] px-2 py-1 text-[10px] font-semibold text-[#FF6A18]">
+                      Mejor rendimiento
                     </div>
                   )}
 
                   <div className="mb-6 flex items-center gap-3">
-                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.045] text-sm font-semibold">
+                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-white/[0.08] bg-white/[0.045] text-sm font-semibold">
                       {getInitials(barber.name)}
 
                       <span
-                        className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#101010] ${
+                        className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0F0F0F] ${
                           barber.active
                             ? "bg-emerald-400"
                             : "bg-[#52525B]"
@@ -817,7 +822,7 @@ export default function EquipoPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.06] bg-[#0B0B0B]">
+                  <div className="grid grid-cols-3 overflow-hidden rounded-[11px] border border-white/[0.06] bg-[#0B0B0B]">
                     <div className="border-r border-white/[0.06] p-3">
                       <div className="text-[10px] uppercase tracking-[0.06em] text-[#55555C]">
                         Turnos
@@ -829,7 +834,7 @@ export default function EquipoPage() {
 
                     <div className="border-r border-white/[0.06] p-3">
                       <div className="text-[10px] uppercase tracking-[0.06em] text-[#55555C]">
-                        Revenue
+                        Ingresos
                       </div>
                       <div className="mt-1.5 text-sm font-semibold">
                         {formatPrice(barber.revenue)}
@@ -889,7 +894,7 @@ export default function EquipoPage() {
                 <div className="flex items-center justify-between px-6 py-5">
                   <div>
                     <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#55555C]">
-                      Team 360
+                      Equipo 360
                     </div>
 
                     <h2 className="mt-1 text-xl font-semibold tracking-[-0.025em]">
@@ -900,7 +905,7 @@ export default function EquipoPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedBarber(null)}
-                    className="rounded-xl border border-white/[0.06] bg-white/[0.035] p-2 text-[#71717A] transition hover:text-white"
+                    className="rounded-[11px] border border-white/[0.06] bg-white/[0.035] p-2 text-[#71717A] transition hover:text-white"
                   >
                     <X size={17} />
                   </button>
@@ -909,10 +914,10 @@ export default function EquipoPage() {
 
               <div className="space-y-6 p-6">
                 {/* PROFILE */}
-                <div className="rounded-2xl border border-white/[0.07] bg-[#101010] p-5">
+                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-lg font-semibold text-[#FF7A33]">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[14px] border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-lg font-semibold text-[#FF6A18]">
                         {getInitials(selectedBarber.name)}
                       </div>
 
@@ -953,7 +958,7 @@ export default function EquipoPage() {
                         setEditName(selectedBarber.name);
                         setShowEditModal(true);
                       }}
-                      className="rounded-xl border border-white/[0.07] bg-white/[0.035] p-2.5 text-[#8F8F96] transition hover:text-white"
+                      className="rounded-[11px] border border-white/[0.07] bg-white/[0.035] p-2.5 text-[#8F8F96] transition hover:text-white"
                     >
                       <Pencil size={15} />
                     </button>
@@ -981,7 +986,7 @@ export default function EquipoPage() {
                         icon: CalendarDays,
                       },
                       {
-                        label: "Revenue",
+                        label: "Ingresos",
                         value: formatPrice(selectedBarber.revenue),
                         icon: DollarSign,
                       },
@@ -1005,7 +1010,7 @@ export default function EquipoPage() {
                       return (
                         <div
                           key={item.label}
-                          className="rounded-xl border border-white/[0.07] bg-[#101010] p-4"
+                          className="rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] p-4"
                         >
                           <div className="flex items-center gap-2 text-[11px] text-[#71717A]">
                             <Icon size={13} />
@@ -1022,7 +1027,7 @@ export default function EquipoPage() {
                 </div>
 
                 {/* RECENT TREND */}
-                <div className="rounded-2xl border border-white/[0.07] bg-[#101010] p-5">
+                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-sm font-semibold">
@@ -1052,10 +1057,10 @@ export default function EquipoPage() {
                   <div className="mt-5 grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-[11px] text-[#71717A]">
-                        Revenue
+                        Ingresos
                       </div>
                       <div className="mt-1 text-xl font-semibold">
-                        {formatPrice(selectedBarber.recentRevenue)}
+                        {formatPrice(selectedBarber.recentIngresos)}
                       </div>
                     </div>
 
@@ -1079,7 +1084,7 @@ export default function EquipoPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-white/[0.07] bg-[#101010] p-4">
+                  <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
                     {selectedBarber.services.length === 0 ? (
                       <div className="py-4 text-center text-xs text-[#71717A]">
                         Todavía no hay servicios registrados.
@@ -1105,7 +1110,7 @@ export default function EquipoPage() {
                     Información
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border border-white/[0.07]">
+                  <div className="overflow-hidden rounded-[14px] border border-white/[0.07]">
                     <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3.5">
                       <span className="text-xs text-[#71717A]">
                         Incorporación
@@ -1157,7 +1162,7 @@ export default function EquipoPage() {
                       onClick={() => {
                         window.location.href = `/admin/turnos?barber=${selectedBarber.id}`;
                       }}
-                      className="flex w-full items-center justify-between rounded-xl border border-white/[0.07] bg-[#101010] px-4 py-3.5 text-sm transition hover:border-white/[0.12] hover:bg-[#121212]"
+                      className="flex w-full items-center justify-between rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] px-4 py-3.5 text-sm transition hover:border-white/[0.12] hover:bg-[#121212]"
                     >
                       <span className="flex items-center gap-2.5">
                         <CalendarDays size={15} />
@@ -1172,7 +1177,7 @@ export default function EquipoPage() {
                         setEditName(selectedBarber.name);
                         setShowEditModal(true);
                       }}
-                      className="flex w-full items-center justify-between rounded-xl border border-white/[0.07] bg-[#101010] px-4 py-3.5 text-sm transition hover:border-white/[0.12] hover:bg-[#121212]"
+                      className="flex w-full items-center justify-between rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] px-4 py-3.5 text-sm transition hover:border-white/[0.12] hover:bg-[#121212]"
                     >
                       <span className="flex items-center gap-2.5">
                         <Pencil size={15} />
@@ -1184,7 +1189,7 @@ export default function EquipoPage() {
                     <button
                       type="button"
                       onClick={() => toggleBarber(selectedBarber)}
-                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3.5 text-sm transition ${
+                      className={`flex w-full items-center justify-between rounded-[11px] border px-4 py-3.5 text-sm transition ${
                         selectedBarber.active
                           ? "border-red-400/10 bg-red-400/[0.035] text-red-300 hover:bg-red-400/[0.06]"
                           : "border-emerald-400/10 bg-emerald-400/[0.035] text-emerald-300 hover:bg-emerald-400/[0.06]"
@@ -1201,7 +1206,7 @@ export default function EquipoPage() {
 
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between rounded-xl border border-white/[0.07] bg-[#101010] px-4 py-3.5 text-sm text-[#A1A1AA] transition hover:border-white/[0.12] hover:bg-[#121212]"
+                      className="flex w-full items-center justify-between rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] px-4 py-3.5 text-sm text-[#A1A1AA] transition hover:border-white/[0.12] hover:bg-[#121212]"
                     >
                       <span className="flex items-center gap-2.5">
                         <MoreHorizontal size={15} />
@@ -1226,7 +1231,7 @@ export default function EquipoPage() {
         {/* CREATE MODAL */}
         {showCreateModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#101010] p-6 shadow-2xl">
+            <div className="w-full max-w-md rounded-[14px] border border-white/[0.08] bg-[#0F0F0F] p-6 shadow-2xl">
               <div className="mb-6 flex items-start justify-between">
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#55555C]">
@@ -1240,7 +1245,7 @@ export default function EquipoPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="rounded-xl p-2 text-[#71717A] hover:bg-white/[0.05] hover:text-white"
+                  className="rounded-[11px] p-2 text-[#71717A] hover:bg-white/[0.05] hover:text-white"
                 >
                   <X size={17} />
                 </button>
@@ -1258,7 +1263,7 @@ export default function EquipoPage() {
                     if (event.key === "Enter") createBarber();
                   }}
                   placeholder="Ej. Manuel Cladera"
-                  className="h-11 w-full rounded-xl border border-white/[0.07] bg-[#0B0B0B] px-4 text-sm text-white outline-none placeholder:text-[#55555C] focus:border-[#FF5A00]/40"
+                  className="h-11 w-full rounded-[11px] border border-white/[0.07] bg-[#0B0B0B] px-4 text-sm text-white outline-none placeholder:text-[#55555C] focus:border-[#FF5A00]/40"
                 />
               </label>
 
@@ -1266,7 +1271,7 @@ export default function EquipoPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="rounded-xl border border-white/[0.07] px-4 py-2.5 text-sm text-[#A1A1AA] hover:bg-white/[0.04]"
+                  className="rounded-[11px] border border-white/[0.07] px-4 py-2.5 text-sm text-[#A1A1AA] hover:bg-white/[0.04]"
                 >
                   Cancelar
                 </button>
@@ -1275,7 +1280,7 @@ export default function EquipoPage() {
                   type="button"
                   disabled={saving || !newName.trim()}
                   onClick={createBarber}
-                  className="rounded-xl bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#FF6A18] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#FF6A18] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {saving ? "Guardando..." : "Crear barbero"}
                 </button>
@@ -1287,11 +1292,11 @@ export default function EquipoPage() {
         {/* EDIT MODAL */}
         {showEditModal && selectedBarber && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#101010] p-6 shadow-2xl">
+            <div className="w-full max-w-md rounded-[14px] border border-white/[0.08] bg-[#0F0F0F] p-6 shadow-2xl">
               <div className="mb-6 flex items-start justify-between">
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#55555C]">
-                    Team 360
+                    Equipo 360
                   </div>
                   <h2 className="mt-1 text-xl font-semibold">
                     Editar perfil
@@ -1301,7 +1306,7 @@ export default function EquipoPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="rounded-xl p-2 text-[#71717A] hover:bg-white/[0.05] hover:text-white"
+                  className="rounded-[11px] p-2 text-[#71717A] hover:bg-white/[0.05] hover:text-white"
                 >
                   <X size={17} />
                 </button>
@@ -1318,7 +1323,7 @@ export default function EquipoPage() {
                   onKeyDown={(event) => {
                     if (event.key === "Enter") updateBarber();
                   }}
-                  className="h-11 w-full rounded-xl border border-white/[0.07] bg-[#0B0B0B] px-4 text-sm text-white outline-none focus:border-[#FF5A00]/40"
+                  className="h-11 w-full rounded-[11px] border border-white/[0.07] bg-[#0B0B0B] px-4 text-sm text-white outline-none focus:border-[#FF5A00]/40"
                 />
               </label>
 
@@ -1326,7 +1331,7 @@ export default function EquipoPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="rounded-xl border border-white/[0.07] px-4 py-2.5 text-sm text-[#A1A1AA] hover:bg-white/[0.04]"
+                  className="rounded-[11px] border border-white/[0.07] px-4 py-2.5 text-sm text-[#A1A1AA] hover:bg-white/[0.04]"
                 >
                   Cancelar
                 </button>
@@ -1335,7 +1340,7 @@ export default function EquipoPage() {
                   type="button"
                   disabled={saving || !editName.trim()}
                   onClick={updateBarber}
-                  className="rounded-xl bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#FF6A18] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#FF6A18] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {saving ? "Guardando..." : "Guardar cambios"}
                 </button>
@@ -1346,7 +1351,7 @@ export default function EquipoPage() {
 
         {/* TOAST */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-[100] rounded-xl border border-white/[0.08] bg-[#151515] px-4 py-3 text-sm text-[#E4E4E7] shadow-2xl">
+          <div className="fixed bottom-6 right-6 z-[100] rounded-[11px] border border-white/[0.08] bg-[#121212] px-4 py-3 text-sm text-[#E4E4E7] shadow-2xl">
             {toast}
           </div>
         )}

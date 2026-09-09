@@ -21,7 +21,12 @@ import {
   UserPlus,
   Sparkles,
 } from "lucide-react";
+import { DM_Mono, Manrope, Sora } from "next/font/google";
 import { createClient } from "@/lib/supabase/client";
+
+const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-barberos-ui" });
+const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-barberos-display" });
+const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "500"], variable: "--font-barberos-data" });
 
 type Appointment = {
   id: string;
@@ -363,79 +368,72 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080909] text-[#f4f4f2] selection:bg-[#ff5a00]/30">
+    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen bg-[#070707] text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
       <style jsx>{`
         .agenda-shell {
-          background:
-            radial-gradient(circle at 76% -10%, rgba(255,90,0,.075), transparent 28%),
-            linear-gradient(180deg, rgba(255,255,255,.012), transparent 18%);
+          --ink: #070707; --surface: #0b0b0b; --surface-2: #0f0f0f;
+          --line: rgba(255,255,255,.075); --line-soft: rgba(255,255,255,.05);
+          --orange: #ff5a00; --orange-bright: #ff7a22;
+          font-family: var(--font-barberos-ui), Manrope, sans-serif;
+          background: radial-gradient(circle at 78% -8%, rgba(255,90,0,.065), transparent 24%), linear-gradient(180deg, rgba(255,255,255,.012), transparent 22%);
         }
+        .agenda-display { font-family: var(--font-barberos-display), Sora, sans-serif; }
+        .agenda-data { font-family: var(--font-barberos-data), DM Mono, monospace; font-variant-numeric: tabular-nums; }
         .panel {
-          background: rgba(15,16,16,.82);
-          border: 1px solid rgba(255,255,255,.075);
-          box-shadow: 0 18px 55px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.018);
-          backdrop-filter: blur(16px);
+          position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 16px;
+          background: linear-gradient(180deg, rgba(255,255,255,.018), transparent 30%), rgba(11,11,11,.88);
+          box-shadow: 0 20px 60px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.018);
         }
-        .hairline { border-color: rgba(255,255,255,.065); }
-        .soft-text { color: rgba(245,245,244,.68); }
-        .muted-text { color: rgba(245,245,244,.43); }
-        .tiny-label { color: rgba(245,245,244,.38); letter-spacing: .14em; }
-        .orange-line { box-shadow: inset 2px 0 0 #ff5a00; }
-        .appointment-card { transition: transform .18s ease, border-color .18s ease, background .18s ease; }
-        .appointment-card:hover { transform: translateY(-1px); border-color: rgba(255,90,0,.30); background: rgba(255,255,255,.045); }
-        .grid-line { border-color: rgba(255,255,255,.045); }
-        .scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.10); border-radius: 999px; }
+        .panel::before { content: ""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(360px circle at 70% -10%, rgba(255,90,0,.045), transparent 65%); opacity:.55; }
+        .hairline { border-color: var(--line-soft); }
+        .appointment-card { transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+        .appointment-card:hover { transform: translateY(-1px); border-color: rgba(255,90,0,.28); background: rgba(255,255,255,.045); box-shadow: 0 12px 30px rgba(0,0,0,.18); }
+        .grid-line { border-color: rgba(255,255,255,.035); }
+        .scrollbar { scrollbar-width: none; }
+        .scrollbar::-webkit-scrollbar { display:none; }
+        .agenda-control { border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.025); transition:all .18s ease; }
+        .agenda-control:hover { border-color:rgba(255,255,255,.13); background:rgba(255,255,255,.045); }
+        .agenda-control:focus { outline:none; border-color:rgba(255,90,0,.4); box-shadow:0 0 0 3px rgba(255,90,0,.07); }
+        .agenda-primary { background:#ff5a00; box-shadow:0 10px 28px rgba(255,90,0,.12); transition:all .18s ease; }
+        .agenda-primary:hover { background:#ff6a18; transform:translateY(-1px); box-shadow:0 14px 34px rgba(255,90,0,.2); }
       `}</style>
 
       <div className="agenda-shell min-h-screen">
-        <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-[#080909]/90 backdrop-blur-xl">
-          <div className="mx-auto max-w-[1800px] px-6 py-5 xl:px-8">
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-              <div className="min-w-0">
-                <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.20em] text-[#ff6a18]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00] shadow-[0_0_12px_rgba(255,90,0,.55)]" />
-                  Operations / Schedule
-                </div>
-                <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
-                  <h1 className="text-[30px] font-semibold tracking-[-0.04em] text-white sm:text-[34px]">Agenda</h1>
-                  <span className="mb-1 text-sm text-white/35">{periodLabel}</span>
-                </div>
-                <p className="mt-1 text-sm text-white/55">Control operativo de turnos, disponibilidad y atención.</p>
+        <div className="relative mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
+        <header className="mb-7">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#ff6a18]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00] shadow-[0_0_12px_rgba(255,90,0,.5)]" />
+                Operación
               </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex rounded-xl border border-white/[0.08] bg-white/[0.025] p-1">
-                  {(["day", "week"] as ViewMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => { setViewMode(mode); setSelectedAppointment(null); }}
-                      className={`rounded-lg px-3 py-2 text-xs font-medium transition ${viewMode === mode ? "bg-white/[0.09] text-white" : "text-white/45 hover:text-white/75"}`}
-                    >
-                      {mode === "day" ? "Día" : "Semana"}
-                    </button>
-                  ))}
-                </div>
-                <button type="button" onClick={() => loadAppointments(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] text-white/55 transition hover:border-white/15 hover:text-white" aria-label="Actualizar agenda">
-                  <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
-                </button>
-                <button type="button" onClick={openNewAppointment} className="group flex items-center gap-2 rounded-xl bg-[#ff5a00] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(255,90,0,.14)] transition hover:bg-[#ff6a18] hover:shadow-[0_12px_35px_rgba(255,90,0,.22)]">
-                  <Plus size={16} className="transition group-hover:rotate-90" />
-                  Nuevo turno
-                </button>
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
+                <h1 className="agenda-display text-[42px] font-semibold leading-[.98] tracking-[-0.055em] text-white sm:text-[46px]">Agenda</h1>
+                <span className="mb-1.5 text-[12px] font-medium capitalize text-white/38">{periodLabel}</span>
               </div>
+              <p className="mt-2 max-w-xl text-[12px] leading-5 text-white/48">Organizá la jornada, controlá los turnos y gestioná cada atención desde un solo lugar.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 rounded-[11px] border border-white/[0.07] bg-white/[0.025] p-1">
+                {(["day", "week"] as ViewMode[]).map((mode) => (
+                  <button key={mode} type="button" onClick={() => { setViewMode(mode); setSelectedAppointment(null); }} className={`rounded-[8px] px-4 text-[10px] font-semibold transition ${viewMode === mode ? "bg-white/[0.09] text-white" : "text-white/35 hover:text-white/70"}`}>
+                    {mode === "day" ? "Día" : "Semana"}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => loadAppointments(true)} aria-label="Actualizar agenda" className="agenda-control flex h-10 w-10 items-center justify-center rounded-[11px] text-white/45"><RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /></button>
+              <button type="button" onClick={openNewAppointment} className="agenda-primary flex h-10 items-center gap-2 rounded-[11px] px-4 text-[10px] font-semibold text-white"><Plus size={14} />Nuevo turno</button>
             </div>
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1800px] px-6 py-6 xl:px-8 xl:py-8">
-          <section className="panel mb-5 rounded-2xl p-3">
+        <main className="pb-10">
+          <section className="panel mb-5 rounded-[16px] p-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => navigatePeriod(-1)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/55 transition hover:border-white/15 hover:text-white"><ChevronLeft size={17} /></button>
-                <button type="button" onClick={goToday} className={`h-10 rounded-xl border px-4 text-xs font-semibold transition ${isToday ? "border-[#ff5a00]/35 bg-[#ff5a00]/10 text-[#ff8a52]" : "border-white/[0.07] bg-white/[0.025] text-white/65 hover:border-white/15 hover:text-white"}`}>Hoy</button>
-                <button type="button" onClick={() => navigatePeriod(1)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/55 transition hover:border-white/15 hover:text-white"><ChevronRight size={17} /></button>
+                <button type="button" onClick={() => navigatePeriod(-1)} className="agenda-control flex h-10 w-10 items-center justify-center rounded-[10px] text-white/45"><ChevronLeft size={17} /></button>
+                <button type="button" onClick={goToday} className={`agenda-control h-10 rounded-[10px] px-4 text-[10px] font-semibold ${isToday ? "border-[#ff5a00]/35 bg-[#ff5a00]/10 text-[#ff7a22]" : "text-white/55"}`}>Hoy</button>
+                <button type="button" onClick={() => navigatePeriod(1)} className="agenda-control flex h-10 w-10 items-center justify-center rounded-[10px] text-white/45"><ChevronRight size={17} /></button>
                 <div className="ml-2 hidden h-7 w-px bg-white/[0.07] sm:block" />
                 <div className="hidden sm:block">
                   <p className="text-xs font-semibold capitalize text-white/85">{viewMode === "day" ? formatDateLong(selectedDate) : `Semana del ${formatDateShort(weekDays[0])}`}</p>
@@ -444,12 +442,12 @@ export default function TurnosPage() {
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="relative min-w-[230px]">
+                <div className="relative min-w-[250px]">
                   <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, servicio..." className="h-10 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-9 pr-3 text-xs text-white outline-none placeholder:text-white/25 focus:border-[#ff5a00]/35" />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, servicio..." className="agenda-control h-10 w-full rounded-[10px] pl-9 pr-3 text-[10px] text-white/78 placeholder:text-white/25" />
                 </div>
                 <div className="relative">
-                  <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="h-10 min-w-[150px] appearance-none rounded-xl border border-white/[0.07] bg-[#0d0e0e] px-3 pr-8 text-xs text-white/65 outline-none focus:border-[#ff5a00]/35">
+                  <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="agenda-control h-10 min-w-[154px] appearance-none rounded-[10px] px-3 pr-8 text-[10px] text-white/55 outline-none">
                     <option value="all">Todos los barberos</option>
                     {barbers.map((barber) => <option key={barber} value={barber}>{barber}</option>)}
                   </select>
@@ -624,19 +622,22 @@ export default function TurnosPage() {
         />
       )}
     </div>
+  </div>
   );
 }
 
 function Metric({ label, value, detail, icon, accent = false, className = "" }: { label: string; value: string; detail: string; icon: React.ReactNode; accent?: boolean; className?: string }) {
   return (
-    <div className={`panel relative overflow-hidden rounded-2xl p-4 ${className}`}>
-      {accent && <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/70 to-transparent" />}
+    <div className={`panel relative min-h-[154px] overflow-hidden rounded-[16px] p-5 ${className}`}>
+      {accent && <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/75 to-transparent" />}
       <div className="flex items-center justify-between">
-        <span className={`flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[.16em] ${accent ? "text-white/52" : "text-white/38"}`}>{icon}{label}</span>
-        <span className="text-[9px] text-white/22">LIVE</span>
+        <span className={`flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.17em] ${accent ? "text-white/48" : "text-white/30"}`}>
+          <span className={accent ? "text-[#ff6a18]" : "text-white/32"}>{icon}</span>{label}
+        </span>
+        <span className="text-[7px] font-medium uppercase tracking-[0.15em] text-white/16">período</span>
       </div>
-      <p className="mt-3 text-[25px] font-semibold tracking-[-.04em] tabular-nums text-white">{value}</p>
-      <p className="mt-1 text-[10px] text-white/32">{detail}</p>
+      <p className="agenda-display mt-7 text-[34px] font-semibold leading-none tracking-[-0.06em] text-white">{value}</p>
+      <p className="mt-3 text-[9px] leading-4 text-white/28">{detail}</p>
     </div>
   );
 }
@@ -662,8 +663,8 @@ function EmptyAgenda({ onCreate }: { onCreate: () => void }) {
 function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appointment: Appointment | null; onClose: () => void; onStatus: (appointment: Appointment, status: string) => void; actionLoading: string }) {
   if (!appointment) {
     return (
-      <aside className="panel h-fit overflow-hidden rounded-2xl">
-        <div className="border-b hairline px-5 py-4"><p className="text-sm font-semibold text-white">Detalle</p><p className="mt-0.5 text-[11px] text-white/35">Seleccioná un turno para abrir Customer + Appointment 360.</p></div>
+      <aside className="panel h-fit overflow-hidden rounded-[16px]">
+        <div className="border-b hairline px-5 py-4"><p className="text-sm font-semibold text-white">Detalle</p><p className="mt-0.5 text-[11px] text-white/35">Seleccioná un turno para abrir la información del cliente y gestionar el turno.</p></div>
         <div className="flex min-h-[420px] flex-col items-center justify-center px-8 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]"><Clock3 size={18} className="text-white/25" /></div><p className="mt-4 text-xs font-medium text-white/55">Sin selección</p><p className="mt-1 max-w-[220px] text-[10px] leading-5 text-white/25">Elegí un turno de la agenda para gestionar su estado y consultar la información del cliente.</p></div>
       </aside>
     );
@@ -674,9 +675,9 @@ function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appoin
   const cancelled = appointment.status === "cancelled";
 
   return (
-    <aside className="panel h-fit overflow-hidden rounded-2xl 2xl:sticky 2xl:top-[118px]">
+    <aside className="panel h-fit overflow-hidden rounded-[16px] 2xl:sticky 2xl:top-[118px]">
       <div className="flex items-start justify-between border-b hairline px-5 py-4">
-        <div><p className="text-sm font-semibold text-white">Detalle del turno</p><p className="mt-0.5 text-[10px] text-white/35">Appointment 360</p></div>
+        <div><p className="text-sm font-semibold text-white">Detalle del turno</p><p className="mt-0.5 text-[10px] text-white/35">Información de la atención</p></div>
         <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-white/30 hover:bg-white/[0.04] hover:text-white"><X size={14} /></button>
       </div>
 
@@ -727,7 +728,7 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
-        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva operación</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[11px] text-white/35">Agregá una nueva reserva a la agenda.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
+        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[11px] text-white/35">Agregá una nueva reserva a la agenda.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>

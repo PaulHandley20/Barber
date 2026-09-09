@@ -369,7 +369,7 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
-function RevenueChart({
+function IngresosChart({
   values,
   labels,
 }: {
@@ -589,6 +589,37 @@ function Donut({
 }
 
 export default function AdminDashboardPage() {
+
+  useEffect(() => {
+    const surfaces = document.querySelectorAll<HTMLElement>(
+      ".barberos-dashboard .metric-card, .barberos-dashboard .panel-surface"
+    );
+
+    const handlers = new Map<HTMLElement, (event: PointerEvent) => void>();
+
+    surfaces.forEach((element) => {
+      const handler = (event: PointerEvent) => {
+        const rect = element.getBoundingClientRect();
+        element.style.setProperty(
+          "--spot-x",
+          `${((event.clientX - rect.left) / rect.width) * 100}%`
+        );
+        element.style.setProperty(
+          "--spot-y",
+          `${((event.clientY - rect.top) / rect.height) * 100}%`
+        );
+      };
+
+      handlers.set(element, handler);
+      element.addEventListener("pointermove", handler);
+    });
+
+    return () => {
+      handlers.forEach((handler, element) => {
+        element.removeEventListener("pointermove", handler);
+      });
+    };
+  }, []);
   const supabase = createClient();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -690,12 +721,12 @@ export default function AdminDashboardPage() {
     [previousPeriodAppointments]
   );
 
-  const previousPeriodRevenue = useMemo(
+  const previousPeriodIngresos = useMemo(
     () => previousCompletedAppointments.reduce((total, appointment) => total + Number(appointment.service?.price ?? 0), 0),
     [previousCompletedAppointments]
   );
 
-  const periodRevenue = useMemo(
+  const periodIngresos = useMemo(
     () =>
       completedPeriodAppointments.reduce(
         (total, appointment) => total + Number(appointment.service?.price ?? 0),
@@ -704,13 +735,13 @@ export default function AdminDashboardPage() {
     [completedPeriodAppointments]
   );
 
-  const periodDelta = previousPeriodRevenue
-    ? ((periodRevenue - previousPeriodRevenue) / previousPeriodRevenue) * 100
-    : periodRevenue > 0
+  const periodDelta = previousPeriodIngresos
+    ? ((periodIngresos - previousPeriodIngresos) / previousPeriodIngresos) * 100
+    : periodIngresos > 0
       ? 100
       : 0;
 
-  const todayRevenue = useMemo(
+  const todayIngresos = useMemo(
     () =>
       activeTodayAppointments.reduce(
         (total, appointment) => total + Number(appointment.service?.price ?? 0),
@@ -720,7 +751,7 @@ export default function AdminDashboardPage() {
   );
 
   const averageTicket = completedPeriodAppointments.length
-    ? periodRevenue / completedPeriodAppointments.length
+    ? periodIngresos / completedPeriodAppointments.length
     : 0;
 
   const uniqueTodayClients = useMemo(
@@ -1329,6 +1360,71 @@ export default function AdminDashboardPage() {
         }
 
 
+
+        .barberos-dashboard .metric-card,
+        .barberos-dashboard .panel-surface {
+          position: relative;
+          isolation: isolate;
+        }
+
+        .barberos-dashboard .metric-card::after,
+        .barberos-dashboard .panel-surface::after {
+          content: "";
+          pointer-events: none;
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background:
+            radial-gradient(
+              420px circle at var(--spot-x, 50%) var(--spot-y, -10%),
+              rgba(255, 90, 0, 0.055),
+              transparent 42%
+            );
+          opacity: 0;
+          transition: opacity 260ms ease;
+          z-index: -1;
+        }
+
+        .barberos-dashboard .metric-card:hover::after,
+        .barberos-dashboard .panel-surface:hover::after {
+          opacity: 1;
+        }
+
+        .barberos-dashboard .metric-card:hover {
+          border-color: rgba(255,255,255,0.105) !important;
+          transform: translateY(-1px);
+        }
+
+        .barberos-dashboard .metric-card,
+        .barberos-dashboard .panel-surface {
+          transition:
+            border-color 220ms ease,
+            transform 220ms cubic-bezier(.22,1,.36,1);
+        }
+
+        .barberos-dashboard .executive-label {
+          color: rgba(255,255,255,.42);
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+        }
+
+        .barberos-dashboard .executive-value {
+          color: rgba(255,255,255,.92);
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .barberos-dashboard .hero-title-accent {
+          display: inline-block;
+          width: 30px;
+          height: 1px;
+          margin-left: 2px;
+          vertical-align: middle;
+          background: linear-gradient(90deg, rgba(255,90,0,.75), transparent);
+        }
+
         .barberos-dashboard .period-control button {
           min-width: 78px;
         }
@@ -1380,16 +1476,16 @@ export default function AdminDashboardPage() {
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="eyebrow text-white/72">BarberOS</span>
                 <span className="text-white/10">/</span>
-                <span className="eyebrow text-[#ff6a18]">Operations Intelligence</span>
-                <span className="ml-1 hidden h-px w-10 bg-gradient-to-r from-orange-500/55 to-transparent sm:block" />
+                <span className="eyebrow text-[#ff6a18]">Inteligencia operativa</span>
+                <span className="hero-title-accent hidden sm:inline-block" />
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="display-title text-[31px] text-white sm:text-[38px]">
+                <h1 className="display-title text-[34px] text-white sm:text-[42px]">
                   Dashboard
                 </h1>
                 <span className="inline-flex items-center gap-2 border-l border-white/10 pl-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/74">
                   <span className="status-led h-1.5 w-1.5 rounded-full bg-emerald-400 text-emerald-400" />
-                  Online
+                  En línea
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -1460,9 +1556,9 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-4 border-b border-white/[0.055] px-4 py-3 sm:border-r xl:border-b-0">
               <div className="flex items-center gap-2.5">
                 <span className={`status-led h-1.5 w-1.5 rounded-full ${error ? "bg-red-400 text-red-400" : "bg-emerald-400 text-emerald-400"}`} />
-                <span className="text-[10px] font-medium text-white/79">Data sync</span>
+                <span className="text-[10px] font-medium text-white/79">Sincronización</span>
               </div>
-              <span className="data-emphasis text-[10px] text-white/74">{error ? "ERROR" : loading ? "SYNC" : "ONLINE"}</span>
+              <span className="data-emphasis text-[10px] text-white/74">{error ? "ERROR" : loading ? "SINCRONIZANDO" : "EN LÍNEA"}</span>
             </div>
 
             <div className="flex items-center justify-between gap-4 border-b border-white/[0.055] px-4 py-3 sm:border-b-0 xl:border-r">
@@ -1476,8 +1572,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="flex items-center justify-between gap-4 px-4 py-3">
-              <span className="text-[10px] font-medium text-white/72">Revenue · {range === "DAY" ? "día" : range === "WEEK" ? "semana" : range === "MONTH" ? "mes" : "año"}</span>
-              <span className="data-emphasis text-[10px] text-[#ff7a26]">{formatCurrency(periodRevenue)}</span>
+              <span className="text-[10px] font-medium text-white/72">Ingresos · {range === "DAY" ? "día" : range === "WEEK" ? "semana" : range === "MONTH" ? "mes" : "año"}</span>
+              <span className="data-emphasis text-[10px] text-[#ff7a26]">{formatCurrency(periodIngresos)}</span>
             </div>
           </section>
 
@@ -1501,7 +1597,7 @@ export default function AdminDashboardPage() {
               <div className="mt-7 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-[27px] font-semibold tracking-[-0.035em] text-white numeric-value">
-                    {loading ? "—" : <AnimatedNumber value={periodRevenue} prefix="$" />}
+                    {loading ? "—" : <AnimatedNumber value={periodIngresos} prefix="$" />}
                   </p>
                   <p className="mt-1 text-xs text-white/70">Ingresos completados</p>
                 </div>
@@ -1561,7 +1657,7 @@ export default function AdminDashboardPage() {
             <Panel>
               <div className="flex flex-col gap-4 border-b border-white/[0.06] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <SectionHeader
-                  eyebrow="Business performance"
+                  eyebrow="Rendimiento del negocio"
                   title="Evolución de ingresos"
                   description={`Ingresos completados · ${periodTitle(anchorDate, range)}`}
                 />
@@ -1573,9 +1669,9 @@ export default function AdminDashboardPage() {
               <div className="p-5 sm:p-6">
                 <div className="mb-4 flex items-end justify-between">
                   <div>
-                    <p className="text-[24px] font-semibold tracking-[-0.03em] text-white numeric-value">{formatCurrency(periodRevenue)}</p>
+                    <p className="text-[24px] font-semibold tracking-[-0.03em] text-white numeric-value">{formatCurrency(periodIngresos)}</p>
                     <div className="mt-1 flex items-center gap-2">
-                      <p className="meta-label text-white/72">Revenue actual</p>
+                      <p className="meta-label text-white/72">Ingresos actuales</p>
                       <span className={`text-[9px] font-semibold ${periodDelta >= 0 ? "text-emerald-300" : "text-red-300"}`}>
                         {periodDelta >= 0 ? "+" : ""}{Math.round(periodDelta)}% vs anterior
                       </span>
@@ -1585,13 +1681,13 @@ export default function AdminDashboardPage() {
                     {range === "YEAR" ? "12 meses" : range === "MONTH" ? "5 semanas" : range === "WEEK" ? "7 días" : "24 horas"}
                   </span>
                 </div>
-                <RevenueChart values={revenueSeries.map((item) => item.value)} labels={revenueSeries.map((item) => item.label)} />
+                <IngresosChart values={revenueSeries.map((item) => item.value)} labels={revenueSeries.map((item) => item.label)} />
               </div>
             </Panel>
 
             <Panel>
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Now" title="Próximo turno" description="La próxima atención de la agenda" />
+                <SectionHeader eyebrow="Ahora" title="Próximo turno" description="La próxima atención de la agenda" />
               </div>
               <div className="p-5 sm:p-6">
                 {nextAppointment ? (
@@ -1647,7 +1743,7 @@ export default function AdminDashboardPage() {
           <section className="mt-5 grid gap-5 lg:grid-cols-12">
             <Panel className="lg:col-span-7">
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Operations" title="Agenda de hoy" description={`${activeTodayAppointments.length} turnos activos · ${completedToday} completados · ${cancelledToday} cancelados`} action={<Link href="/admin/turnos" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Ver agenda <ChevronRight size={13} /></Link>} />
+                <SectionHeader eyebrow="Operación" title="Agenda de hoy" description={`${activeTodayAppointments.length} turnos activos · ${completedToday} completados · ${cancelledToday} cancelados`} action={<Link href="/admin/turnos" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Ver agenda <ChevronRight size={13} /></Link>} />
               </div>
               <div>
                 {loading ? (
@@ -1685,7 +1781,7 @@ export default function AdminDashboardPage() {
 
             <Panel className="lg:col-span-5">
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Daily pulse" title="Estado de la operación" description="Distribución del período seleccionado" />
+                <SectionHeader eyebrow="Pulso operativo" title="Estado de la operación" description="Distribución del período seleccionado" />
               </div>
               <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
                 <Donut completed={statusCounts.completed} cancelled={statusCounts.cancelled} pending={statusCounts.pending} />
@@ -1702,7 +1798,7 @@ export default function AdminDashboardPage() {
           <section className="mt-5 grid gap-5 lg:grid-cols-12">
             <Panel className="lg:col-span-5">
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Catalog performance" title="Servicios más solicitados" description="Volumen y facturación del período" action={<Link href="/admin/servicios" className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Gestionar</Link>} />
+                <SectionHeader eyebrow="Rendimiento del catálogo" title="Servicios más solicitados" description="Volumen y facturación del período" action={<Link href="/admin/servicios" className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Gestionar</Link>} />
               </div>
               <div className="p-5 sm:p-6">
                 {serviceStats.length === 0 ? <p className="py-8 text-center text-xs text-white/70">Todavía no hay servicios registrados.</p> : <div className="space-y-5">
@@ -1724,7 +1820,7 @@ export default function AdminDashboardPage() {
 
             <Panel className="lg:col-span-4">
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Client health" title="CRM signals" description="Oportunidades detectadas en la base" />
+                <SectionHeader eyebrow="Salud de clientes" title="Señales del CRM" description="Oportunidades detectadas en la base" />
               </div>
               <div className="divide-y divide-white/[0.045]">
                 <div className="p-5 sm:p-6">
@@ -1744,7 +1840,7 @@ export default function AdminDashboardPage() {
 
             <Panel className="lg:col-span-3">
               <div className="border-b border-white/[0.06] px-5 py-5">
-                <SectionHeader eyebrow="Business snapshot" title="Highlights" />
+                <SectionHeader eyebrow="Resumen del negocio" title="Indicadores clave" />
               </div>
               <div className="space-y-5 p-5">
                 <div><p className="text-[9px] uppercase tracking-[0.16em] text-white/70">Servicio líder</p><p className="mt-1 truncate text-sm font-medium text-white/81">{topService?.name ?? "—"}</p><p className="mt-1 text-[10px] text-[#ff6a18]">{topService ? `${topService.count} reservas` : "Sin datos"}</p></div>
@@ -1757,7 +1853,7 @@ export default function AdminDashboardPage() {
           <section className="mt-5 grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">
             <Panel>
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Upcoming" title="Próximos turnos" description="La agenda inmediata del negocio" action={<Link href="/admin/turnos" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Ver todo <ChevronRight size={13} /></Link>} />
+                <SectionHeader eyebrow="Próximos" title="Próximos turnos" description="La agenda inmediata del negocio" action={<Link href="/admin/turnos" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Ver todo <ChevronRight size={13} /></Link>} />
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px] text-left">
@@ -1771,9 +1867,9 @@ export default function AdminDashboardPage() {
             <Panel>
               <div className="border-b border-white/[0.06] px-5 py-5">
                 <SectionHeader
-                  eyebrow="Month over month"
+                  eyebrow="Comparación mensual"
                   title="Comparación mensual"
-                  description="Revenue de los últimos 6 meses"
+                  description="Ingresos de los últimos 6 meses"
                 />
               </div>
               <div className="p-5">
@@ -1781,11 +1877,11 @@ export default function AdminDashboardPage() {
                 <div className="mt-5 grid grid-cols-2 gap-2">
                   <div className="rounded-[14px] border border-white/[0.055] bg-white/[0.02] p-3">
                     <p className="text-[9px] uppercase tracking-[0.14em] text-white/72">Período</p>
-                    <p className="mt-1 truncate text-sm font-semibold text-white">{formatCurrency(periodRevenue)}</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-white">{formatCurrency(periodIngresos)}</p>
                   </div>
                   <div className="rounded-[14px] border border-white/[0.055] bg-white/[0.02] p-3">
                     <p className="text-[9px] uppercase tracking-[0.14em] text-white/72">Anterior</p>
-                    <p className="mt-1 truncate text-sm font-semibold text-white/82">{formatCurrency(previousPeriodRevenue)}</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-white/82">{formatCurrency(previousPeriodIngresos)}</p>
                   </div>
                 </div>
               </div>
@@ -1795,7 +1891,7 @@ export default function AdminDashboardPage() {
           <section className="mt-5 grid gap-5 lg:grid-cols-2">
             <Panel>
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Retention" title="Clientes a reactivar" description="Señales de inactividad para acciones comerciales" action={<Link href="/admin/clientes" className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Abrir CRM</Link>} />
+                <SectionHeader eyebrow="Retención" title="Clientes a reactivar" description="Señales de inactividad para acciones comerciales" action={<Link href="/admin/clientes" className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Abrir CRM</Link>} />
               </div>
               <div className="divide-y divide-white/[0.045]">
                 {atRiskCustomers.length === 0 ? <div className="px-6 py-10 text-center text-xs text-white/70">No detectamos clientes en riesgo con los datos actuales.</div> : atRiskCustomers.map((client) => <div key={client.phone || client.name} className="interactive-row flex items-center justify-between gap-4 px-5 py-4 sm:px-6"><div className="min-w-0"><p className="truncate text-xs font-medium text-white/81">{client.name}</p><p className="mt-1 text-[10px] text-white/70">Última visita · {shortDate(client.lastVisit)}</p></div><span className="rounded-full border border-orange-500/15 bg-orange-500/[0.05] px-2.5 py-1 text-[9px] font-semibold text-[#ff6a18]">Reactivar</span></div>) }
@@ -1804,7 +1900,7 @@ export default function AdminDashboardPage() {
 
             <Panel>
               <div className="border-b border-white/[0.06] px-5 py-5 sm:px-6">
-                <SectionHeader eyebrow="Customer value" title="Clientes de mayor valor" description={`Ranking por facturación · ${range === "DAY" ? "día" : range === "WEEK" ? "semana" : range === "MONTH" ? "mes" : "año"}`} action={<Link href="/admin/clientes" className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Customer 360</Link>} />
+                <SectionHeader eyebrow="Valor de clientes" title="Clientes de mayor valor" description={`Ranking por facturación · ${range === "DAY" ? "día" : range === "WEEK" ? "semana" : range === "MONTH" ? "mes" : "año"}`} action={<Link href="/admin/clientes" className="text-[10px] font-semibold uppercase tracking-[0.13em] text-[#ff6a18]">Cliente 360</Link>} />
               </div>
               <div className="divide-y divide-white/[0.045]">
                 {customerRows.slice(0, 4).map((client, index) => <div key={client.phone || client.name} className="interactive-row grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 sm:px-6"><span className="text-[10px] font-semibold text-white/70">0{index + 1}</span><div className="min-w-0"><p className="truncate text-xs font-medium text-white/81">{client.name}</p><p className="mt-1 text-[10px] text-white/70">{client.visits} visitas · {shortDate(client.lastVisit)}</p></div><p className="text-xs font-semibold text-[#ff6a18]">{formatCurrency(client.revenue)}</p></div>)}
@@ -1814,9 +1910,9 @@ export default function AdminDashboardPage() {
           </section>
 
           <div className="mb-3 flex items-center gap-3 px-1">
-            <span className="eyebrow text-white/42">Quick access</span>
+            <span className="eyebrow text-white/42">Accesos rápidos</span>
             <span className="h-px w-8 bg-gradient-to-r from-orange-500/50 to-transparent" />
-            <span className="text-[9px] text-white/24">Direct actions</span>
+            <span className="text-[9px] text-white/24">Acciones directas</span>
           </div>
           <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Link href="/admin/turnos" className="metric-card group panel-surface rounded-[20px] border bg-white/[0.018] p-5" style={{ borderColor: BORDER }}>
@@ -1827,7 +1923,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link href="/admin/clientes" className="metric-card group panel-surface rounded-[20px] border bg-white/[0.018] p-5" style={{ borderColor: BORDER }}>
               <Users size={18} className="text-[#ff5a00]" />
-              <p className="mt-4 text-xs font-semibold text-white/77">Customer 360</p>
+              <p className="mt-4 text-xs font-semibold text-white/77">Cliente 360</p>
               <p className="mt-1 text-[10px] text-white/70">Clientes, historial y oportunidades CRM.</p>
               <div className="mt-4 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.13em] text-white/70 group-hover:text-[#ff6a18]">Abrir <ArrowUpRight size={11} /></div>
             </Link>
@@ -1840,14 +1936,14 @@ export default function AdminDashboardPage() {
             <Link href="/admin/analytics" className="metric-card group panel-surface rounded-[20px] border bg-white/[0.018] p-5" style={{ borderColor: BORDER }}>
               <TrendingUp size={18} className="text-[#ff5a00]" />
               <p className="mt-4 text-xs font-semibold text-white/77">Analytics</p>
-              <p className="mt-1 text-[10px] text-white/70">Business intelligence y tendencias.</p>
+              <p className="mt-1 text-[10px] text-white/70">Inteligencia de negocio y tendencias.</p>
               <div className="mt-4 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.13em] text-white/70 group-hover:text-[#ff6a18]">Abrir <ArrowUpRight size={11} /></div>
             </Link>
           </section>
 
           <footer className="flex flex-col gap-2 border-t border-white/[0.05] py-7 text-[9px] uppercase tracking-[0.16em] text-white/15 sm:flex-row sm:items-center sm:justify-between">
-            <span>barberOS · business operating system</span>
-            <span>{formatCurrency(todayRevenue)} · {activeTodayAppointments.length} turnos · {uniqueTodayClients} clientes hoy</span>
+            <span>barberOS · sistema operativo para barberías</span>
+            <span>{formatCurrency(todayIngresos)} · {activeTodayAppointments.length} turnos · {uniqueTodayClients} clientes hoy</span>
           </footer>
         </div>
       </div>

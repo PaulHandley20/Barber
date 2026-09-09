@@ -1,0 +1,3 @@
+import type { ReactNode } from "react"; import Panel from "./Panel";
+type Props={title:string;description?:string;actions?:ReactNode;children:ReactNode;className?:string};
+export default function ChartContainer({title,description,actions,children,className=""}:Props){return <Panel className={className}><div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4"><div><h2 className="font-[var(--font-sora)] text-[13px] font-semibold tracking-[-0.02em] text-[#F5F5F4]">{title}</h2>{description&&<p className="mt-1 text-[10px] leading-4 text-[#71717A]">{description}</p>}</div>{actions&&<div className="shrink-0">{actions}</div>}</div><div className="relative min-h-0 overflow-hidden p-5">{children}</div></Panel>}

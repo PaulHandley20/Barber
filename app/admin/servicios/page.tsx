@@ -143,10 +143,10 @@ function StatCard({
 }) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-5 transition duration-200 ${
+      className={`group relative overflow-hidden rounded-[14px] border p-5 transition duration-200 ${
         accent
           ? "border-[#FF5A00]/20 bg-[#FF5A00]/[0.055]"
-          : "border-white/[0.075] bg-[#111213]"
+          : "border-white/[0.075] bg-[#0F0F0F]"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -165,7 +165,7 @@ function StatCard({
         </div>
       </div>
 
-      <p className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">
+      <p className="mt-4 page-number text-2xl font-semibold tracking-[-0.04em] text-white">
         {value}
       </p>
       <p className="mt-1.5 text-xs text-white/35">{caption}</p>
@@ -188,7 +188,7 @@ function EmptyState({
 }) {
   return (
     <div className="flex min-h-[440px] flex-col items-center justify-center px-6 text-center">
-      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0c0d0e] text-white/35">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-[14px] border border-white/[0.08] bg-[#0c0d0e] text-white/35">
         <Scissors size={22} strokeWidth={1.5} />
       </div>
 
@@ -206,7 +206,7 @@ function EmptyState({
         <button
           type="button"
           onClick={onCreate}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6816]"
+          className="mt-5 inline-flex items-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6816]"
         >
           <Plus size={14} />
           Crear servicio
@@ -269,7 +269,7 @@ function ServiceRow({
       <button type="button" onClick={onSelect} className="min-w-0 text-left">
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border ${
               selected
                 ? "border-[#FF5A00]/20 bg-[#FF5A00]/10 text-[#FF6A18]"
                 : "border-white/[0.07] bg-[#0d0e0f] text-white/40"
@@ -467,7 +467,7 @@ export default function ServiciosPage() {
     return map;
   }, [appointments]);
 
-  const serviceRevenue = useMemo(() => {
+  const serviceIngresos = useMemo(() => {
     const map: Record<string, number> = {};
 
     appointments.forEach((appointment) => {
@@ -492,9 +492,9 @@ export default function ServiciosPage() {
     [serviceUsage]
   );
 
-  const totalRevenue = useMemo(
-    () => Object.values(serviceRevenue).reduce((sum, value) => sum + value, 0),
-    [serviceRevenue]
+  const totalIngresos = useMemo(
+    () => Object.values(serviceIngresos).reduce((sum, value) => sum + value, 0),
+    [serviceIngresos]
   );
 
   const averagePrice = useMemo(() => {
@@ -730,9 +730,14 @@ export default function ServiciosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#090A0B] text-white">
+    <div className="barberos-page min-h-screen bg-[#070707] text-white">
+      <style>{`
+        .barberos-page{font-family:var(--font-manrope,Manrope,ui-sans-serif,system-ui,sans-serif)}
+        .barberos-page .page-display,.barberos-page .page-number{font-family:var(--font-sora,Sora,ui-sans-serif,system-ui,sans-serif);font-variant-numeric:tabular-nums}
+        .barberos-page button:focus-visible,.barberos-page input:focus-visible,.barberos-page textarea:focus-visible,.barberos-page select:focus-visible{outline:1px solid rgba(255,90,0,.65);outline-offset:2px}
+      `}</style>
       {/* HEADER */}
-      <header className="border-b border-white/[0.07] bg-[#090A0B]/95 px-7 py-7 backdrop-blur-xl lg:px-8">
+      <header className="bg-[#070707]/80 px-7 pt-8 pb-5 backdrop-blur-xl lg:px-8 lg:pt-9">
         <div className="mx-auto max-w-[1700px]">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
@@ -741,7 +746,7 @@ export default function ServiciosPage() {
                 Operaciones
               </div>
 
-              <h1 className="text-[30px] font-semibold tracking-[-0.045em] text-white">
+              <h1 className="page-display text-[38px] font-semibold tracking-[-0.045em] text-white">
                 Servicios
               </h1>
 
@@ -752,7 +757,7 @@ export default function ServiciosPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3.5 py-2.5 text-[11px] text-white/35 lg:flex">
+              <div className="hidden items-center gap-2 rounded-[11px] border border-white/[0.07] bg-white/[0.02] px-3.5 py-2.5 text-[11px] text-white/35 lg:flex">
                 <BarChart3 size={14} />
                 {totalUsage} atenciones registradas
               </div>
@@ -760,7 +765,7 @@ export default function ServiciosPage() {
               <button
                 type="button"
                 onClick={openCreate}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white shadow-[0_8px_30px_rgba(255,90,0,0.14)] transition hover:bg-[#ff6816] active:scale-[0.99]"
+                className="inline-flex items-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white shadow-[0_8px_30px_rgba(255,90,0,0.14)] transition hover:bg-[#ff6816] active:scale-[0.99]"
               >
                 <Plus size={15} strokeWidth={2} />
                 Nuevo servicio
@@ -797,7 +802,7 @@ export default function ServiciosPage() {
 
           <StatCard
             label="Ingresos atribuibles"
-            value={formatCompactPrice(totalRevenue)}
+            value={formatCompactPrice(totalIngresos)}
             caption="según servicios registrados"
             icon={TrendingUp}
           />
@@ -812,7 +817,7 @@ export default function ServiciosPage() {
 
         {/* BUSINESS INTELLIGENCE */}
         <section className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.65fr_1fr]">
-          <div className="rounded-2xl border border-white/[0.075] bg-[#111213]">
+          <div className="rounded-[14px] border border-white/[0.075] bg-[#0F0F0F]">
             <div className="flex items-start justify-between gap-5 border-b border-white/[0.06] px-6 py-5">
               <div>
                 <div className="flex items-center gap-2">
@@ -871,7 +876,7 @@ export default function ServiciosPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.075] bg-[#111213]">
+          <div className="rounded-[14px] border border-white/[0.075] bg-[#0F0F0F]">
             <div className="border-b border-white/[0.06] px-6 py-5">
               <div className="flex items-center gap-2">
                 <Sparkles size={14} className="text-[#FF6A18]" />
@@ -886,7 +891,7 @@ export default function ServiciosPage() {
 
             <div className="divide-y divide-white/[0.055]">
               <div className="flex items-center gap-3 px-6 py-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/40">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-white/[0.07] bg-white/[0.025] text-white/40">
                   <TrendingUp size={15} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -905,7 +910,7 @@ export default function ServiciosPage() {
               </div>
 
               <div className="flex items-center gap-3 px-6 py-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/40">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-white/[0.07] bg-white/[0.025] text-white/40">
                   <EyeOff size={15} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -922,7 +927,7 @@ export default function ServiciosPage() {
               </div>
 
               <div className="flex items-center gap-3 px-6 py-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/40">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-white/[0.07] bg-white/[0.025] text-white/40">
                   <Clock3 size={15} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -942,7 +947,7 @@ export default function ServiciosPage() {
         </section>
 
         {/* CATALOGUE */}
-        <section className="mt-5 overflow-hidden rounded-2xl border border-white/[0.075] bg-[#111213]">
+        <section className="mt-5 overflow-hidden rounded-[14px] border border-white/[0.075] bg-[#0F0F0F]">
           <div className="border-b border-white/[0.06] px-5 py-4 lg:px-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
@@ -955,7 +960,7 @@ export default function ServiciosPage() {
               </div>
 
               <div className="flex flex-col gap-2.5 sm:flex-row">
-                <div className="flex min-w-[280px] items-center gap-2.5 rounded-xl border border-white/[0.075] bg-[#0c0d0e] px-3.5 py-2.5">
+                <div className="flex min-w-[280px] items-center gap-2.5 rounded-[11px] border border-white/[0.075] bg-[#0c0d0e] px-3.5 py-2.5">
                   <Search size={15} className="text-white/25" />
                   <input
                     value={search}
@@ -975,7 +980,7 @@ export default function ServiciosPage() {
                   )}
                 </div>
 
-                <div className="flex rounded-xl border border-white/[0.075] bg-[#0c0d0e] p-1">
+                <div className="flex rounded-[11px] border border-white/[0.075] bg-[#0c0d0e] p-1">
                   {(
                     [
                       ["all", "Todos"],
@@ -1017,7 +1022,7 @@ export default function ServiciosPage() {
                   key={index}
                   className="flex items-center gap-4 border-b border-white/[0.05] px-5 py-5"
                 >
-                  <div className="h-10 w-10 animate-pulse rounded-xl bg-white/[0.04]" />
+                  <div className="h-10 w-10 animate-pulse rounded-[11px] bg-white/[0.04]" />
                   <div className="flex-1">
                     <div className="h-3 w-40 animate-pulse rounded bg-white/[0.05]" />
                     <div className="mt-2 h-2.5 w-28 animate-pulse rounded bg-white/[0.035]" />
@@ -1043,7 +1048,7 @@ export default function ServiciosPage() {
                   key={service.id}
                   service={service}
                   usage={serviceUsage[service.id] ?? 0}
-                  revenue={serviceRevenue[service.id] ?? 0}
+                  revenue={serviceIngresos[service.id] ?? 0}
                   selected={selectedService?.id === service.id}
                   onSelect={() => selectService(service)}
                   onEdit={() => openEdit(service)}
@@ -1076,7 +1081,7 @@ export default function ServiciosPage() {
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#0B0C0D]/95 px-6 py-5 backdrop-blur-xl">
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#FF6A18]">
-                  Service 360
+                  Servicio 360
                 </p>
                 <h2 className="mt-1 text-base font-semibold text-white">
                   Detalle del servicio
@@ -1095,7 +1100,7 @@ export default function ServiciosPage() {
 
             <div className="p-6">
               <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-[#FF6A18]">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-[#FF6A18]">
                   <Scissors size={22} strokeWidth={1.5} />
                 </div>
 
@@ -1124,12 +1129,12 @@ export default function ServiciosPage() {
               </div>
 
               <div className="mt-7 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/[0.07] bg-[#111213] p-4">
+                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
                   <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
                     <DollarSign size={11} />
                     Precio
                   </div>
-                  <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
+                  <p className="mt-3 page-number text-2xl font-semibold tracking-[-0.04em] text-white">
                     {formatPrice(
                       selectedService.price,
                       selectedService.currency
@@ -1137,19 +1142,19 @@ export default function ServiciosPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/[0.07] bg-[#111213] p-4">
+                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
                   <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
                     <Clock3 size={11} />
                     Duración
                   </div>
-                  <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
+                  <p className="mt-3 page-number text-2xl font-semibold tracking-[-0.04em] text-white">
                     {formatDuration(selectedService.duration_minutes)}
                   </p>
                 </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/[0.07] bg-[#111213] p-4">
+                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
                   <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
                     <CalendarDays size={11} />
                     Atenciones
@@ -1159,21 +1164,21 @@ export default function ServiciosPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/[0.07] bg-[#111213] p-4">
+                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
                   <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
                     <TrendingUp size={11} />
                     Ingresos
                   </div>
                   <p className="mt-3 text-xl font-semibold tabular-nums tracking-[-0.04em] text-white">
                     {formatCompactPrice(
-                      serviceRevenue[selectedService.id] ?? 0,
+                      serviceIngresos[selectedService.id] ?? 0,
                       selectedService.currency
                     )}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-white/[0.07] bg-[#111213]">
+              <div className="mt-6 rounded-[14px] border border-white/[0.07] bg-[#0F0F0F]">
                 <div className="border-b border-white/[0.06] px-4 py-4">
                   <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
                     Configuración
@@ -1220,7 +1225,7 @@ export default function ServiciosPage() {
                   <button
                     type="button"
                     onClick={() => openEdit(selectedService)}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-3 text-xs font-medium text-white/65 transition hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-white"
+                    className="flex items-center justify-center gap-2 rounded-[11px] border border-white/[0.08] bg-white/[0.025] px-3 py-3 text-xs font-medium text-white/65 transition hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-white"
                   >
                     <Pencil size={13} />
                     Editar
@@ -1229,7 +1234,7 @@ export default function ServiciosPage() {
                   <button
                     type="button"
                     onClick={() => toggleService(selectedService)}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-3 text-xs font-medium text-white/65 transition hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-white"
+                    className="flex items-center justify-center gap-2 rounded-[11px] border border-white/[0.08] bg-white/[0.025] px-3 py-3 text-xs font-medium text-white/65 transition hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-white"
                   >
                     {selectedService.active ? (
                       <>
@@ -1246,7 +1251,7 @@ export default function ServiciosPage() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-xl border border-[#FF5A00]/10 bg-[#FF5A00]/[0.035] p-4">
+              <div className="mt-6 rounded-[11px] border border-[#FF5A00]/10 bg-[#FF5A00]/[0.035] p-4">
                 <div className="flex items-start gap-3">
                   <Sparkles
                     size={15}
@@ -1267,7 +1272,7 @@ export default function ServiciosPage() {
       {/* CREATE / EDIT MODAL */}
       {showServiceModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-[560px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0D0E0F] shadow-2xl">
+          <div className="w-full max-w-[560px] overflow-hidden rounded-[14px] border border-white/[0.09] bg-[#0F0F0F] shadow-2xl">
             <div className="flex items-start justify-between border-b border-white/[0.07] px-6 py-5">
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#FF6A18]">
@@ -1302,7 +1307,7 @@ export default function ServiciosPage() {
                     }))
                   }
                   placeholder="Ej. Corte clásico"
-                  className="w-full rounded-xl border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[#FF5A00]/40"
+                  className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[#FF5A00]/40"
                 />
               </label>
 
@@ -1320,7 +1325,7 @@ export default function ServiciosPage() {
                   }
                   rows={3}
                   placeholder="Descripción breve que puede mostrarse al reservar."
-                  className="w-full resize-none rounded-xl border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[#FF5A00]/40"
+                  className="w-full resize-none rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[#FF5A00]/40"
                 />
               </label>
 
@@ -1341,7 +1346,7 @@ export default function ServiciosPage() {
                       }))
                     }
                     placeholder="15000"
-                    className="w-full rounded-xl border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm tabular-nums text-white outline-none focus:border-[#FF5A00]/40"
+                    className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm tabular-nums text-white outline-none focus:border-[#FF5A00]/40"
                   />
                 </label>
 
@@ -1360,7 +1365,7 @@ export default function ServiciosPage() {
                         duration_minutes: Number(event.target.value),
                       }))
                     }
-                    className="w-full rounded-xl border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm tabular-nums text-white outline-none focus:border-[#FF5A00]/40"
+                    className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm tabular-nums text-white outline-none focus:border-[#FF5A00]/40"
                   />
                 </label>
 
@@ -1376,7 +1381,7 @@ export default function ServiciosPage() {
                         currency: event.target.value,
                       }))
                     }
-                    className="w-full rounded-xl border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none focus:border-[#FF5A00]/40"
+                    className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none focus:border-[#FF5A00]/40"
                   >
                     <option value="ARS">ARS</option>
                     <option value="USD">USD</option>
@@ -1392,7 +1397,7 @@ export default function ServiciosPage() {
                     active: !current.active,
                   }))
                 }
-                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 transition ${
+                className={`flex w-full items-center justify-between rounded-[11px] border px-4 py-3 transition ${
                   form.active
                     ? "border-emerald-400/15 bg-emerald-400/[0.045]"
                     : "border-white/[0.07] bg-white/[0.02]"
@@ -1434,7 +1439,7 @@ export default function ServiciosPage() {
               <button
                 type="button"
                 onClick={() => setShowServiceModal(false)}
-                className="rounded-xl px-4 py-2.5 text-xs font-medium text-white/40 transition hover:text-white"
+                className="rounded-[11px] px-4 py-2.5 text-xs font-medium text-white/40 transition hover:text-white"
               >
                 Cancelar
               </button>
@@ -1443,7 +1448,7 @@ export default function ServiciosPage() {
                 type="button"
                 disabled={saving}
                 onClick={saveService}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6816] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6816] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? (
                   <>
@@ -1464,7 +1469,7 @@ export default function ServiciosPage() {
 
       {/* TOAST */}
       {toast && (
-        <div className="fixed bottom-5 right-5 z-[80] flex max-w-[360px] items-center gap-3 rounded-xl border border-white/[0.09] bg-[#111213] px-4 py-3 shadow-2xl">
+        <div className="fixed bottom-5 right-5 z-[80] flex max-w-[360px] items-center gap-3 rounded-[11px] border border-white/[0.09] bg-[#0F0F0F] px-4 py-3 shadow-2xl">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-400/[0.08] text-emerald-300">
             <Check size={14} />
           </div>

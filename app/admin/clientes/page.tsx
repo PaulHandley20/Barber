@@ -23,7 +23,12 @@ import {
   History,
   Sparkles,
 } from "lucide-react";
+import { DM_Mono, Manrope, Sora } from "next/font/google";
 import { createClient } from "@/lib/supabase/client";
+
+const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-barberos-ui" });
+const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-barberos-display" });
+const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "500"], variable: "--font-barberos-data" });
 
 type Customer = {
   id: string;
@@ -352,29 +357,89 @@ export default function ClientesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#090909] text-[#F5F5F4]">
-      {/* AMBIENT SYSTEM LAYER */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute right-[8%] top-[-12%] h-[420px] w-[420px] rounded-full bg-[#FF5A00]/[0.035] blur-[120px]" />
-        <div className="absolute left-[22%] top-[42%] h-[300px] w-[300px] rounded-full bg-white/[0.012] blur-[100px]" />
-      </div>
-
+    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} clientes-shell min-h-screen text-[#F5F5F4]`}>
+      <style jsx>{`
+        .clientes-shell {
+          --ink:#070707; --surface:#0b0b0b; --surface-2:#0f0f0f;
+          --line:rgba(255,255,255,.075); --line-soft:rgba(255,255,255,.05);
+          --orange:#ff5a00; --orange-bright:#ff7a22;
+          font-family:var(--font-barberos-ui), Manrope, sans-serif;
+          letter-spacing:-.014em;
+          text-rendering:optimizeLegibility;
+          -webkit-font-smoothing:antialiased;
+          background:
+            radial-gradient(720px 360px at 88% -8%, rgba(255,90,0,.045), transparent 70%),
+            radial-gradient(520px 320px at 8% 14%, rgba(255,255,255,.010), transparent 74%),
+            #070707;
+        }
+        .clientes-shell h1,.clientes-shell h2,.clientes-shell h3,.clientes-shell h4,.clientes-title {
+          font-family:var(--font-barberos-display), Sora, sans-serif;
+          font-feature-settings:"kern" 1,"liga" 1;
+          text-wrap:balance;
+        }
+        .clientes-number,.clientes-shell .tabular-nums {
+          font-family:var(--font-barberos-display), Sora, sans-serif;
+          font-variant-numeric:tabular-nums lining-nums;
+          font-feature-settings:"tnum" 1,"lnum" 1,"kern" 1;
+          letter-spacing:-.065em;
+        }
+        .clientes-eyebrow,.clientes-meta { font-family:var(--font-barberos-ui),Manrope,sans-serif; }
+        .clientes-panel {
+          position:relative; isolation:isolate; overflow:hidden;
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.022),0 18px 58px rgba(0,0,0,.15);
+          transition:transform 220ms cubic-bezier(.22,.61,.36,1),border-color 220ms ease,box-shadow 220ms ease,background 220ms ease;
+        }
+        .clientes-panel::before {
+          content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+          background:radial-gradient(480px circle at 82% -8%,rgba(255,90,0,.052),rgba(255,90,0,.012) 32%,transparent 68%);
+          opacity:.28; transition:opacity 240ms ease;
+        }
+        .clientes-panel:hover {
+          transform:translateY(-1px); border-color:rgba(255,90,0,.13);
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.032),0 24px 70px rgba(0,0,0,.20);
+        }
+        .clientes-panel:hover::before { opacity:.46; }
+        .clientes-kpi::after {
+          content:""; position:absolute; left:18px; right:18px; bottom:0; height:1px;
+          background:linear-gradient(90deg,transparent,rgba(255,90,0,.78),transparent);
+          transform:scaleX(.16); opacity:.55; transition:transform 260ms ease,opacity 260ms ease;
+        }
+        .clientes-kpi:hover::after { transform:scaleX(1); opacity:1; }
+        .clientes-primary {
+          position:relative; overflow:hidden;
+          background:linear-gradient(135deg,#ff6a18 0%,#ff5a00 52%,#e84b00 100%);
+          box-shadow:0 12px 30px rgba(255,90,0,.14),inset 0 1px 0 rgba(255,255,255,.25);
+        }
+        .clientes-primary::before {
+          content:""; position:absolute; inset:0; background:linear-gradient(108deg,transparent 20%,rgba(255,255,255,.25) 47%,transparent 72%);
+          transform:translateX(-120%); transition:transform 700ms cubic-bezier(.22,.61,.36,1);
+        }
+        .clientes-primary:hover::before { transform:translateX(120%); }
+        .clientes-control:focus-visible,.clientes-shell input:focus-visible,.clientes-shell textarea:focus-visible {
+          outline:none; border-color:rgba(255,90,0,.38); box-shadow:0 0 0 3px rgba(255,90,0,.07);
+        }
+        .clientes-header { margin-bottom:28px; }
+        .clientes-main button,.clientes-main input,.clientes-main textarea { font-family:var(--font-barberos-ui),Manrope,sans-serif; }
+        .clientes-shell table { border-collapse:separate; border-spacing:0; }
+        .clientes-shell tbody tr { transition:background 180ms ease; }
+        .clientes-shell tbody tr:hover { background:rgba(255,255,255,.018); }
+      `}</style>
+      <div className="relative mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
       {/* HEADER */}
-      <header className="border-b border-white/[0.075] bg-[#090909]/92 px-8 py-7 backdrop-blur-xl">
+      <header className="clientes-header mb-7 px-0 py-0">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FF6A18]">
+            <div className="mb-3 flex items-center gap-2 clientes-eyebrow text-[8px] font-extrabold uppercase tracking-[0.22em] text-[#ff6a18]">
               <Users size={13} />
-              Operations / CRM
+              GESTIÓN DE CLIENTES
             </div>
 
-            <h1 className="text-[32px] font-semibold tracking-[-0.035em] text-white">
+            <h1 className="clientes-title text-[42px] font-semibold leading-[.91] tracking-[-.075em] text-white sm:text-[46px]">
               Clientes
             </h1>
 
             <p className="mt-2 max-w-xl text-[14px] leading-6 text-[#C4C4C1]">
-              Customer 360 para entender, gestionar y hacer crecer la relación
-              con cada cliente.
+              Una vista completa de tu base de clientes, actividad, valor y oportunidades.
             </p>
           </div>
 
@@ -382,7 +447,7 @@ export default function ClientesPage() {
             <button
               type="button"
               onClick={() => loadData()}
-              className="rounded-xl border border-white/[0.10] bg-white/[0.025] px-4 py-2.5 text-[13px] font-medium text-[#E7E7E4] transition hover:border-white/[0.18] hover:bg-white/[0.05]"
+              className="clientes-control rounded-[11px] border border-white/[0.08] bg-white/[0.025] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[.13em] text-white/65 transition hover:border-white/[0.15] hover:bg-white/[0.045] hover:text-white"
             >
               Actualizar
             </button>
@@ -393,7 +458,7 @@ export default function ClientesPage() {
                 setError("");
                 setShowCreate(true);
               }}
-              className="group flex items-center gap-2 rounded-xl bg-[#FF5A00] px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_30px_rgba(255,90,0,0.16)] transition hover:bg-[#FF6814] hover:shadow-[0_12px_36px_rgba(255,90,0,0.22)]"
+              className="clientes-primary group flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[.13em] text-white transition"
             >
               <Plus size={16} strokeWidth={2.2} />
               Nuevo cliente
@@ -406,9 +471,9 @@ export default function ClientesPage() {
         </div>
       </header>
 
-      <main className="px-8 py-7">
+      <main className="clientes-main pb-10">
         {/* KPI GRID */}
-        <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {[
             {
               label: "Clientes",
@@ -446,10 +511,10 @@ export default function ClientesPage() {
             return (
               <div
                 key={item.label}
-                className="group rounded-2xl border border-white/[0.075] bg-[#111111] p-5 transition hover:border-white/[0.13] hover:bg-[#131313]"
+                className="clientes-panel clientes-kpi group rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-5 transition"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[#BDBDBA]">
+                  <span className="clientes-meta text-[9px] font-semibold uppercase tracking-[.16em] text-white/55">
                     {item.label}
                   </span>
                   <Icon
@@ -459,21 +524,21 @@ export default function ClientesPage() {
                 </div>
 
                 <div className="mt-4 flex items-end justify-between">
-                  <span className="text-[28px] font-semibold tracking-[-0.035em] text-white tabular-nums">
+                  <span className="clientes-number text-[30px] font-semibold tracking-[-.065em] text-white tabular-nums">
                     {item.value.toLocaleString("es-AR")}
                   </span>
                 </div>
 
-                <p className="mt-1.5 text-[11px] text-[#A6A6A2]">{item.meta}</p>
+                <p className="mt-1.5 text-[10px] leading-4 text-white/38">{item.meta}</p>
               </div>
             );
           })}
         </section>
 
         {/* INSIGHT STRIP */}
-        <section className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr]">
-          <div className="rounded-2xl border border-white/[0.075] bg-[#0F0F0F] p-5">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-[#BDBDBA]">
+        <section className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr]">
+          <div className="clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-5">
+            <div className="flex items-center gap-2 clientes-meta text-[9px] font-semibold uppercase tracking-[.16em] text-white/55">
               <TrendingUp size={14} className="text-[#FF6A18]" />
               Valor medio
             </div>
@@ -485,8 +550,8 @@ export default function ClientesPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.075] bg-[#0F0F0F] p-5">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-[#BDBDBA]">
+          <div className="clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-5">
+            <div className="flex items-center gap-2 clientes-meta text-[9px] font-semibold uppercase tracking-[.16em] text-white/55">
               <History size={14} />
               Actividad
             </div>
@@ -498,10 +563,10 @@ export default function ClientesPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#FF5A00]/15 bg-[#FF5A00]/[0.035] p-5">
+          <div className="clientes-panel clientes-opportunity rounded-[16px] border border-orange-500/[.16] bg-orange-500/[.035] p-5">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-[#FF9A66]">
               <Sparkles size={14} />
-              Oportunidad CRM
+              Oportunidad GESTIÓN
             </div>
             <p className="mt-3 text-[15px] font-medium text-white">
               {riskCustomers + inactiveCustomers} clientes requieren atención
@@ -513,9 +578,9 @@ export default function ClientesPage() {
         </section>
 
         {/* FILTER / SEARCH BAR */}
-        <section className="mb-5 rounded-2xl border border-white/[0.075] bg-[#111111] p-3">
+        <section className="mb-5 rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-3">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-            <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-4 py-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[11px] border border-white/[.07] bg-[#0b0b0b] px-4 py-2.5">
               <Search size={17} className="shrink-0 text-[#999995]" />
 
               <input
@@ -523,7 +588,7 @@ export default function ClientesPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Buscar cliente, teléfono o email..."
-                className="w-full bg-transparent text-[13px] text-white outline-none placeholder:text-[#A1A19D]"
+                className="w-full bg-transparent text-[11px] text-white outline-none placeholder:text-white/25"
               />
 
               {search && (
@@ -563,11 +628,11 @@ export default function ClientesPage() {
         {/* MASTER DETAIL */}
         <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
           {/* CUSTOMER TABLE */}
-          <div className="overflow-hidden rounded-2xl border border-white/[0.075] bg-[#111111]">
+          <div className="overflow-hidden clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d]">
             <div className="flex items-center justify-between border-b border-white/[0.075] px-6 py-5">
               <div>
                 <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-white">
-                  Customer 360
+                  Cliente 360
                 </h2>
                 <p className="mt-1 text-[11px] text-[#A6A6A2]">
                   {filteredCustomers.length} de {totalCustomers} clientes
@@ -714,14 +779,14 @@ export default function ClientesPage() {
           </div>
 
           {/* CUSTOMER 360 DETAIL */}
-          <aside className="h-fit overflow-hidden rounded-2xl border border-white/[0.075] bg-[#111111] xl:sticky xl:top-5">
+          <aside className="h-fit overflow-hidden clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d] xl:sticky xl:top-5">
             {!selectedCustomer ? (
               <div className="flex min-h-[520px] flex-col items-center justify-center px-8 text-center">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0B0B0B]">
                   <UserRound size={21} className="text-[#9E9E9A]" />
                 </div>
                 <h3 className="text-[14px] font-semibold text-white">
-                  Customer 360
+                  Cliente 360
                 </h3>
                 <p className="mt-2 max-w-[270px] text-[11px] leading-5 text-[#A6A6A2]">
                   Seleccioná un cliente para consultar actividad, valor,
@@ -979,11 +1044,11 @@ export default function ClientesPage() {
       {/* CREATE CUSTOMER MODAL */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.10] bg-[#151515] shadow-2xl">
+          <div className="w-full max-w-lg overflow-hidden rounded-[16px] border border-white/[.09] bg-[#0d0d0d] shadow-2xl">
             <div className="flex items-start justify-between border-b border-white/[0.075] p-6">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#FF6A18]">
-                  CRM
+                  GESTIÓN
                 </p>
                 <h2 className="mt-1 text-[19px] font-semibold text-white">
                   Nuevo cliente
@@ -1095,6 +1160,7 @@ export default function ClientesPage() {
           {notice}
         </div>
       )}
+      </div>
     </div>
   );
 }

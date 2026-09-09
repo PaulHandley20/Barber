@@ -1,0 +1,3 @@
+"use client";
+type Option<T extends string>={value:T;label:string}; type Props<T extends string>={value:T;options:Option<T>[];onChange:(value:T)=>void};
+export default function SegmentedControl<T extends string>({value,options,onChange}:Props<T>){return <div className="inline-flex items-center rounded-[10px] border border-white/[0.07] bg-white/[0.02] p-0.5">{options.map(o=>{const active=o.value===value;return <button key={o.value} type="button" onClick={()=>onChange(o.value)} className={["h-8 rounded-[8px] px-3 text-[10px] font-medium transition-all duration-150",active?"bg-white/[0.09] text-[#F5F5F4] shadow-[0_2px_10px_rgba(0,0,0,0.16)]":"text-[#71717A] hover:text-[#A1A1AA]"].join(" ")}>{o.label}</button>})}</div>}
