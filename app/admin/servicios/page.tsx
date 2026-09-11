@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DM_Mono, Manrope, Sora } from "next/font/google";
 import {
   Search,
   Plus,
@@ -16,17 +17,32 @@ import {
   TrendingUp,
   BarChart3,
   CalendarDays,
-  Users,
   Sparkles,
   ArrowUpRight,
-  ArrowDownRight,
   RefreshCw,
   Check,
   Archive,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-barberos-ui",
+});
+
+const sora = Sora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-barberos-display",
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500"],
+  variable: "--font-barberos-data",
+});
 
 type Service = {
   id: string;
@@ -48,14 +64,9 @@ type Appointment = {
     name: string;
     price: number;
   } | null;
-  customer?: {
-    full_name: string;
-  } | null;
 };
 
-type Range = "all" | "active" | "inactive";
-
-const ORANGE = "#FF5A00";
+type ServiceFilter = "all" | "active" | "inactive";
 
 function formatPrice(price: number, currency = "ARS") {
   if (currency === "USD") {
@@ -88,13 +99,6 @@ function formatDuration(minutes: number) {
   return remaining === 0 ? `${hours} h` : `${hours} h ${remaining} min`;
 }
 
-function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(value));
-}
-
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
@@ -116,65 +120,114 @@ function statusLabel(status: string) {
 }
 
 function statusClass(status: string) {
-  if (status === "completed")
+  if (status === "completed") {
     return "border-emerald-400/15 bg-emerald-400/[0.07] text-emerald-300";
-  if (status === "confirmed")
-    return "border-sky-400/15 bg-sky-400/[0.07] text-sky-300";
-  if (status === "pending")
-    return "border-amber-400/15 bg-amber-400/[0.07] text-amber-300";
-  if (status === "cancelled")
-    return "border-red-400/15 bg-red-400/[0.07] text-red-300";
+  }
 
-  return "border-white/10 bg-white/[0.03] text-white/45";
+  if (status === "confirmed") {
+    return "border-sky-400/15 bg-sky-400/[0.07] text-sky-300";
+  }
+
+  if (status === "pending") {
+    return "border-amber-400/15 bg-amber-400/[0.07] text-amber-300";
+  }
+
+  if (status === "cancelled") {
+    return "border-red-400/15 bg-red-400/[0.07] text-red-300";
+  }
+
+  return "border-white/[0.08] bg-white/[0.025] text-white/45";
 }
 
 function StatCard({
   label,
   value,
-  caption,
+  helper,
   icon: Icon,
   accent = false,
+  index,
 }: {
   label: string;
   value: string | number;
-  caption: string;
+  helper: string;
   icon: typeof Scissors;
   accent?: boolean;
+  index: string;
 }) {
   return (
-    <div
-      className={`group relative overflow-hidden rounded-[14px] border p-5 transition duration-200 ${
-        accent
-          ? "border-[#FF5A00]/20 bg-[#FF5A00]/[0.055]"
-          : "border-white/[0.075] bg-[#0F0F0F]"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">
-          {label}
-        </p>
+    <div className="metric-card panel-surface group relative min-h-[154px] p-5">
+      {accent ? (
+        <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/75 to-transparent" />
+      ) : null}
 
-        <div
-          className={`flex h-8 w-8 items-center justify-center rounded-lg border ${
-            accent
-              ? "border-[#FF5A00]/20 bg-[#FF5A00]/10 text-[#FF6A18]"
-              : "border-white/[0.07] bg-white/[0.025] text-white/40"
-          }`}
-        >
-          <Icon size={15} strokeWidth={1.7} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className={accent ? "text-[#ff6a18]" : "text-white/42"}>
+            <Icon size={15} strokeWidth={1.7} />
+          </span>
+          <span className="meta-label text-white/68">{label}</span>
         </div>
+
+        <span className="data text-[8px] uppercase tracking-[.12em] text-white/24">
+          {index}
+        </span>
       </div>
 
-      <p className="mt-4 page-number text-2xl font-semibold tracking-[-0.04em] text-white">
+      <div className="display mt-7 truncate text-[30px] font-semibold leading-none tracking-[-.065em] text-white">
         {value}
-      </p>
-      <p className="mt-1.5 text-xs text-white/35">{caption}</p>
+      </div>
 
-      <div
-        className={`pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full blur-3xl transition-opacity group-hover:opacity-100 ${
-          accent ? "bg-[#FF5A00]/10 opacity-60" : "bg-white/[0.025] opacity-0"
-        }`}
-      />
+      <div className="mt-3 truncate text-[12px] leading-5 text-white/60">
+        {helper}
+      </div>
+    </div>
+  );
+}
+
+function MiniRevenueChart({
+  values,
+  labels,
+}: {
+  values: number[];
+  labels: string[];
+}) {
+  const max = Math.max(...values, 1);
+
+  return (
+    <div className="rounded-[14px] border border-white/[0.055] bg-[#080808] p-4">
+      <div className="relative h-[190px]">
+        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
+          {[0, 1, 2, 3].map((line) => (
+            <div key={line} className="border-t border-white/[0.045]" />
+          ))}
+        </div>
+
+        <div className="relative flex h-full items-end gap-2.5">
+          {values.map((value, index) => {
+            const height =
+              value > 0 ? Math.max((value / max) * 100, 7) : 2;
+
+            return (
+              <div
+                key={`${labels[index]}-${index}`}
+                className="group flex min-w-0 flex-1 flex-col items-center justify-end"
+              >
+                <div className="relative flex h-[155px] w-full items-end justify-center">
+                  <div
+                    className="w-full max-w-[72px] rounded-t-[6px] bg-[#ff5a00]/80 transition-all duration-300 group-hover:bg-[#ff6a18]"
+                    style={{ height: `${height}%` }}
+                    title={`${formatCompactPrice(value)} · ${labels[index]}`}
+                  />
+                </div>
+
+                <span className="mt-3 truncate text-[10px] font-medium text-white/58">
+                  {labels[index]}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -187,58 +240,31 @@ function EmptyState({
   onCreate: () => void;
 }) {
   return (
-    <div className="flex min-h-[440px] flex-col items-center justify-center px-6 text-center">
-      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-[14px] border border-white/[0.08] bg-[#0c0d0e] text-white/35">
+    <div className="flex min-h-[360px] flex-col items-center justify-center px-6 text-center">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-[14px] border border-white/[0.08] bg-[#0c0d0e] text-white/38">
         <Scissors size={22} strokeWidth={1.5} />
       </div>
 
-      <h3 className="text-sm font-semibold text-white">
+      <h3 className="display text-[18px] font-semibold tracking-[-.04em] text-white">
         {search ? "No encontramos servicios" : "Todavía no hay servicios"}
       </h3>
 
-      <p className="mt-2 max-w-sm text-xs leading-5 text-white/35">
+      <p className="mt-2 max-w-md text-[13px] leading-5 text-white/60">
         {search
           ? "Probá con otro término o limpiá la búsqueda para volver a ver el catálogo."
           : "Creá el primer servicio para empezar a construir el catálogo de BarberOS."}
       </p>
 
-      {!search && (
+      {!search ? (
         <button
           type="button"
           onClick={onCreate}
-          className="mt-5 inline-flex items-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6816]"
+          className="primary-action mt-5 inline-flex h-10 items-center gap-2 rounded-[11px] px-4 text-[12px] font-semibold text-white"
         >
           <Plus size={14} />
           Crear servicio
         </button>
-      )}
-    </div>
-  );
-}
-
-function MiniBarChart({
-  values,
-  labels,
-}: {
-  values: number[];
-  labels: string[];
-}) {
-  const max = Math.max(...values, 1);
-
-  return (
-    <div className="flex h-40 items-end gap-2">
-      {values.map((value, index) => (
-        <div key={`${labels[index]}-${index}`} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-          <div className="flex h-28 w-full items-end">
-            <div
-              className="w-full rounded-t-md bg-[#FF5A00]/75 transition-all duration-300 hover:bg-[#FF5A00]"
-              style={{ height: `${Math.max((value / max) * 100, value > 0 ? 7 : 2)}%` }}
-              title={`${value} turnos`}
-            />
-          </div>
-          <span className="truncate text-[9px] text-white/30">{labels[index]}</span>
-        </div>
-      ))}
+      ) : null}
     </div>
   );
 }
@@ -250,7 +276,6 @@ function ServiceRow({
   selected,
   onSelect,
   onEdit,
-  onToggle,
 }: {
   service: Service;
   usage: number;
@@ -258,97 +283,109 @@ function ServiceRow({
   selected: boolean;
   onSelect: () => void;
   onEdit: () => void;
-  onToggle: () => void;
 }) {
   return (
     <div
-      className={`group grid grid-cols-[minmax(0,1fr)_120px_130px_110px_34px] items-center gap-4 border-b border-white/[0.055] px-5 py-4 transition ${
-        selected ? "bg-[#FF5A00]/[0.045]" : "hover:bg-white/[0.018]"
+      className={`service-row group grid items-center gap-4 border-b border-white/[0.055] px-5 py-4 transition sm:px-6 md:grid-cols-[minmax(0,1fr)_110px_135px_120px_40px] ${
+        selected ? "bg-[#ff5a00]/[0.045]" : "hover:bg-white/[0.018]"
       }`}
     >
-      <button type="button" onClick={onSelect} className="min-w-0 text-left">
+      <button
+        type="button"
+        onClick={onSelect}
+        className="min-w-0 text-left focus-ring"
+      >
         <div className="flex min-w-0 items-center gap-3">
           <div
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border ${
               selected
-                ? "border-[#FF5A00]/20 bg-[#FF5A00]/10 text-[#FF6A18]"
-                : "border-white/[0.07] bg-[#0d0e0f] text-white/40"
+                ? "border-[#ff5a00]/20 bg-[#ff5a00]/10 text-[#ff6a18]"
+                : "border-white/[0.07] bg-white/[0.018] text-white/44"
             }`}
           >
             <Scissors size={16} strokeWidth={1.5} />
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-medium text-white/90">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate text-[14px] font-semibold tracking-[-.02em] text-white/90">
                 {service.name}
               </span>
 
               <span
-                className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-medium ${
+                className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
                   service.active
                     ? "border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-300"
-                    : "border-white/[0.08] bg-white/[0.025] text-white/30"
+                    : "border-white/[0.08] bg-white/[0.025] text-white/36"
                 }`}
               >
                 {service.active ? "Activo" : "Inactivo"}
               </span>
             </div>
 
-            <div className="mt-1 flex items-center gap-3 text-[11px] text-white/32">
-              <span className="inline-flex items-center gap-1">
-                <Clock3 size={11} />
+            <div className="mt-1 flex items-center gap-3 text-[12px] leading-5 text-white/58">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock3 size={12} />
                 {formatDuration(service.duration_minutes)}
               </span>
 
-              {service.description && (
+              {service.description ? (
                 <span className="hidden truncate lg:block">
                   {service.description}
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
       </button>
 
-      <div className="text-right">
-        <p className="text-sm font-medium tabular-nums text-white/75">
+      <div className="hidden text-right md:block">
+        <p className="display text-[15px] font-semibold tracking-[-.04em] text-white/90">
           {usage}
         </p>
-        <p className="mt-0.5 text-[10px] text-white/25">turnos</p>
+        <p className="mt-1 text-[10px] font-medium uppercase tracking-[.12em] text-white/48">
+          turnos
+        </p>
       </div>
 
-      <div className="text-right">
-        <p className="text-sm font-medium tabular-nums text-white/75">
+      <div className="hidden text-right md:block">
+        <p className="display text-[15px] font-semibold tracking-[-.04em] text-white/90">
           {formatCompactPrice(revenue, service.currency)}
         </p>
-        <p className="mt-0.5 text-[10px] text-white/25">ingresos</p>
+        <p className="mt-1 text-[10px] font-medium uppercase tracking-[.12em] text-white/48">
+          ingresos
+        </p>
       </div>
 
-      <div className="text-right">
-        <p className="text-sm font-semibold tabular-nums text-white/90">
+      <div className="hidden text-right md:block">
+        <p className="display text-[15px] font-semibold tracking-[-.04em] text-white">
           {formatPrice(service.price, service.currency)}
         </p>
-        <p className="mt-0.5 text-[10px] text-white/25">precio</p>
-      </div>
-
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          aria-label={`Acciones para ${service.name}`}
-          onClick={onEdit}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/25 opacity-0 transition hover:bg-white/[0.05] hover:text-white group-hover:opacity-100"
-        >
-          <MoreHorizontal size={16} />
-        </button>
+        <p className="mt-1 text-[10px] font-medium uppercase tracking-[.12em] text-white/48">
+          precio
+        </p>
       </div>
 
       <button
         type="button"
-        onClick={onToggle}
-        className="hidden"
-        aria-hidden
-      />
+        aria-label={`Editar ${service.name}`}
+        onClick={onEdit}
+        className="ml-auto flex h-9 w-9 items-center justify-center rounded-[10px] text-white/30 transition hover:bg-white/[0.05] hover:text-white focus-ring"
+      >
+        <MoreHorizontal size={17} />
+      </button>
+
+      <div className="mt-2 flex items-center gap-4 pl-[52px] md:hidden">
+        <span className="text-[11px] text-white/58">
+          {usage} turnos
+        </span>
+        <span className="text-[11px] text-white/58">
+          {formatCompactPrice(revenue, service.currency)} ingresos
+        </span>
+        <span className="text-[11px] font-semibold text-white/84">
+          {formatPrice(service.price, service.currency)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -359,7 +396,7 @@ export default function ServiciosPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Range>("all");
+  const [filter, setFilter] = useState<ServiceFilter>("all");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -369,7 +406,6 @@ export default function ServiciosPage() {
 
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [showMoreActions, setShowMoreActions] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -379,6 +415,39 @@ export default function ServiciosPage() {
     currency: "ARS",
     active: true,
   });
+
+  useEffect(() => {
+    const surfaces = document.querySelectorAll<HTMLElement>(
+      ".barberos-services .metric-card, .barberos-services .panel-surface"
+    );
+
+    const handlers = new Map<HTMLElement, (event: PointerEvent) => void>();
+
+    surfaces.forEach((element) => {
+      const handler = (event: PointerEvent) => {
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        element.style.setProperty(
+          "--spot-x",
+          `${((event.clientX - rect.left) / rect.width) * 100}%`
+        );
+        element.style.setProperty(
+          "--spot-y",
+          `${((event.clientY - rect.top) / rect.height) * 100}%`
+        );
+      };
+
+      handlers.set(element, handler);
+      element.addEventListener("pointermove", handler);
+    });
+
+    return () => {
+      handlers.forEach((handler, element) => {
+        element.removeEventListener("pointermove", handler);
+      });
+    };
+  }, [services.length]);
 
   useEffect(() => {
     async function load() {
@@ -397,7 +466,7 @@ export default function ServiciosPage() {
         supabase
           .from("appointments")
           .select(
-            "id,start_at,status,service_id,service:services(name,price),customer:customers(full_name)"
+            "id,start_at,status,service_id,service:services(name,price)"
           )
           .order("start_at", { ascending: false })
           .limit(5000),
@@ -424,9 +493,6 @@ export default function ServiciosPage() {
             service: Array.isArray(appointment.service)
               ? appointment.service[0] ?? null
               : appointment.service ?? null,
-            customer: Array.isArray(appointment.customer)
-              ? appointment.customer[0] ?? null
-              : appointment.customer ?? null,
           }))
         );
       }
@@ -439,7 +505,9 @@ export default function ServiciosPage() {
 
   useEffect(() => {
     if (!toast) return;
+
     const timer = window.setTimeout(() => setToast(""), 3200);
+
     return () => window.clearTimeout(timer);
   }, [toast]);
 
@@ -458,30 +526,42 @@ export default function ServiciosPage() {
 
     appointments.forEach((appointment) => {
       if (!appointment.service_id) return;
-      if (appointment.status === "cancelled" || appointment.status === "no_show")
-        return;
 
-      map[appointment.service_id] = (map[appointment.service_id] ?? 0) + 1;
+      if (
+        appointment.status === "cancelled" ||
+        appointment.status === "no_show"
+      ) {
+        return;
+      }
+
+      map[appointment.service_id] =
+        (map[appointment.service_id] ?? 0) + 1;
     });
 
     return map;
   }, [appointments]);
 
-  const serviceIngresos = useMemo(() => {
+  const serviceRevenue = useMemo(() => {
     const map: Record<string, number> = {};
 
     appointments.forEach((appointment) => {
       if (!appointment.service_id) return;
-      if (appointment.status === "cancelled" || appointment.status === "no_show")
-        return;
 
-      const servicePrice =
-        Number(appointment.service?.price ?? 0) ||
-        services.find((service) => service.id === appointment.service_id)?.price ||
-        0;
+      if (
+        appointment.status === "cancelled" ||
+        appointment.status === "no_show"
+      ) {
+        return;
+      }
+
+      const fallbackPrice =
+        services.find((service) => service.id === appointment.service_id)
+          ?.price ?? 0;
+
+      const price = Number(appointment.service?.price ?? 0) || fallbackPrice;
 
       map[appointment.service_id] =
-        (map[appointment.service_id] ?? 0) + servicePrice;
+        (map[appointment.service_id] ?? 0) + price;
     });
 
     return map;
@@ -492,28 +572,37 @@ export default function ServiciosPage() {
     [serviceUsage]
   );
 
-  const totalIngresos = useMemo(
-    () => Object.values(serviceIngresos).reduce((sum, value) => sum + value, 0),
-    [serviceIngresos]
+  const totalRevenue = useMemo(
+    () => Object.values(serviceRevenue).reduce((sum, value) => sum + value, 0),
+    [serviceRevenue]
   );
 
   const averagePrice = useMemo(() => {
     if (!services.length) return 0;
-    return services.reduce((sum, service) => sum + service.price, 0) / services.length;
+
+    return (
+      services.reduce((sum, service) => sum + service.price, 0) /
+      services.length
+    );
   }, [services]);
 
   const averageDuration = useMemo(() => {
     if (!services.length) return 0;
+
     return (
-      services.reduce((sum, service) => sum + service.duration_minutes, 0) /
-      services.length
+      services.reduce(
+        (sum, service) => sum + service.duration_minutes,
+        0
+      ) / services.length
     );
   }, [services]);
 
   const mostPopularService = useMemo(() => {
     return services.reduce<Service | null>((winner, service) => {
       if (!winner) return service;
-      return (serviceUsage[service.id] ?? 0) > (serviceUsage[winner.id] ?? 0)
+
+      return (serviceUsage[service.id] ?? 0) >
+        (serviceUsage[winner.id] ?? 0)
         ? service
         : winner;
     }, null);
@@ -537,6 +626,14 @@ export default function ServiciosPage() {
     });
   }, [services, search, filter]);
 
+  const rankedServices = useMemo(() => {
+    return [...services].sort(
+      (a, b) =>
+        (serviceRevenue[b.id] ?? 0) - (serviceRevenue[a.id] ?? 0) ||
+        (serviceUsage[b.id] ?? 0) - (serviceUsage[a.id] ?? 0)
+    );
+  }, [services, serviceRevenue, serviceUsage]);
+
   const chartData = useMemo(() => {
     const now = new Date();
     const labels: string[] = [];
@@ -556,19 +653,30 @@ export default function ServiciosPage() {
       );
 
       const value = appointments.reduce((sum, appointment) => {
-        const appointmentDate = new Date(appointment.start_at);
         if (
           appointment.status === "cancelled" ||
           appointment.status === "no_show"
-        )
+        ) {
           return sum;
+        }
+
+        const appointmentDate = new Date(appointment.start_at);
 
         if (
           appointmentDate.getFullYear() === day.getFullYear() &&
           appointmentDate.getMonth() === day.getMonth() &&
           appointmentDate.getDate() === day.getDate()
         ) {
-          return sum + Number(appointment.service?.price ?? 0);
+          return (
+            sum +
+            Number(
+              appointment.service?.price ??
+                services.find(
+                  (service) => service.id === appointment.service_id
+                )?.price ??
+                0
+            )
+          );
         }
 
         return sum;
@@ -578,7 +686,15 @@ export default function ServiciosPage() {
     }
 
     return { labels, values };
-  }, [appointments]);
+  }, [appointments, services]);
+
+  const leadingServiceShare = useMemo(() => {
+    if (!mostPopularService || totalUsage === 0) return "—";
+
+    return `${Math.round(
+      ((serviceUsage[mostPopularService.id] ?? 0) / totalUsage) * 100
+    )}%`;
+  }, [mostPopularService, serviceUsage, totalUsage]);
 
   function openCreate() {
     setEditingService(null);
@@ -713,274 +829,576 @@ export default function ServiciosPage() {
 
     setServices((current) =>
       current.map((item) =>
-        item.id === service.id ? { ...item, active: nextActive } : item
+        item.id === service.id
+          ? { ...item, active: nextActive }
+          : item
       )
     );
 
     setSelectedService((current) =>
-      current?.id === service.id ? { ...current, active: nextActive } : current
+      current?.id === service.id
+        ? { ...current, active: nextActive }
+        : current
     );
 
     setToast(nextActive ? "Servicio activado." : "Servicio desactivado.");
   }
 
-  function selectService(service: Service) {
-    setSelectedService(service);
-    setShowMoreActions(false);
-  }
-
   return (
-    <div className="barberos-page min-h-screen bg-[#070707] text-white">
-      <style>{`
-        .barberos-page{font-family:var(--font-manrope,Manrope,ui-sans-serif,system-ui,sans-serif)}
-        .barberos-page .page-display,.barberos-page .page-number{font-family:var(--font-sora,Sora,ui-sans-serif,system-ui,sans-serif);font-variant-numeric:tabular-nums}
-        .barberos-page button:focus-visible,.barberos-page input:focus-visible,.barberos-page textarea:focus-visible,.barberos-page select:focus-visible{outline:1px solid rgba(255,90,0,.65);outline-offset:2px}
+    <main
+      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-services min-h-screen bg-[#070707] text-white`}
+    >
+      <style jsx>{`
+        .barberos-services {
+          --line: rgba(255, 255, 255, 0.075);
+          --line-soft: rgba(255, 255, 255, 0.045);
+          --muted: rgba(255, 255, 255, 0.60);
+          --quiet: rgba(255, 255, 255, 0.42);
+          --orange: #ff5a00;
+          --orange-bright: #ff7a22;
+          font-family: var(--font-barberos-ui), Manrope, sans-serif;
+          font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+          text-rendering: optimizeLegibility;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          letter-spacing: -0.014em;
+          background:
+            radial-gradient(
+              720px 360px at 88% -8%,
+              rgba(255, 90, 0, 0.045),
+              transparent 70%
+            ),
+            radial-gradient(
+              520px 320px at 8% 14%,
+              rgba(255, 255, 255, 0.01),
+              transparent 74%
+            ),
+            #070707;
+        }
+
+        .barberos-services h1,
+        .barberos-services h2,
+        .barberos-services h3,
+        .barberos-services h4,
+        .barberos-services .display {
+          font-family: var(--font-barberos-display), Sora, sans-serif;
+          font-feature-settings: "kern" 1, "liga" 1;
+          text-wrap: balance;
+        }
+
+        .barberos-services .display-title {
+          font-family: var(--font-barberos-display), Sora, sans-serif;
+          font-size: 34px;
+          line-height: 0.91;
+          letter-spacing: -0.075em;
+          font-weight: 600;
+        }
+
+        .barberos-services .data {
+          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .barberos-services .meta-label {
+          font-family: var(--font-barberos-ui), Manrope, sans-serif;
+          text-transform: uppercase;
+          letter-spacing: 0.16em;
+          font-size: 9px;
+          line-height: 1;
+          font-weight: 700;
+        }
+
+        .barberos-services .eyebrow {
+          font-family: var(--font-barberos-ui), Manrope, sans-serif;
+          text-transform: uppercase;
+          letter-spacing: 0.18em;
+          font-size: 9px;
+          line-height: 1;
+          font-weight: 800;
+        }
+
+        .barberos-services .panel-surface {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.028),
+              rgba(255, 255, 255, 0.01) 52%,
+              rgba(255, 90, 0, 0.012)
+            ),
+            rgba(10, 10, 10, 0.96);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.022),
+            0 18px 58px rgba(0, 0, 0, 0.15);
+          transition:
+            transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1),
+            border-color 240ms ease,
+            box-shadow 240ms ease;
+        }
+
+        .barberos-services .panel-surface::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          pointer-events: none;
+          background: radial-gradient(
+            480px circle at var(--spot-x, 82%) var(--spot-y, -8%),
+            rgba(255, 90, 0, 0.052),
+            rgba(255, 90, 0, 0.012) 32%,
+            transparent 68%
+          );
+          opacity: 0.34;
+          transition: opacity 260ms ease;
+        }
+
+        .barberos-services .panel-surface::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 7%;
+          right: 7%;
+          height: 1px;
+          pointer-events: none;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.12),
+            rgba(255, 90, 0, 0.2),
+            rgba(255, 255, 255, 0.08),
+            transparent
+          );
+          opacity: 0.2;
+        }
+
+        .barberos-services .panel-surface:hover {
+          transform: translateY(-1px);
+          border-color: rgba(255, 90, 0, 0.14);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.032),
+            0 24px 70px rgba(0, 0, 0, 0.22),
+            0 0 0 1px rgba(255, 90, 0, 0.018);
+        }
+
+        .barberos-services .panel-surface:hover::before {
+          opacity: 0.5;
+        }
+
+        .barberos-services .metric-card {
+          min-height: 154px;
+        }
+
+        .barberos-services .metric-card::after {
+          content: "";
+          position: absolute;
+          left: 18px;
+          right: 18px;
+          bottom: 0;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 90, 0, 0.78),
+            transparent
+          );
+          transform: scaleX(0.16);
+          transform-origin: center;
+          opacity: 0.6;
+          transition:
+            transform 260ms ease,
+            opacity 260ms ease;
+        }
+
+        .barberos-services .metric-card:hover::after {
+          transform: scaleX(1);
+          opacity: 1;
+        }
+
+        .barberos-services .primary-action {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(
+            135deg,
+            #ff6a18 0%,
+            #ff5a00 52%,
+            #e84b00 100%
+          );
+          box-shadow:
+            0 12px 30px rgba(255, 90, 0, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.26);
+        }
+
+        .barberos-services .primary-action::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            108deg,
+            transparent 20%,
+            rgba(255, 255, 255, 0.3) 47%,
+            transparent 72%
+          );
+          transform: translateX(-140%);
+          transition: transform 650ms cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+
+        .barberos-services .primary-action:hover::before {
+          transform: translateX(140%);
+        }
+
+        .barberos-services .glass-control {
+          border: 1px solid rgba(255, 255, 255, 0.075);
+          background:
+            linear-gradient(
+              180deg,
+              rgba(255, 255, 255, 0.055),
+              rgba(255, 255, 255, 0.018)
+            );
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.03),
+            0 10px 30px rgba(0, 0, 0, 0.16);
+          backdrop-filter: blur(18px);
+        }
+
+        .barberos-services .services-input {
+          border: 1px solid rgba(255, 255, 255, 0.075);
+          background: rgba(255, 255, 255, 0.018);
+          transition:
+            border-color 180ms ease,
+            background 180ms ease;
+        }
+
+        .barberos-services .services-input:focus-within {
+          border-color: rgba(255, 90, 0, 0.38);
+          background: rgba(255, 255, 255, 0.025);
+        }
+
+        .barberos-services .services-filter-active {
+          background: rgba(255, 255, 255, 0.09);
+          color: #fff;
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        }
+
+        .barberos-services .service-row:hover {
+          background:
+            linear-gradient(
+              90deg,
+              rgba(255, 90, 0, 0.035),
+              rgba(255, 255, 255, 0.018) 52%,
+              transparent
+            );
+        }
+
+        .barberos-services .focus-ring:focus-visible,
+        .barberos-services button:focus-visible,
+        .barberos-services input:focus-visible,
+        .barberos-services textarea:focus-visible,
+        .barberos-services select:focus-visible {
+          outline: 2px solid rgba(255, 90, 0, 0.72);
+          outline-offset: 3px;
+        }
+
+        .barberos-services .dashboard-grid-bg {
+          background-image:
+            linear-gradient(
+              rgba(255, 255, 255, 0.013) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(255, 255, 255, 0.013) 1px,
+              transparent 1px
+            );
+          background-size: 48px 48px;
+          mask-image: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.86),
+            transparent 72%
+          );
+        }
+
+        @media (min-width: 640px) {
+          .barberos-services .display-title {
+            font-size: 42px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .barberos-services *,
+          .barberos-services *::before,
+          .barberos-services *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
       `}</style>
-      {/* HEADER */}
-      <header className="bg-[#070707]/80 px-7 pt-8 pb-5 backdrop-blur-xl lg:px-8 lg:pt-9">
-        <div className="mx-auto max-w-[1700px]">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#FF6A18]">
-                <Scissors size={13} strokeWidth={1.8} />
-                Operaciones
-              </div>
 
-              <h1 className="page-display text-[38px] font-semibold tracking-[-0.045em] text-white">
-                Servicios
-              </h1>
+      <div className="pointer-events-none absolute inset-0 dashboard-grid-bg opacity-20" />
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
-                Gestioná tu catálogo, precios, disponibilidad y rendimiento
-                comercial desde un único centro de control.
-              </p>
+      <div className="relative mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
+        <header className="mb-7 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/82">BarberOS</span>
+              <span className="text-white/10">/</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#ff6a18]">Inteligencia de Servicios</span>
+              <span className="ml-1 hidden h-px w-10 bg-gradient-to-r from-[#ff5a00]/55 to-transparent sm:block" />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-[11px] border border-white/[0.07] bg-white/[0.02] px-3.5 py-2.5 text-[11px] text-white/35 lg:flex">
-                <BarChart3 size={14} />
-                {totalUsage} atenciones registradas
-              </div>
+            <h1 className="display-title text-white">Servicios</h1>
 
-              <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex items-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white shadow-[0_8px_30px_rgba(255,90,0,0.14)] transition hover:bg-[#ff6816] active:scale-[0.99]"
-              >
-                <Plus size={15} strokeWidth={2} />
-                Nuevo servicio
-              </button>
-            </div>
+            <p className="mt-2 max-w-xl text-[14px] leading-5 text-white/72">
+              Gestioná tu catálogo, precios, disponibilidad y rendimiento
+              desde un único lugar.
+            </p>
           </div>
-        </div>
-      </header>
 
-      <main className="mx-auto max-w-[1700px] px-7 py-7 lg:px-8">
-        {/* KPI GRID */}
-        <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="glass-control hidden items-center gap-2 rounded-[11px] px-3.5 py-2.5 text-[11px] text-white/64 lg:flex">
+              <BarChart3 size={14} className="text-white/42" />
+              <span>{totalUsage} atenciones registradas</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={openCreate}
+              className="primary-action group inline-flex h-11 items-center gap-2 rounded-[11px] px-4 text-[12px] font-semibold text-white"
+            >
+              <Plus size={15} strokeWidth={2} />
+              <span>Nuevo servicio</span>
+              <ArrowUpRight
+                size={14}
+                className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              />
+            </button>
+          </div>
+        </header>
+
+        <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard
-            label="Catálogo"
+            index="01"
+            label="Servicios"
             value={services.length}
-            caption={`${activeServices.length} activos ahora`}
+            helper={`${activeServices.length} activos · ${inactiveServices.length} inactivos`}
             icon={Scissors}
             accent
           />
 
           <StatCard
+            index="02"
             label="Precio promedio"
             value={formatCompactPrice(averagePrice)}
-            caption="promedio del catálogo"
+            helper="Promedio actual del catálogo"
             icon={DollarSign}
           />
 
           <StatCard
+            index="03"
             label="Atenciones"
             value={totalUsage}
-            caption="reservas no canceladas"
+            helper="Reservas no canceladas"
             icon={CalendarDays}
           />
 
           <StatCard
+            index="04"
             label="Ingresos atribuibles"
-            value={formatCompactPrice(totalIngresos)}
-            caption="según servicios registrados"
+            value={formatCompactPrice(totalRevenue)}
+            helper="Generados por servicios registrados"
             icon={TrendingUp}
           />
 
           <StatCard
+            index="05"
             label="Duración media"
             value={formatDuration(Math.round(averageDuration))}
-            caption="tiempo medio por servicio"
+            helper="Tiempo medio por servicio"
             icon={Clock3}
           />
         </section>
 
-        {/* BUSINESS INTELLIGENCE */}
-        <section className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.65fr_1fr]">
-          <div className="rounded-[14px] border border-white/[0.075] bg-[#0F0F0F]">
-            <div className="flex items-start justify-between gap-5 border-b border-white/[0.06] px-6 py-5">
+        <section className="mb-7 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(330px,.75fr)]">
+          <div className="panel-surface p-5 sm:p-6">
+            <div className="mb-5 flex items-end justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold text-white">
-                    Actividad de servicios
-                  </h2>
-                  <span className="rounded-full border border-[#FF5A00]/15 bg-[#FF5A00]/[0.06] px-2 py-0.5 text-[9px] font-medium text-[#FF7A32]">
-                    7 días
-                  </span>
+                <div className="eyebrow mb-2 text-[#ff6a18]">
+                  INTELIGENCIA DE SERVICIOS
                 </div>
-                <p className="mt-1 text-xs text-white/32">
-                  Evolución diaria de los ingresos asociados al catálogo.
+                <h2 className="display text-[20px] font-semibold tracking-[-.04em] text-white">
+                  Actividad del catálogo
+                </h2>
+                <p className="mt-1 text-[13px] leading-5 text-white/62">
+                  Evolución diaria de los ingresos asociados a los servicios.
                 </p>
               </div>
 
-              <div className="hidden items-center gap-2 text-[10px] text-white/25 sm:flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#FF5A00]" />
+              <div className="hidden items-center gap-2 text-[10px] font-medium uppercase tracking-[.14em] text-white/58 sm:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00]" />
                 Ingresos
               </div>
             </div>
 
-            <div className="px-6 pb-5 pt-4">
-              {chartData.values.some((value) => value > 0) ? (
-                <MiniBarChart values={chartData.values} labels={chartData.labels} />
-              ) : (
-                <div className="flex h-40 items-center justify-center text-xs text-white/25">
-                  Todavía no hay suficiente actividad para mostrar la evolución.
-                </div>
-              )}
+            {chartData.values.some((value) => value > 0) ? (
+              <MiniRevenueChart
+                values={chartData.values}
+                labels={chartData.labels}
+              />
+            ) : (
+              <div className="flex h-[220px] items-center justify-center rounded-[14px] border border-dashed border-white/[0.07] bg-white/[0.012] text-[13px] text-white/58">
+                Todavía no hay suficiente actividad para mostrar la evolución.
+              </div>
+            )}
 
-              <div className="mt-1 flex items-center justify-between border-t border-white/[0.055] pt-4">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/25">
-                    Servicio líder
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-white/75">
-                    {mostPopularService?.name ?? "Sin datos"}
-                  </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-[12px] border border-white/[0.055] bg-white/[0.012] p-4">
+                <div className="meta-label text-white/58">Servicio líder</div>
+                <div className="display mt-2 text-[17px] font-semibold tracking-[-.035em] text-white">
+                  {mostPopularService?.name ?? "Sin datos"}
                 </div>
+                <div className="mt-1 text-[12px] text-white/58">
+                  {leadingServiceShare} de las atenciones
+                </div>
+              </div>
 
-                <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/25">
-                    Participación
-                  </p>
-                  <p className="mt-1 text-sm font-semibold tabular-nums text-white/75">
-                    {mostPopularService && totalUsage > 0
-                      ? `${Math.round(
-                          ((serviceUsage[mostPopularService.id] ?? 0) /
-                            totalUsage) *
-                            100
-                        )}%`
-                      : "—"}
-                  </p>
+              <div className="rounded-[12px] border border-white/[0.055] bg-white/[0.012] p-4">
+                <div className="meta-label text-white/58">Revenue registrado</div>
+                <div className="display mt-2 text-[17px] font-semibold tracking-[-.035em] text-[#ff7a22]">
+                  {formatCompactPrice(totalRevenue)}
+                </div>
+                <div className="mt-1 text-[12px] text-white/58">
+                  Sobre turnos no cancelados
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[14px] border border-white/[0.075] bg-[#0F0F0F]">
-            <div className="border-b border-white/[0.06] px-6 py-5">
-              <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#FF6A18]" />
-                <h2 className="text-sm font-semibold text-white">
-                  Oportunidades del catálogo
-                </h2>
-              </div>
-              <p className="mt-1 text-xs text-white/32">
-                Señales útiles para mejorar la oferta.
-              </p>
+          <div className="panel-surface p-5 sm:p-6">
+            <div className="eyebrow mb-2 text-[#ff6a18]">
+              OPORTUNIDADES
+            </div>
+            <h2 className="display text-[20px] font-semibold tracking-[-.04em] text-white">
+              Lo que mueve el catálogo
+            </h2>
+            <p className="mt-1 text-[13px] leading-5 text-white/62">
+              Los servicios con mayor actividad y facturación aparecen primero.
+            </p>
+
+            <div className="mt-5 space-y-2.5">
+              {rankedServices.slice(0, 3).map((service, index) => (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => setSelectedService(service)}
+                  className="interactive-row flex w-full items-center gap-3 rounded-[12px] border border-white/[0.055] bg-white/[0.012] p-3 text-left focus-ring"
+                >
+                  <span className="data w-5 text-[9px] text-white/34">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[#ff5a00]/15 bg-[#ff5a00]/[0.05] text-[#ff6a18]">
+                    <Scissors size={14} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-semibold text-white/86">
+                      {service.name}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-white/58">
+                      {serviceUsage[service.id] ?? 0} turnos
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="display text-[13px] font-semibold text-white/90">
+                      {formatCompactPrice(
+                        serviceRevenue[service.id] ?? 0,
+                        service.currency
+                      )}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-white/48">
+                      revenue
+                    </div>
+                  </div>
+
+                  <ChevronRight size={14} className="text-white/28" />
+                </button>
+              ))}
+
+              {rankedServices.length === 0 ? (
+                <div className="rounded-[12px] border border-dashed border-white/[0.07] p-5 text-[13px] text-white/58">
+                  Sin servicios cargados todavía.
+                </div>
+              ) : null}
             </div>
 
-            <div className="divide-y divide-white/[0.055]">
-              <div className="flex items-center gap-3 px-6 py-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-white/[0.07] bg-white/[0.025] text-white/40">
-                  <TrendingUp size={15} />
+            <div className="mt-5 border-t border-white/[0.055] pt-5">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="meta-label text-white/58">
+                    Catálogo activo
+                  </div>
+                  <div className="display mt-2 text-[19px] font-semibold tracking-[-.04em] text-white">
+                    {activeServices.length} / {services.length}
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-white/75">
-                    Servicio más solicitado
-                  </p>
-                  <p className="mt-1 truncate text-[11px] text-white/30">
-                    {mostPopularService?.name ?? "Sin actividad registrada"}
-                  </p>
+
+                <div className="data text-[11px] font-medium text-[#ff7a22]">
+                  {services.length
+                    ? `${Math.round(
+                        (activeServices.length / services.length) * 100
+                      )}%`
+                    : "0%"}
                 </div>
-                {mostPopularService && (
-                  <span className="text-xs font-semibold tabular-nums text-[#FF6A18]">
-                    {serviceUsage[mostPopularService.id] ?? 0}
-                  </span>
-                )}
               </div>
 
-              <div className="flex items-center gap-3 px-6 py-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-white/[0.07] bg-white/[0.025] text-white/40">
-                  <EyeOff size={15} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-white/75">
-                    Servicios ocultos
-                  </p>
-                  <p className="mt-1 text-[11px] text-white/30">
-                    No aparecen en nuevas reservas.
-                  </p>
-                </div>
-                <span className="text-xs font-semibold tabular-nums text-white/60">
-                  {inactiveServices.length}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 px-6 py-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-white/[0.07] bg-white/[0.025] text-white/40">
-                  <Clock3 size={15} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-white/75">
-                    Capacidad media
-                  </p>
-                  <p className="mt-1 text-[11px] text-white/30">
-                    Duración promedio de una atención.
-                  </p>
-                </div>
-                <span className="text-xs font-semibold tabular-nums text-white/60">
-                  {formatDuration(Math.round(averageDuration))}
-                </span>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#ff5a00] to-[#ff7a22]"
+                  style={{
+                    width: `${
+                      services.length
+                        ? (activeServices.length / services.length) * 100
+                        : 0
+                    }%`,
+                  }}
+                />
               </div>
             </div>
           </div>
         </section>
 
-        {/* CATALOGUE */}
-        <section className="mt-5 overflow-hidden rounded-[14px] border border-white/[0.075] bg-[#0F0F0F]">
-          <div className="border-b border-white/[0.06] px-5 py-4 lg:px-6">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <section className="panel-surface overflow-hidden">
+          <div className="border-b border-white/[0.055] p-5 sm:p-6">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-white">
+                <div className="eyebrow mb-2 text-[#ff6a18]">
+                  DIRECTORIO OPERATIVO
+                </div>
+                <h2 className="display text-[20px] font-semibold tracking-[-.04em] text-white">
                   Catálogo de servicios
                 </h2>
-                <p className="mt-1 text-xs text-white/30">
-                  {filteredServices.length} de {services.length} servicios visibles
+                <p className="mt-1 text-[13px] leading-5 text-white/62">
+                  Precio, duración, demanda y estado de cada servicio.
                 </p>
               </div>
 
               <div className="flex flex-col gap-2.5 sm:flex-row">
-                <div className="flex min-w-[280px] items-center gap-2.5 rounded-[11px] border border-white/[0.075] bg-[#0c0d0e] px-3.5 py-2.5">
-                  <Search size={15} className="text-white/25" />
+                <div className="services-input flex h-11 w-full items-center gap-2.5 rounded-[11px] px-3.5 sm:w-[300px]">
+                  <Search size={15} className="shrink-0 text-white/38" />
                   <input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder="Buscar servicio..."
-                    className="w-full bg-transparent text-xs text-white outline-none placeholder:text-white/20"
+                    className="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-white/38"
                   />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      className="text-white/25 transition hover:text-white"
-                      aria-label="Limpiar búsqueda"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
                 </div>
 
-                <div className="flex rounded-[11px] border border-white/[0.075] bg-[#0c0d0e] p-1">
+                <div className="glass-control flex h-11 items-center rounded-[11px] p-1">
                   {(
                     [
                       ["all", "Todos"],
@@ -992,10 +1410,10 @@ export default function ServiciosPage() {
                       key={key}
                       type="button"
                       onClick={() => setFilter(key)}
-                      className={`rounded-lg px-3 py-2 text-[10px] font-medium transition ${
+                      className={`h-9 rounded-[9px] px-3.5 text-[11px] font-semibold transition ${
                         filter === key
-                          ? "bg-white/[0.08] text-white"
-                          : "text-white/30 hover:text-white/65"
+                          ? "services-filter-active"
+                          : "text-white/52 hover:text-white/82"
                       }`}
                     >
                       {label}
@@ -1006,8 +1424,7 @@ export default function ServiciosPage() {
             </div>
           </div>
 
-          {/* TABLE HEADER */}
-          <div className="hidden grid-cols-[minmax(0,1fr)_120px_130px_110px_34px] gap-4 border-b border-white/[0.055] bg-white/[0.012] px-5 py-2.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/20 md:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_110px_135px_120px_40px] gap-4 border-b border-white/[0.055] bg-white/[0.012] px-5 py-3 text-[9px] font-bold uppercase tracking-[.16em] text-white/48 md:grid md:px-6">
             <span>Servicio</span>
             <span className="text-right">Uso</span>
             <span className="text-right">Ingresos</span>
@@ -1016,28 +1433,34 @@ export default function ServiciosPage() {
           </div>
 
           {loading ? (
-            <div className="space-y-0">
-              {Array.from({ length: 6 }).map((_, index) => (
+            <div>
+              {Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-4 border-b border-white/[0.05] px-5 py-5"
+                  className="flex items-center gap-3 border-b border-white/[0.05] px-5 py-5 sm:px-6"
                 >
-                  <div className="h-10 w-10 animate-pulse rounded-[11px] bg-white/[0.04]" />
+                  <div className="h-10 w-10 animate-pulse rounded-[11px] bg-white/[0.05]" />
                   <div className="flex-1">
-                    <div className="h-3 w-40 animate-pulse rounded bg-white/[0.05]" />
+                    <div className="h-3 w-40 animate-pulse rounded bg-white/[0.055]" />
                     <div className="mt-2 h-2.5 w-28 animate-pulse rounded bg-white/[0.035]" />
                   </div>
-                  <div className="hidden h-3 w-16 animate-pulse rounded bg-white/[0.04] sm:block" />
                 </div>
               ))}
             </div>
           ) : error ? (
-            <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-              <CircleX size={22} className="text-red-300/70" />
-              <p className="mt-3 text-sm font-medium text-white/75">{error}</p>
-              <p className="mt-1 text-xs text-white/30">
-                Revisá la conexión con Supabase y volvé a intentar.
+            <div className="flex min-h-[360px] flex-col items-center justify-center px-6 text-center">
+              <CircleX size={24} className="text-red-300/80" />
+              <p className="mt-3 text-[14px] font-medium text-white/82">
+                {error}
               </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-4 inline-flex items-center gap-2 text-[12px] font-semibold text-[#ff7a22] hover:text-[#ff9a58]"
+              >
+                <RefreshCw size={13} />
+                Reintentar
+              </button>
             </div>
           ) : filteredServices.length === 0 ? (
             <EmptyState search={search} onCreate={openCreate} />
@@ -1048,42 +1471,37 @@ export default function ServiciosPage() {
                   key={service.id}
                   service={service}
                   usage={serviceUsage[service.id] ?? 0}
-                  revenue={serviceIngresos[service.id] ?? 0}
+                  revenue={serviceRevenue[service.id] ?? 0}
                   selected={selectedService?.id === service.id}
-                  onSelect={() => selectService(service)}
+                  onSelect={() => setSelectedService(service)}
                   onEdit={() => openEdit(service)}
-                  onToggle={() => toggleService(service)}
                 />
               ))}
             </div>
           )}
         </section>
 
-        {/* FOOTER NOTE */}
-        <div className="mt-4 flex items-center gap-2 px-1 text-[10px] text-white/20">
-          <RefreshCw size={11} />
-          Los ingresos atribuibles se calculan a partir de turnos no cancelados
-          registrados en Supabase.
+        <div className="mt-4 flex items-center gap-2 px-1 text-[11px] leading-5 text-white/48">
+          <RefreshCw size={12} />
+          Los ingresos atribuibles se calculan a partir de turnos no
+          cancelados registrados en Supabase.
         </div>
-      </main>
+      </div>
 
-      {/* DETAIL DRAWER */}
-      {selectedService && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+      {selectedService ? (
+        <div className="fixed inset-0 z-[70] flex justify-end">
           <button
             type="button"
             aria-label="Cerrar detalle"
             onClick={() => setSelectedService(null)}
-            className="absolute inset-0 cursor-default bg-black/55 backdrop-blur-[2px]"
+            className="absolute inset-0 cursor-default bg-black/60 backdrop-blur-[2px]"
           />
 
-          <aside className="relative h-full w-full max-w-[470px] overflow-y-auto border-l border-white/[0.08] bg-[#0B0C0D] shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#0B0C0D]/95 px-6 py-5 backdrop-blur-xl">
+          <aside className="relative h-full w-full max-w-[480px] overflow-y-auto border-l border-white/[0.08] bg-[#0b0b0b] shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#0b0b0b]/95 px-6 py-5 backdrop-blur-xl">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#FF6A18]">
-                  Servicio 360
-                </p>
-                <h2 className="mt-1 text-base font-semibold text-white">
+                <div className="eyebrow text-[#ff6a18]">SERVICIO 360</div>
+                <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">
                   Detalle del servicio
                 </h2>
               </div>
@@ -1091,37 +1509,37 @@ export default function ServiciosPage() {
               <button
                 type="button"
                 onClick={() => setSelectedService(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.05] hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white/38 transition hover:bg-white/[0.05] hover:text-white focus-ring"
                 aria-label="Cerrar"
               >
-                <X size={16} />
+                <X size={17} />
               </button>
             </div>
 
             <div className="p-6">
               <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-[#FF6A18]">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] border border-[#ff5a00]/20 bg-[#ff5a00]/[0.08] text-[#ff6a18]">
                   <Scissors size={22} strokeWidth={1.5} />
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-xl font-semibold tracking-[-0.03em] text-white">
+                    <h3 className="display text-[22px] font-semibold tracking-[-.045em] text-white">
                       {selectedService.name}
                     </h3>
 
                     <span
-                      className={`rounded-full border px-2.5 py-1 text-[9px] font-medium ${
+                      className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold ${
                         selectedService.active
                           ? "border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-300"
-                          : "border-white/[0.08] bg-white/[0.025] text-white/30"
+                          : "border-white/[0.08] bg-white/[0.025] text-white/36"
                       }`}
                     >
                       {selectedService.active ? "Activo" : "Inactivo"}
                     </span>
                   </div>
 
-                  <p className="mt-2 text-xs leading-5 text-white/35">
+                  <p className="mt-2 text-[13px] leading-5 text-white/62">
                     {selectedService.description ||
                       "Sin descripción configurada."}
                   </p>
@@ -1129,121 +1547,117 @@ export default function ServiciosPage() {
               </div>
 
               <div className="mt-7 grid grid-cols-2 gap-3">
-                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
-                  <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-                    <DollarSign size={11} />
+                <div className="rounded-[14px] border border-white/[0.065] bg-white/[0.012] p-4">
+                  <div className="meta-label flex items-center gap-2 text-white/58">
+                    <DollarSign size={12} />
                     Precio
                   </div>
-                  <p className="mt-3 page-number text-2xl font-semibold tracking-[-0.04em] text-white">
+                  <div className="display mt-3 text-[24px] font-semibold tracking-[-.055em] text-white">
                     {formatPrice(
                       selectedService.price,
                       selectedService.currency
                     )}
-                  </p>
+                  </div>
                 </div>
 
-                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
-                  <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-                    <Clock3 size={11} />
+                <div className="rounded-[14px] border border-white/[0.065] bg-white/[0.012] p-4">
+                  <div className="meta-label flex items-center gap-2 text-white/58">
+                    <Clock3 size={12} />
                     Duración
                   </div>
-                  <p className="mt-3 page-number text-2xl font-semibold tracking-[-0.04em] text-white">
+                  <div className="display mt-3 text-[24px] font-semibold tracking-[-.055em] text-white">
                     {formatDuration(selectedService.duration_minutes)}
-                  </p>
+                  </div>
                 </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
-                  <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-                    <CalendarDays size={11} />
+                <div className="rounded-[14px] border border-white/[0.065] bg-white/[0.012] p-4">
+                  <div className="meta-label flex items-center gap-2 text-white/58">
+                    <CalendarDays size={12} />
                     Atenciones
                   </div>
-                  <p className="mt-3 text-2xl font-semibold tabular-nums tracking-[-0.04em] text-white">
+                  <div className="display mt-3 text-[24px] font-semibold tracking-[-.055em] text-white">
                     {serviceUsage[selectedService.id] ?? 0}
-                  </p>
+                  </div>
                 </div>
 
-                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
-                  <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-                    <TrendingUp size={11} />
+                <div className="rounded-[14px] border border-white/[0.065] bg-white/[0.012] p-4">
+                  <div className="meta-label flex items-center gap-2 text-white/58">
+                    <TrendingUp size={12} />
                     Ingresos
                   </div>
-                  <p className="mt-3 text-xl font-semibold tabular-nums tracking-[-0.04em] text-white">
+                  <div className="display mt-3 text-[20px] font-semibold tracking-[-.045em] text-[#ff7a22]">
                     {formatCompactPrice(
-                      serviceIngresos[selectedService.id] ?? 0,
+                      serviceRevenue[selectedService.id] ?? 0,
                       selectedService.currency
                     )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-[14px] border border-white/[0.07] bg-[#0F0F0F]">
-                <div className="border-b border-white/[0.06] px-4 py-4">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-                    Configuración
-                  </p>
-                </div>
-
-                <div className="divide-y divide-white/[0.055]">
-                  <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-                    <span className="text-xs text-white/35">Moneda</span>
-                    <span className="text-xs font-medium text-white/70">
-                      {selectedService.currency}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-                    <span className="text-xs text-white/35">Estado</span>
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white/65">
-                      {selectedService.active ? (
-                        <CircleCheck size={13} className="text-emerald-300" />
-                      ) : (
-                        <CircleX size={13} className="text-white/25" />
-                      )}
-                      {selectedService.active
-                        ? "Disponible para reservas"
-                        : "Oculto de nuevas reservas"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-                    <span className="text-xs text-white/35">Creado</span>
-                    <span className="text-xs font-medium text-white/60">
-                      {formatDate(selectedService.created_at)}
-                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6">
-                <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/25">
-                  Acciones
-                </p>
+              <div className="mt-4 rounded-[14px] border border-white/[0.065] bg-white/[0.012]">
+                <div className="flex items-center justify-between gap-4 border-b border-white/[0.055] px-4 py-3.5">
+                  <span className="text-[12px] text-white/58">Estado</span>
+                  <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-white/84">
+                    {selectedService.active ? (
+                      <CircleCheck size={14} className="text-emerald-300" />
+                    ) : (
+                      <CircleX size={14} className="text-white/38" />
+                    )}
+                    {selectedService.active ? "Disponible" : "Inactivo"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 border-b border-white/[0.055] px-4 py-3.5">
+                  <span className="text-[12px] text-white/58">Creado</span>
+                  <span className="text-[12px] font-semibold text-white/78">
+                    {formatDate(selectedService.created_at)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+                  <span className="text-[12px] text-white/58">
+                    Participación
+                  </span>
+                  <span className="data text-[12px] font-medium text-[#ff7a22]">
+                    {totalUsage > 0
+                      ? `${Math.round(
+                          ((serviceUsage[selectedService.id] ?? 0) /
+                            totalUsage) *
+                            100
+                        )}%`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-7">
+                <div className="eyebrow mb-3 text-[#ff6a18]">ACCIONES</div>
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => openEdit(selectedService)}
-                    className="flex items-center justify-center gap-2 rounded-[11px] border border-white/[0.08] bg-white/[0.025] px-3 py-3 text-xs font-medium text-white/65 transition hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-white"
+                    className="flex h-11 items-center justify-center gap-2 rounded-[11px] border border-white/[0.08] bg-white/[0.025] text-[12px] font-semibold text-white/72 transition hover:border-white/[0.14] hover:bg-white/[0.045] hover:text-white focus-ring"
                   >
-                    <Pencil size={13} />
+                    <Pencil size={14} />
                     Editar
                   </button>
 
                   <button
                     type="button"
                     onClick={() => toggleService(selectedService)}
-                    className="flex items-center justify-center gap-2 rounded-[11px] border border-white/[0.08] bg-white/[0.025] px-3 py-3 text-xs font-medium text-white/65 transition hover:border-white/[0.14] hover:bg-white/[0.04] hover:text-white"
+                    className="flex h-11 items-center justify-center gap-2 rounded-[11px] border border-white/[0.08] bg-white/[0.025] text-[12px] font-semibold text-white/72 transition hover:border-white/[0.14] hover:bg-white/[0.045] hover:text-white focus-ring"
                   >
                     {selectedService.active ? (
                       <>
-                        <Archive size={13} />
+                        <Archive size={14} />
                         Desactivar
                       </>
                     ) : (
                       <>
-                        <Check size={13} />
+                        <Check size={14} />
                         Activar
                       </>
                     )}
@@ -1251,34 +1665,32 @@ export default function ServiciosPage() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[11px] border border-[#FF5A00]/10 bg-[#FF5A00]/[0.035] p-4">
+              <div className="mt-6 rounded-[14px] border border-[#ff5a00]/10 bg-[#ff5a00]/[0.035] p-4">
                 <div className="flex items-start gap-3">
                   <Sparkles
                     size={15}
-                    className="mt-0.5 shrink-0 text-[#FF6A18]"
+                    className="mt-0.5 shrink-0 text-[#ff6a18]"
                   />
-                  <p className="text-[11px] leading-5 text-white/35">
+                  <p className="text-[12px] leading-5 text-white/58">
                     Este servicio alimenta la Agenda, los ingresos del
-                    Dashboard, Analytics y las futuras herramientas de
-                    fidelización de BarberOS.
+                    Dashboard y Analytics de BarberOS.
                   </p>
                 </div>
               </div>
             </div>
           </aside>
         </div>
-      )}
+      ) : null}
 
-      {/* CREATE / EDIT MODAL */}
-      {showServiceModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-[560px] overflow-hidden rounded-[14px] border border-white/[0.09] bg-[#0F0F0F] shadow-2xl">
+      {showServiceModal ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[560px] overflow-hidden rounded-[16px] border border-white/[0.09] bg-[#0f0f0f] shadow-2xl">
             <div className="flex items-start justify-between border-b border-white/[0.07] px-6 py-5">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#FF6A18]">
-                  {editingService ? "Editar catálogo" : "Nuevo catálogo"}
-                </p>
-                <h2 className="mt-1 text-base font-semibold text-white">
+                <div className="eyebrow text-[#ff6a18]">
+                  {editingService ? "EDITAR CATÁLOGO" : "NUEVO CATÁLOGO"}
+                </div>
+                <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">
                   {editingService ? "Editar servicio" : "Crear servicio"}
                 </h2>
               </div>
@@ -1286,19 +1698,20 @@ export default function ServiciosPage() {
               <button
                 type="button"
                 onClick={() => setShowServiceModal(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/[0.05] hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white/38 transition hover:bg-white/[0.05] hover:text-white focus-ring"
                 aria-label="Cerrar modal"
               >
-                <X size={16} />
+                <X size={17} />
               </button>
             </div>
 
-            <div className="space-y-4 p-6">
+            <div className="space-y-5 p-6">
               <label className="block">
-                <span className="mb-2 block text-[10px] font-medium uppercase tracking-[0.14em] text-white/30">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[.14em] text-white/62">
                   Nombre
                 </span>
                 <input
+                  autoFocus
                   value={form.name}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -1307,12 +1720,12 @@ export default function ServiciosPage() {
                     }))
                   }
                   placeholder="Ej. Corte clásico"
-                  className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[#FF5A00]/40"
+                  className="h-11 w-full rounded-[11px] border border-white/[0.08] bg-[#080808] px-3.5 text-[13px] text-white outline-none placeholder:text-white/38 focus:border-[#ff5a00]/40"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-[10px] font-medium uppercase tracking-[0.14em] text-white/30">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[.14em] text-white/62">
                   Descripción
                 </span>
                 <textarea
@@ -1325,18 +1738,37 @@ export default function ServiciosPage() {
                   }
                   rows={3}
                   placeholder="Descripción breve que puede mostrarse al reservar."
-                  className="w-full resize-none rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[#FF5A00]/40"
+                  className="w-full resize-none rounded-[11px] border border-white/[0.08] bg-[#080808] px-3.5 py-3 text-[13px] leading-5 text-white outline-none placeholder:text-white/38 focus:border-[#ff5a00]/40"
                 />
               </label>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="mb-2 block text-[10px] font-medium uppercase tracking-[0.14em] text-white/30">
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[.14em] text-white/62">
+                    Duración
+                  </span>
+                  <input
+                    type="number"
+                    min={5}
+                    step={5}
+                    value={form.duration_minutes}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        duration_minutes: Number(event.target.value),
+                      }))
+                    }
+                    className="h-11 w-full rounded-[11px] border border-white/[0.08] bg-[#080808] px-3.5 text-[13px] text-white outline-none focus:border-[#ff5a00]/40"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[.14em] text-white/62">
                     Precio
                   </span>
                   <input
                     type="number"
-                    min="0"
+                    min={0}
                     step="0.01"
                     value={form.price}
                     onChange={(event) =>
@@ -1345,32 +1777,15 @@ export default function ServiciosPage() {
                         price: event.target.value,
                       }))
                     }
-                    placeholder="15000"
-                    className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm tabular-nums text-white outline-none focus:border-[#FF5A00]/40"
+                    placeholder="20000"
+                    className="h-11 w-full rounded-[11px] border border-white/[0.08] bg-[#080808] px-3.5 text-[13px] text-white outline-none placeholder:text-white/38 focus:border-[#ff5a00]/40"
                   />
                 </label>
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="mb-2 block text-[10px] font-medium uppercase tracking-[0.14em] text-white/30">
-                    Duración
-                  </span>
-                  <input
-                    type="number"
-                    min="5"
-                    step="5"
-                    value={form.duration_minutes}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        duration_minutes: Number(event.target.value),
-                      }))
-                    }
-                    className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm tabular-nums text-white outline-none focus:border-[#FF5A00]/40"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-[10px] font-medium uppercase tracking-[0.14em] text-white/30">
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[.14em] text-white/62">
                     Moneda
                   </span>
                   <select
@@ -1381,101 +1796,74 @@ export default function ServiciosPage() {
                         currency: event.target.value,
                       }))
                     }
-                    className="w-full rounded-[11px] border border-white/[0.08] bg-[#08090A] px-3.5 py-3 text-sm text-white outline-none focus:border-[#FF5A00]/40"
+                    className="h-11 w-full rounded-[11px] border border-white/[0.08] bg-[#080808] px-3.5 text-[13px] text-white outline-none focus:border-[#ff5a00]/40"
                   >
-                    <option value="ARS">ARS</option>
-                    <option value="USD">USD</option>
+                    <option value="ARS">ARS · Pesos argentinos</option>
+                    <option value="USD">USD · Dólares</option>
                   </select>
                 </label>
+
+                <div>
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[.14em] text-white/62">
+                    Estado
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((current) => ({
+                        ...current,
+                        active: !current.active,
+                      }))
+                    }
+                    className={`flex h-11 w-full items-center justify-between rounded-[11px] border px-3.5 text-[12px] font-semibold transition ${
+                      form.active
+                        ? "border-emerald-400/15 bg-emerald-400/[0.055] text-emerald-300"
+                        : "border-white/[0.08] bg-white/[0.025] text-white/50"
+                    }`}
+                  >
+                    <span>{form.active ? "Activo" : "Inactivo"}</span>
+                    {form.active ? (
+                      <CircleCheck size={15} />
+                    ) : (
+                      <CircleX size={15} />
+                    )}
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((current) => ({
-                    ...current,
-                    active: !current.active,
-                  }))
-                }
-                className={`flex w-full items-center justify-between rounded-[11px] border px-4 py-3 transition ${
-                  form.active
-                    ? "border-emerald-400/15 bg-emerald-400/[0.045]"
-                    : "border-white/[0.07] bg-white/[0.02]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  {form.active ? (
-                    <Eye size={15} className="text-emerald-300" />
-                  ) : (
-                    <EyeOff size={15} className="text-white/30" />
-                  )}
-                  <div className="text-left">
-                    <p className="text-xs font-medium text-white/75">
-                      Disponible para reservas
-                    </p>
-                    <p className="mt-1 text-[10px] text-white/30">
-                      {form.active
-                        ? "El servicio aparecerá en nuevos turnos."
-                        : "El servicio quedará oculto del flujo de reserva."}
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  className={`flex h-5 w-9 items-center rounded-full p-0.5 transition ${
-                    form.active ? "bg-[#FF5A00]" : "bg-white/[0.12]"
-                  }`}
+              <div className="flex justify-end gap-2.5 border-t border-white/[0.055] pt-5">
+                <button
+                  type="button"
+                  onClick={() => setShowServiceModal(false)}
+                  className="h-11 rounded-[11px] border border-white/[0.08] px-4 text-[12px] font-semibold text-white/62 transition hover:bg-white/[0.04] hover:text-white"
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full bg-white transition ${
-                      form.active ? "translate-x-4" : "translate-x-0"
-                    }`}
-                  />
-                </div>
-              </button>
-            </div>
+                  Cancelar
+                </button>
 
-            <div className="flex items-center justify-end gap-2 border-t border-white/[0.07] px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setShowServiceModal(false)}
-                className="rounded-[11px] px-4 py-2.5 text-xs font-medium text-white/40 transition hover:text-white"
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="button"
-                disabled={saving}
-                onClick={saveService}
-                className="inline-flex items-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6816] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <RefreshCw size={13} className="animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Check size={13} />
-                    {editingService ? "Guardar cambios" : "Crear servicio"}
-                  </>
-                )}
-              </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={saveService}
+                  className="primary-action h-11 rounded-[11px] px-5 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saving
+                    ? "Guardando..."
+                    : editingService
+                      ? "Guardar cambios"
+                      : "Crear servicio"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* TOAST */}
-      {toast && (
-        <div className="fixed bottom-5 right-5 z-[80] flex max-w-[360px] items-center gap-3 rounded-[11px] border border-white/[0.09] bg-[#0F0F0F] px-4 py-3 shadow-2xl">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-400/[0.08] text-emerald-300">
-            <Check size={14} />
-          </div>
-          <p className="text-xs font-medium text-white/75">{toast}</p>
+      {toast ? (
+        <div className="fixed bottom-5 right-5 z-[100] flex items-center gap-3 rounded-[12px] border border-white/[0.09] bg-[#111111]/95 px-4 py-3 text-[12px] font-semibold text-white shadow-2xl backdrop-blur-xl">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#ff6a18]" />
+          {toast}
         </div>
-      )}
-    </div>
+      ) : null}
+    </main>
   );
 }

@@ -2,28 +2,32 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { DM_Mono, Manrope, Sora } from "next/font/google";
 import {
-  Search,
-  Plus,
-  UserRound,
+  ArrowDownRight,
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  ChevronRight,
   CircleCheck,
   CircleX,
-  ChevronRight,
-  X,
-  CalendarDays,
   DollarSign,
+  Pencil,
+  Plus,
+  Power,
+  RefreshCw,
+  Search,
   Scissors,
   TrendingUp,
   Users,
-  Activity,
-  MoreHorizontal,
-  ArrowUpRight,
-  ArrowDownRight,
-  Pencil,
-  Power,
-  BarChart3,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-barberos-ui" });
+const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-barberos-display" });
+const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "500"], variable: "--font-barberos-data" });
 
 type Barber = {
   id: string;
@@ -38,74 +42,57 @@ type Appointment = {
   start_at: string;
   end_at: string;
   status: string;
-  service: {
-    name: string;
-    price: number;
-  } | null;
+  service: { name: string; price: number } | null;
 };
 
-type BarberWithStats = Barber & {
+type BarberStats = Barber & {
   appointmentsCount: number;
   completedAppointments: number;
   revenue: number;
   averageTicket: number;
   lastAppointment: string | null;
   recentAppointments: number;
-  recentIngresos: number;
+  recentRevenue: number;
   previousRecentAppointments: number;
-  previousRecentIngresos: number;
+  previousRecentRevenue: number;
   growth: number;
   revenueShare: number;
   services: string[];
 };
 
-function formatDate(dateString: string) {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(dateString));
+type Filter = "all" | "active" | "inactive";
+
+function money(value: number) {
+  return `$${value.toLocaleString("es-AR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
-function formatShortDate(dateString: string | null) {
-  if (!dateString) return "Sin actividad";
-
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(dateString));
+function initials(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
 
-function formatDateTime(dateString: string | null) {
-  if (!dateString) return "Sin turnos";
-
+function dateTime(value: string | null) {
+  if (!value) return "Sin actividad";
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(new Date(dateString));
+  }).format(new Date(value));
 }
 
-function formatPrice(price: number) {
-  return `$${price.toLocaleString("es-AR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
+function dateOnly(value: string) {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
-function getPercentageChange(current: number, previous: number) {
+function percentage(current: number, previous: number) {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
 }
@@ -115,67 +102,49 @@ export default function EquipoPage() {
 
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [selectedBarber, setSelectedBarber] =
-    useState<BarberWithStats | null>(null);
-
+  const [selected, setSelected] = useState<BarberStats | null>(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] =
-    useState<"all" | "active" | "inactive">("all");
-
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-
+  const [filter, setFilter] = useState<Filter>("all");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [editName, setEditName] = useState("");
-
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  async function loadTeam() {
-    setLoading(true);
+  async function loadTeam(refresh = false) {
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
     setError("");
 
-    const [
-      { data: barbersData, error: barbersError },
-      { data: appointmentsData, error: appointmentsError },
-    ] = await Promise.all([
-      supabase
-        .from("barbers")
-        .select("id, name, active, created_at")
-        .order("name", { ascending: true }),
-
-      supabase
-        .from("appointments")
-        .select(`
+    const [{ data: barberData, error: barberError }, { data: appointmentData, error: appointmentError }] =
+      await Promise.all([
+        supabase.from("barbers").select("id, name, active, created_at").order("name", { ascending: true }),
+        supabase.from("appointments").select(`
           id,
           barber_id,
           start_at,
           end_at,
           status,
-          service:services (
-            name,
-            price
-          )
-        `)
-        .order("start_at", { ascending: false }),
-    ]);
+          service:services ( name, price )
+        `).order("start_at", { ascending: false }),
+      ]);
 
-    if (barbersError || appointmentsError) {
-      console.error("Error loading team:", {
-        barbersError,
-        appointmentsError,
-      });
-
+    if (barberError || appointmentError) {
+      console.error("Error loading team", { barberError, appointmentError });
       setError("No se pudo cargar la información del equipo.");
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
-    setBarbers((barbersData ?? []) as Barber[]);
-    setAppointments((appointmentsData ?? []) as unknown as Appointment[]);
+    setBarbers((barberData ?? []) as Barber[]);
+    setAppointments((appointmentData ?? []) as unknown as Appointment[]);
     setLoading(false);
+    setRefreshing(false);
   }
 
   useEffect(() => {
@@ -184,247 +153,141 @@ export default function EquipoPage() {
 
   useEffect(() => {
     if (!toast) return;
-
     const timer = window.setTimeout(() => setToast(""), 3000);
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const team = useMemo<BarberWithStats[]>(() => {
+  const team = useMemo<BarberStats[]>(() => {
     const now = new Date();
-    const currentWindowStart = new Date(now);
-    currentWindowStart.setDate(now.getDate() - 30);
+    const currentStart = new Date(now);
+    currentStart.setDate(currentStart.getDate() - 30);
+    const previousStart = new Date(now);
+    previousStart.setDate(previousStart.getDate() - 60);
 
-    const previousWindowStart = new Date(now);
-    previousWindowStart.setDate(now.getDate() - 60);
-
-    const previousWindowEnd = currentWindowStart;
-
-    const valid = appointments.filter(
-      (appointment) => appointment.status !== "cancelled"
-    );
-
-    const totalIngresos = valid.reduce(
-      (total, appointment) =>
-        total + Number(appointment.service?.price ?? 0),
-      0
-    );
+    const valid = appointments.filter((item) => item.status !== "cancelled");
+    const totalRevenue = valid
+      .filter((item) => item.status === "completed")
+      .reduce((sum, item) => sum + Number(item.service?.price ?? 0), 0);
 
     return barbers.map((barber) => {
-      const barberAppointments = valid.filter(
-        (appointment) => appointment.barber_id === barber.id
-      );
-
-      const completedAppointments = barberAppointments.filter(
-        (appointment) => appointment.status === "completed"
-      );
-
-      const revenue = completedAppointments.reduce(
-        (total, appointment) =>
-          total + Number(appointment.service?.price ?? 0),
-        0
-      );
-
-      const recent = barberAppointments.filter(
-        (appointment) =>
-          new Date(appointment.start_at) >= currentWindowStart
-      );
-
-      const previousRecent = barberAppointments.filter((appointment) => {
-        const date = new Date(appointment.start_at);
-        return (
-          date >= previousWindowStart && date < previousWindowEnd
-        );
+      const own = valid.filter((item) => item.barber_id === barber.id);
+      const completed = own.filter((item) => item.status === "completed");
+      const revenue = completed.reduce((sum, item) => sum + Number(item.service?.price ?? 0), 0);
+      const recent = own.filter((item) => new Date(item.start_at) >= currentStart);
+      const previous = own.filter((item) => {
+        const date = new Date(item.start_at);
+        return date >= previousStart && date < currentStart;
       });
-
-      const recentIngresos = recent
-        .filter((appointment) => appointment.status === "completed")
-        .reduce(
-          (total, appointment) =>
-            total + Number(appointment.service?.price ?? 0),
-          0
-        );
-
-      const previousRecentIngresos = previousRecent
-        .filter((appointment) => appointment.status === "completed")
-        .reduce(
-          (total, appointment) =>
-            total + Number(appointment.service?.price ?? 0),
-          0
-        );
-
-      const lastAppointment =
-        barberAppointments.length > 0
-          ? barberAppointments[0].start_at
-          : null;
-
+      const recentRevenue = recent
+        .filter((item) => item.status === "completed")
+        .reduce((sum, item) => sum + Number(item.service?.price ?? 0), 0);
+      const previousRevenue = previous
+        .filter((item) => item.status === "completed")
+        .reduce((sum, item) => sum + Number(item.service?.price ?? 0), 0);
       const services = Array.from(
-        new Set(
-          barberAppointments
-            .map((appointment) => appointment.service?.name)
-            .filter(Boolean) as string[]
-        )
+        new Set(own.map((item) => item.service?.name).filter((name): name is string => Boolean(name)))
       );
 
       return {
         ...barber,
-        appointmentsCount: barberAppointments.length,
-        completedAppointments: completedAppointments.length,
+        appointmentsCount: own.length,
+        completedAppointments: completed.length,
         revenue,
-        averageTicket:
-          completedAppointments.length > 0
-            ? revenue / completedAppointments.length
-            : 0,
-        lastAppointment,
+        averageTicket: completed.length ? revenue / completed.length : 0,
+        lastAppointment: own[0]?.start_at ?? null,
         recentAppointments: recent.length,
-        recentIngresos,
-        previousRecentAppointments: previousRecent.length,
-        previousRecentIngresos,
-        growth: getPercentageChange(
-          recentIngresos,
-          previousRecentIngresos
-        ),
-        revenueShare:
-          totalIngresos > 0 ? (revenue / totalIngresos) * 100 : 0,
+        recentRevenue,
+        previousRecentAppointments: previous.length,
+        previousRecentRevenue: previousRevenue,
+        growth: percentage(recentRevenue, previousRevenue),
+        revenueShare: totalRevenue ? (revenue / totalRevenue) * 100 : 0,
         services,
       };
     });
   }, [barbers, appointments]);
 
-  const filteredTeam = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+  const ranked = useMemo(() => [...team].sort((a, b) => b.revenue - a.revenue), [team]);
 
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
     return team.filter((barber) => {
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        barber.name.toLowerCase().includes(normalizedSearch);
-
-      const matchesFilter =
+      const searchMatch = !term || barber.name.toLowerCase().includes(term);
+      const filterMatch =
         filter === "all" ||
         (filter === "active" && barber.active) ||
         (filter === "inactive" && !barber.active);
-
-      return matchesSearch && matchesFilter;
+      return searchMatch && filterMatch;
     });
   }, [team, search, filter]);
 
-  const rankedTeam = useMemo(
-    () =>
-      [...team].sort((a, b) => b.revenue - a.revenue),
-    [team]
-  );
-
-  const activeBarbers = team.filter((barber) => barber.active).length;
-  const inactiveBarbers = team.filter((barber) => !barber.active).length;
-
-  const totalAppointments = team.reduce(
-    (total, barber) => total + barber.appointmentsCount,
-    0
-  );
-
-  const completedAppointments = team.reduce(
-    (total, barber) => total + barber.completedAppointments,
-    0
-  );
-
-  const totalIngresos = team.reduce(
-    (total, barber) => total + barber.revenue,
-    0
-  );
-
-  const averageTicket =
-    completedAppointments > 0
-      ? totalIngresos / completedAppointments
-      : 0;
-
-  const topPerformer = rankedTeam[0] ?? null;
+  const activeCount = team.filter((item) => item.active).length;
+  const inactiveCount = team.length - activeCount;
+  const totalAppointments = team.reduce((sum, item) => sum + item.appointmentsCount, 0);
+  const completedAppointments = team.reduce((sum, item) => sum + item.completedAppointments, 0);
+  const totalRevenue = team.reduce((sum, item) => sum + item.revenue, 0);
+  const averageTicket = completedAppointments ? totalRevenue / completedAppointments : 0;
+  const top = ranked[0] ?? null;
 
   async function createBarber() {
     const name = newName.trim();
-
     if (!name) return;
-
     setSaving(true);
 
     const { data, error: insertError } = await supabase
       .from("barbers")
-      .insert({
-        name,
-        active: true,
-      })
+      .insert({ name, active: true })
       .select("id, name, active, created_at")
       .single();
 
     if (insertError) {
       console.error(insertError);
-      setToast("No se pudo crear el barbero.");
+      setToast("No se pudo crear el profesional.");
       setSaving(false);
       return;
     }
 
-    setBarbers((current) =>
-      [...current, data as Barber].sort((a, b) =>
-        a.name.localeCompare(b.name)
-      )
-    );
-
+    setBarbers((current) => [...current, data as Barber].sort((a, b) => a.name.localeCompare(b.name)));
     setNewName("");
-    setShowCreateModal(false);
-    setToast("Barbero creado correctamente.");
+    setCreateOpen(false);
+    setToast("Profesional creado correctamente.");
     setSaving(false);
   }
 
   async function updateBarber() {
-    if (!selectedBarber) return;
-
+    if (!selected) return;
     const name = editName.trim();
-
     if (!name) return;
-
     setSaving(true);
 
     const { data, error: updateError } = await supabase
       .from("barbers")
       .update({ name })
-      .eq("id", selectedBarber.id)
+      .eq("id", selected.id)
       .select("id, name, active, created_at")
       .single();
 
     if (updateError) {
       console.error(updateError);
-      setToast("No se pudo actualizar el barbero.");
+      setToast("No se pudo actualizar el profesional.");
       setSaving(false);
       return;
     }
 
-    setBarbers((current) =>
-      current.map((barber) =>
-        barber.id === selectedBarber.id
-          ? (data as Barber)
-          : barber
-      )
-    );
-
-    setSelectedBarber((current) =>
-      current
-        ? {
-            ...current,
-            name: data.name,
-          }
-        : current
-    );
-
-    setShowEditModal(false);
+    setBarbers((current) => current.map((item) => item.id === selected.id ? (data as Barber) : item));
+    setSelected((current) => current ? { ...current, name: data.name } : current);
+    setEditOpen(false);
     setToast("Perfil actualizado.");
     setSaving(false);
   }
 
-  async function toggleBarber(barber: BarberWithStats) {
-    const nextActive = !barber.active;
+  async function toggleBarber() {
+    if (!selected) return;
+    const nextActive = !selected.active;
 
     const { data, error: updateError } = await supabase
       .from("barbers")
       .update({ active: nextActive })
-      .eq("id", barber.id)
+      .eq("id", selected.id)
       .select("id, name, active, created_at")
       .single();
 
@@ -434,927 +297,447 @@ export default function EquipoPage() {
       return;
     }
 
-    setBarbers((current) =>
-      current.map((item) =>
-        item.id === barber.id ? (data as Barber) : item
-      )
-    );
-
-    setSelectedBarber((current) =>
-      current
-        ? {
-            ...current,
-            active: data.active,
-          }
-        : current
-    );
-
-    setToast(
-      data.active
-        ? "Barbero activado."
-        : "Barbero desactivado."
-    );
+    setBarbers((current) => current.map((item) => item.id === selected.id ? (data as Barber) : item));
+    setSelected((current) => current ? { ...current, active: data.active } : current);
+    setToast(data.active ? "Profesional activado." : "Profesional desactivado.");
   }
 
   return (
-    <div className="barberos-page min-h-screen bg-[#070707] text-[#F5F5F4]">
-      <style>{`
-        .barberos-page{font-family:var(--font-manrope,Manrope,ui-sans-serif,system-ui,sans-serif)}
-        .barberos-page .page-display,.barberos-page .page-number{font-family:var(--font-sora,Sora,ui-sans-serif,system-ui,sans-serif);font-variant-numeric:tabular-nums}
-        .barberos-page button:focus-visible,.barberos-page input:focus-visible,.barberos-page textarea:focus-visible,.barberos-page select:focus-visible{outline:1px solid rgba(255,90,0,.65);outline-offset:2px}
+    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-page min-h-screen bg-[#070707] text-[#f5f5f4]`}>
+      <style jsx>{`
+        .barberos-page {
+          --line: rgba(255,255,255,.075);
+          --line-soft: rgba(255,255,255,.045);
+          --orange: #ff5a00;
+          --orange-bright: #ff7a22;
+          font-family: var(--font-barberos-ui), Manrope, sans-serif;
+          font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+          text-rendering: optimizeLegibility;
+          -webkit-font-smoothing: antialiased;
+          letter-spacing: -.014em;
+        }
+        .display { font-family: var(--font-barberos-display), Sora, sans-serif; }
+        .data {
+          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-variant-numeric: tabular-nums lining-nums;
+        }
+        .panel {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          background:
+            linear-gradient(145deg,rgba(255,255,255,.028),rgba(255,255,255,.010) 52%,rgba(255,90,0,.012)),
+            rgba(10,10,10,.96);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.022), 0 18px 58px rgba(0,0,0,.15);
+          transition: transform 240ms cubic-bezier(.22,.61,.36,1), border-color 240ms ease, box-shadow 240ms ease;
+        }
+        .panel::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: radial-gradient(420px 220px at 90% -10%, rgba(255,90,0,.045), transparent 70%);
+        }
+        .panel-hover:hover {
+          transform: translateY(-1px);
+          border-color: rgba(255,90,0,.14);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 24px 70px rgba(0,0,0,.22);
+        }
+        .control {
+          border: 1px solid rgba(255,255,255,.07);
+          background: rgba(255,255,255,.025);
+          transition: all .18s ease;
+        }
+        .control:hover { border-color: rgba(255,255,255,.13); background: rgba(255,255,255,.045); }
+        .control:focus { outline: none; border-color: rgba(255,90,0,.4); box-shadow: 0 0 0 3px rgba(255,90,0,.07); }
+        .primary { background: #ff5a00; box-shadow: 0 10px 28px rgba(255,90,0,.12); transition: all .18s ease; }
+        .primary:hover { background: #ff6a18; transform: translateY(-1px); box-shadow: 0 14px 34px rgba(255,90,0,.2); }
+        .hairline { border-color: var(--line-soft); }
+        .row-hover { transition: background .18s ease; }
+        .row-hover:hover { background: rgba(255,255,255,.018); }
+        .bar-track { background: rgba(255,255,255,.045); }
+        .bar-fill { background: linear-gradient(90deg,#ff5a00,#ff7a22); }
       `}</style>
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -right-40 top-0 h-96 w-96 rounded-full bg-[#FF5A00]/[0.045] blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-white/[0.018] blur-3xl" />
-      </div>
 
-      <div className="relative mx-auto max-w-[1680px] px-6 py-7 lg:px-8">
-        {/* HEADER */}
-        <header className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[#71717A]">
-              <span>Espacio de trabajo</span>
-              <span className="text-[#3F3F46]">/</span>
-              <span className="text-[#A1A1AA]">Equipo</span>
+      <div className="relative mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
+        <header className="mb-7">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="min-w-0">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/82">BarberOS</span>
+                <span className="text-white/10">/</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#ff6a18]">Inteligencia de Equipo</span>
+                <span className="ml-1 hidden h-px w-10 bg-gradient-to-r from-orange-500/55 to-transparent sm:block" />
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <h1 className="display text-[34px] font-semibold leading-[.91] tracking-[-.075em] text-white sm:text-[42px]">Equipo</h1>
+              </div>
+              <p className="mt-2 max-w-xl text-[14px] leading-6 text-white/72">
+                Controlá profesionales, capacidad, rendimiento y estado operativo desde un solo lugar.
+              </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <h1 className="page-display text-[38px] font-semibold tracking-[-0.045em]">
-                Equipo
-              </h1>
-
-              <span className="rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] px-2.5 py-1 text-[11px] font-medium text-[#FF6A18]">
-                Gestión del equipo
-              </span>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => loadTeam(true)} aria-label="Actualizar equipo" className="control flex h-10 w-10 items-center justify-center rounded-[11px] text-white/58">
+                <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+              </button>
+              <button type="button" onClick={() => setCreateOpen(true)} className="primary flex h-10 items-center gap-2 rounded-[11px] px-4 text-[11px] font-semibold text-white">
+                <Plus size={14} />Nuevo profesional
+              </button>
             </div>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8F8F96]">
-              Gestioná tu equipo, analizá su rendimiento y mantené
-              el servicio operativo desde un único centro.
-            </p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            className="group inline-flex items-center justify-center gap-2 rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(255,90,0,0.15)] transition hover:bg-[#FF6A18]"
-          >
-            <Plus size={17} />
-            Nuevo barbero
-            <ArrowUpRight
-              size={15}
-              className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-            />
-          </button>
         </header>
 
-        {/* KPI STRIP */}
-        <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {[
-            {
-              label: "Equipo total",
-              value: team.length,
-              helper: `${activeBarbers} activos · ${inactiveBarbers} inactivos`,
-              icon: Users,
-            },
-            {
-              label: "Turnos atendidos",
-              value: completedAppointments,
-              helper: `${totalAppointments} registrados`,
-              icon: CalendarDays,
-            },
-            {
-              label: "Ingresos generado",
-              value: formatPrice(totalIngresos),
-              helper: "Según turnos completados",
-              icon: DollarSign,
-            },
-            {
-              label: "Ticket promedio",
-              value: formatPrice(averageTicket),
-              helper: "Por turno completado",
-              icon: TrendingUp,
-            },
-            {
-              label: "Mejor performer",
-              value: topPerformer?.name ?? "—",
-              helper: topPerformer
-                ? `${formatPrice(topPerformer.revenue)} generado`
-                : "Sin datos",
-              icon: Activity,
-            },
-          ].map((item) => {
-            const Icon = item.icon;
+        <main className="pb-10">
+          <section className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <Metric label="Profesionales" value={team.length.toString()} detail={`${activeCount} activos · ${inactiveCount} inactivos`} icon={<Users size={15} />} />
+            <Metric label="Turnos realizados" value={completedAppointments.toString()} detail={`${totalAppointments} registrados en total`} icon={<CalendarDays size={15} />} />
+            <Metric label="Ingresos generados" value={money(totalRevenue)} detail="Según turnos completados" icon={<DollarSign size={15} />} accent />
+            <Metric label="Ticket promedio" value={money(averageTicket)} detail={top ? `Mejor rendimiento: ${top.name}` : "Sin datos todavía"} icon={<TrendingUp size={15} />} />
+          </section>
 
-            return (
-              <div
-                key={item.label}
-                className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4 transition hover:border-white/[0.11]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#68686F]">
-                      {item.label}
-                    </div>
+          {error && (
+            <div className="mb-5 flex items-center justify-between rounded-[12px] border border-red-400/15 bg-red-400/[.05] px-4 py-3 text-[11px] text-red-200">
+              <span>{error}</span>
+              <button type="button" onClick={() => setError("")}><X size={14} /></button>
+            </div>
+          )}
 
-                    <div className="mt-3 truncate page-number text-[23px] font-semibold tracking-[-0.035em]">
-                      {item.value}
-                    </div>
-
-                    <div className="mt-1 truncate text-xs text-[#71717A]">
-                      {item.helper}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[11px] border border-white/[0.06] bg-white/[0.035] p-2.5">
-                    <Icon size={16} className="text-[#A1A1AA]" />
-                  </div>
+          <section className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,.75fr)]">
+            <div className="panel p-5 sm:p-6">
+              <div className="relative mb-6 flex items-end justify-between gap-4">
+                <div>
+                  <div className="data mb-2 text-[10px] font-extrabold uppercase tracking-[.18em] text-[#ff6a18]">Performance</div>
+                  <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">Rendimiento del equipo</h2>
+                  <p className="mt-1 text-[14px] text-white/70">Ingresos y volumen de trabajo por profesional.</p>
                 </div>
-              </div>
-            );
-          })}
-        </section>
-
-        {/* ANALYTICS */}
-        <section className="mb-7 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_0.8fr]">
-          <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold">
-                  Rendimiento del equipo
-                </div>
-                <div className="mt-1 text-xs text-[#71717A]">
-                  Ingresos generado por cada miembro
+                <div className="hidden items-center gap-2 data text-[10px] uppercase tracking-[.12em] text-white/60 sm:flex">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00]" />Revenue
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] text-[#71717A]">
-                <span className="h-2 w-2 rounded-full bg-[#FF5A00]" />
-                Ingresos
+              <div className="relative">
+                {ranked.length === 0 ? (
+                  <div className="flex h-[250px] items-center justify-center rounded-[12px] border border-dashed border-white/[.07] text-[11px] text-white/64">No hay profesionales registrados.</div>
+                ) : (
+                  ranked.map((barber, index) => {
+                    const max = ranked[0]?.revenue || 1;
+                    const width = barber.revenue ? Math.max(5, barber.revenue / max * 100) : 2;
+                    return (
+                      <button key={barber.id} type="button" onClick={() => setSelected(barber)} className="row-hover group w-full rounded-[12px] p-3 text-left">
+                        <div className="flex items-center gap-3">
+                          <span className="data w-6 text-[11px] text-white/54">{String(index + 1).padStart(2, "0")}</span>
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border border-[#ff5a00]/15 bg-[#ff5a00]/[.045] text-[12px] font-semibold text-[#ff7a22]">{initials(barber.name)}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate text-[15px] font-semibold text-white/90">{barber.name}</div>
+                                <div className="mt-1 flex items-center gap-2 text-[13px] text-white/72">
+                                  <span>{barber.completedAppointments} completados</span><span className="h-0.5 w-0.5 rounded-full bg-white/15" /><span>{barber.recentAppointments} últimos 30d</span>
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <div className="data text-[14px] text-white/88">{money(barber.revenue)}</div>
+                                <div className="data mt-1 text-[10px] text-white/54">{barber.revenueShare.toFixed(1)}% share</div>
+                              </div>
+                            </div>
+                            <div className="bar-track h-1.5 overflow-hidden rounded-full"><div className="bar-fill h-full rounded-full transition-all duration-500" style={{ width: `${width}%` }} /></div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
 
-            <div className="space-y-4">
-              {rankedTeam.length === 0 ? (
-                <div className="flex h-32 items-center justify-center text-sm text-[#71717A]">
-                  Sin datos de rendimiento.
-                </div>
-              ) : (
-                rankedTeam.map((barber, index) => {
-                  const maxIngresos =
-                    rankedTeam[0]?.revenue || 1;
+            <div className="panel p-5 sm:p-6">
+              <div className="relative mb-6">
+                <div className="data mb-2 text-[10px] font-extrabold uppercase tracking-[.18em] text-[#ff6a18]">Indicadores</div>
+                <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">Estado operativo</h2>
+                <p className="mt-1 text-[14px] text-white/70">Lectura rápida de capacidad y evolución.</p>
+              </div>
 
-                  return (
-                    <button
-                      key={barber.id}
-                      type="button"
-                      onClick={() => setSelectedBarber(barber)}
-                      className="group w-full text-left"
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-4">
+              <div className="relative space-y-3">
+                <Operational label="Equipo activo" value={`${activeCount}/${team.length}`} percent={team.length ? activeCount / team.length * 100 : 0} />
+                <Operational label="Turnos completados" value={`${completedAppointments}/${totalAppointments}`} percent={totalAppointments ? completedAppointments / totalAppointments * 100 : 0} />
+                <Operational label="Participación del top" value={top ? `${top.revenueShare.toFixed(1)}%` : "—"} percent={top?.revenueShare ?? 0} />
+              </div>
+
+              <div className="relative mt-6 border-t hairline pt-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-[11px] border border-white/[.05] bg-white/[.012] p-4">
+                    <div className="data text-[9px] uppercase tracking-[.14em] text-white/50">Top performer</div>
+                    <div className="display mt-2 truncate text-[18px] font-semibold text-white">{top?.name ?? "—"}</div>
+                    <div className="data mt-1 text-[10px] text-[#ff6a18]">{top ? money(top.revenue) : "Sin datos"}</div>
+                  </div>
+                  <div className="rounded-[11px] border border-white/[.05] bg-white/[.012] p-4">
+                    <div className="data text-[9px] uppercase tracking-[.14em] text-white/50">Crecimiento</div>
+                    <div className={`display mt-2 text-[24px] font-semibold ${top && top.growth >= 0 ? "text-emerald-200" : "text-white"}`}>{top ? `${top.growth >= 0 ? "+" : ""}${top.growth.toFixed(1)}%` : "—"}</div>
+                    <div className="mt-1 text-[10px] text-white/48">últimos 30 días</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel overflow-hidden">
+            <div className="relative border-b hairline p-5 sm:p-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <div className="data mb-2 text-[10px] font-extrabold uppercase tracking-[.18em] text-[#ff6a18]">Directorio</div>
+                  <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">Profesionales</h2>
+                  <p className="mt-1 text-[14px] text-white/70">Accedé al perfil, rendimiento y acciones de cada miembro.</p>
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="relative min-w-[250px]">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/36" />
+                    <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar profesional..." className="control h-11 w-full rounded-[10px] pl-9 pr-3 text-[12px] text-white/75 placeholder:text-white/34" />
+                  </div>
+                  <div className="control flex h-11 rounded-[10px] p-1">
+                    {(["all", "active", "inactive"] as Filter[]).map((item) => (
+                      <button key={item} type="button" onClick={() => setFilter(item)} className={`rounded-[8px] px-3 data text-[9px] font-semibold uppercase tracking-[.12em] ${filter === item ? "bg-white/[.08] text-white" : "text-white/40 hover:text-white/60"}`}>
+                        {item === "all" ? "Todos" : item === "active" ? "Activos" : "Inactivos"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+                {[1, 2, 3].map((item) => <div key={item} className="h-[225px] animate-pulse rounded-[14px] border border-white/[.05] bg-white/[.015]" />)}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="p-5 sm:p-6">
+                <div className="flex min-h-[260px] flex-col items-center justify-center rounded-[13px] border border-dashed border-white/[.07] text-center">
+                  <Users size={19} className="text-white/32" />
+                  <p className="mt-4 text-[12px] font-semibold text-white/60">No encontramos profesionales</p>
+                  <p className="mt-1 text-[11px] text-white/72">Modificá la búsqueda o el filtro para ver otros resultados.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((barber) => (
+                  <button key={barber.id} type="button" onClick={() => setSelected(barber)} className="panel panel-hover group text-left">
+                    <div className="relative p-5">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="w-5 text-[11px] font-medium text-[#4F4F55]">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-[10px] font-semibold">
-                            {getInitials(barber.name)}
+                          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border border-[#ff5a00]/15 bg-[#ff5a00]/[.045] text-[12px] font-semibold text-[#ff7a22]">
+                            {initials(barber.name)}
+                            <span className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border-2 border-[#0a0a0a] ${barber.active ? "bg-emerald-400" : "bg-white/20"}`} />
                           </div>
-
-                          <span className="truncate text-sm text-[#D4D4D8] group-hover:text-white">
-                            {barber.name}
-                          </span>
+                          <div className="min-w-0">
+                            <div className="display truncate text-[18px] font-semibold text-white">{barber.name}</div>
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className="data text-[9px] uppercase tracking-[.11em] text-white/48">PROFESIONAL</span>
+                              <span className="h-0.5 w-0.5 rounded-full bg-white/15" />
+                              <span className={`data text-[7px] uppercase tracking-[.11em] ${barber.active ? "text-emerald-300/75" : "text-white/36"}`}>{barber.active ? "ACTIVO" : "INACTIVO"}</span>
+                            </div>
+                          </div>
                         </div>
-
-                        <span className="shrink-0 text-sm font-medium">
-                          {formatPrice(barber.revenue)}
-                        </span>
+                        <ChevronRight size={14} className="mt-1 shrink-0 text-white/30 transition group-hover:text-[#ff6a18]" />
                       </div>
 
-                      <div className="ml-8 h-1.5 overflow-hidden rounded-full bg-white/[0.045]">
-                        <div
-                          className="h-full rounded-full bg-[#FF5A00] transition-all duration-500 group-hover:bg-[#FF6A18]"
-                          style={{
-                            width: `${Math.max(
-                              3,
-                              (barber.revenue / maxIngresos) * 100
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
-            <div className="mb-5">
-              <div className="text-sm font-semibold">
-                Distribución del trabajo
-              </div>
-              <div className="mt-1 text-xs text-[#71717A]">
-                Participación sobre el revenue registrado
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {rankedTeam.slice(0, 5).map((barber) => (
-                <div key={barber.id}>
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className="truncate text-xs text-[#A1A1AA]">
-                      {barber.name}
-                    </span>
-                    <span className="text-xs font-medium text-[#D4D4D8]">
-                      {barber.revenueShare.toFixed(1)}%
-                    </span>
-                  </div>
-
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.045]">
-                    <div
-                      className="h-full rounded-full bg-[#FF5A00]/80"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          barber.revenueShare
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-
-              {rankedTeam.length === 0 && (
-                <div className="flex h-24 items-center justify-center text-xs text-[#71717A]">
-                  Sin datos.
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* TOOLBAR */}
-        <section className="mb-5 flex flex-col gap-3 rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-3 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full md:max-w-md">
-            <Search
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5E5E65]"
-            />
-
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar miembro del equipo..."
-              className="h-10 w-full rounded-[11px] border border-white/[0.06] bg-[#0B0B0B] pl-10 pr-4 text-sm text-[#F5F5F4] outline-none placeholder:text-[#55555C] focus:border-[#FF5A00]/40"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 rounded-[11px] bg-[#0B0B0B] p-1">
-            {[
-              { key: "all", label: "Todos" },
-              { key: "active", label: "Activos" },
-              { key: "inactive", label: "Inactivos" },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() =>
-                  setFilter(
-                    item.key as "all" | "active" | "inactive"
-                  )
-                }
-                className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
-                  filter === item.key
-                    ? "bg-white/[0.08] text-white"
-                    : "text-[#71717A] hover:text-[#D4D4D8]"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* TEAM GRID */}
-        {loading ? (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="h-56 animate-pulse rounded-[14px] border border-white/[0.07] bg-[#0F0F0F]"
-              />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="rounded-[14px] border border-red-400/10 bg-red-400/[0.04] p-10 text-center text-sm text-red-300">
-            {error}
-          </div>
-        ) : filteredTeam.length === 0 ? (
-          <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-14 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] border border-white/[0.07] bg-white/[0.035]">
-              <UserRound size={20} className="text-[#71717A]" />
-            </div>
-
-            <h3 className="text-sm font-semibold">
-              No encontramos miembros
-            </h3>
-
-            <p className="mt-2 text-xs text-[#71717A]">
-              Probá con otro nombre o modificá el filtro.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {filteredTeam.map((barber) => {
-              const isTop =
-                topPerformer?.id === barber.id &&
-                barber.revenue > 0;
-
-              return (
-                <button
-                  key={barber.id}
-                  type="button"
-                  onClick={() => setSelectedBarber(barber)}
-                  className="group relative overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-[#121212]"
-                >
-                  {isTop && (
-                    <div className="absolute right-4 top-4 rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] px-2 py-1 text-[10px] font-semibold text-[#FF6A18]">
-                      Mejor rendimiento
-                    </div>
-                  )}
-
-                  <div className="mb-6 flex items-center gap-3">
-                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-white/[0.08] bg-white/[0.045] text-sm font-semibold">
-                      {getInitials(barber.name)}
-
-                      <span
-                        className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0F0F0F] ${
-                          barber.active
-                            ? "bg-emerald-400"
-                            : "bg-[#52525B]"
-                        }`}
-                      />
-                    </div>
-
-                    <div className="min-w-0 pr-24">
-                      <div className="truncate text-sm font-semibold text-[#F4F4F5]">
-                        {barber.name}
+                      <div className="mt-5 grid grid-cols-2 gap-2">
+                        <MiniStat label="Turnos" value={String(barber.completedAppointments)} />
+                        <MiniStat label="Revenue" value={money(barber.revenue)} />
+                        <MiniStat label="Ticket" value={money(barber.averageTicket)} />
+                        <MiniStat label="Share" value={`${barber.revenueShare.toFixed(1)}%`} />
                       </div>
 
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-xs text-[#71717A]">
-                          Barbero
-                        </span>
-
-                        <span className="text-[#3F3F46]">•</span>
-
-                        <span
-                          className={`text-[11px] ${
-                            barber.active
-                              ? "text-emerald-300"
-                              : "text-[#71717A]"
-                          }`}
-                        >
-                          {barber.active ? "Activo" : "Inactivo"}
-                        </span>
+                      <div className="mt-4 flex items-center justify-between border-t hairline pt-4">
+                        <div>
+                          <div className="data text-[10px] uppercase tracking-[.13em] text-white/60">Última actividad</div>
+                          <div className="mt-1 text-[11px] text-white/56">{dateTime(barber.lastAppointment)}</div>
+                        </div>
+                        <div className={`flex items-center gap-1 data text-[10px] ${barber.growth >= 0 ? "text-emerald-300/65" : "text-red-300/60"}`}>
+                          {barber.growth >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                          {Math.abs(barber.growth).toFixed(1)}%
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 overflow-hidden rounded-[11px] border border-white/[0.06] bg-[#0B0B0B]">
-                    <div className="border-r border-white/[0.06] p-3">
-                      <div className="text-[10px] uppercase tracking-[0.06em] text-[#55555C]">
-                        Turnos
-                      </div>
-                      <div className="mt-1.5 text-sm font-semibold">
-                        {barber.completedAppointments}
-                      </div>
-                    </div>
-
-                    <div className="border-r border-white/[0.06] p-3">
-                      <div className="text-[10px] uppercase tracking-[0.06em] text-[#55555C]">
-                        Ingresos
-                      </div>
-                      <div className="mt-1.5 text-sm font-semibold">
-                        {formatPrice(barber.revenue)}
-                      </div>
-                    </div>
-
-                    <div className="p-3">
-                      <div className="text-[10px] uppercase tracking-[0.06em] text-[#55555C]">
-                        Ticket
-                      </div>
-                      <div className="mt-1.5 text-sm font-semibold">
-                        {formatPrice(barber.averageTicket)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-xs text-[#71717A]">
-                        <CalendarDays size={13} />
-                        Último turno
-                      </div>
-
-                      <div className="mt-1 text-xs font-medium text-[#A1A1AA]">
-                        {barber.lastAppointment
-                          ? `${formatShortDate(
-                              barber.lastAppointment
-                            )} · ${formatDateTime(
-                              barber.lastAppointment
-                            ).split(", ").pop()}`
-                          : "Sin actividad"}
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2 text-xs text-[#71717A] group-hover:text-[#D4D4D8]">
-                      Ver perfil
-                      <ChevronRight
-                        size={15}
-                        className="transition group-hover:translate-x-0.5"
-                      />
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* DETAIL DRAWER */}
-        {selectedBarber && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
-            <div
-              className="absolute inset-y-0 right-0 w-full max-w-[500px] overflow-y-auto border-l border-white/[0.08] bg-[#0C0C0C] shadow-2xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="sticky top-0 z-20 border-b border-white/[0.07] bg-[#0C0C0C]/95 backdrop-blur-xl">
-                <div className="flex items-center justify-between px-6 py-5">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#55555C]">
-                      Equipo 360
-                    </div>
-
-                    <h2 className="mt-1 text-xl font-semibold tracking-[-0.025em]">
-                      {selectedBarber.name}
-                    </h2>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBarber(null)}
-                    className="rounded-[11px] border border-white/[0.06] bg-white/[0.035] p-2 text-[#71717A] transition hover:text-white"
-                  >
-                    <X size={17} />
                   </button>
-                </div>
+                ))}
               </div>
+            )}
+          </section>
+        </main>
+      </div>
 
-              <div className="space-y-6 p-6">
-                {/* PROFILE */}
-                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[14px] border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-lg font-semibold text-[#FF6A18]">
-                        {getInitials(selectedBarber.name)}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold">
-                          {selectedBarber.name}
-                        </div>
-
-                        <div className="mt-1 text-xs text-[#71717A]">
-                          Miembro del equipo
-                        </div>
-
-                        <div
-                          className={`mt-2 inline-flex items-center gap-1.5 text-[11px] ${
-                            selectedBarber.active
-                              ? "text-emerald-300"
-                              : "text-[#71717A]"
-                          }`}
-                        >
-                          {selectedBarber.active ? (
-                            <>
-                              <CircleCheck size={12} />
-                              Actualmente activo
-                            </>
-                          ) : (
-                            <>
-                              <CircleX size={12} />
-                              Actualmente inactivo
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditName(selectedBarber.name);
-                        setShowEditModal(true);
-                      }}
-                      className="rounded-[11px] border border-white/[0.07] bg-white/[0.035] p-2.5 text-[#8F8F96] transition hover:text-white"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* PERFORMANCE */}
+      {selected && (
+        <div className="fixed inset-0 z-50 bg-black/72 backdrop-blur-[3px]">
+          <button type="button" aria-label="Cerrar" onClick={() => setSelected(null)} className="absolute inset-0 h-full w-full" />
+          <aside className="relative ml-auto h-full w-full max-w-[520px] overflow-y-auto border-l border-white/[.07] bg-[#090909] shadow-2xl">
+            <div className="sticky top-0 z-10 border-b hairline bg-[#090909]/95 px-5 py-5 backdrop-blur-xl sm:px-6">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">
-                        Rendimiento
-                      </div>
-                      <div className="mt-1 text-xs text-[#71717A]">
-                        Métricas acumuladas del equipo
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      {
-                        label: "Turnos",
-                        value: selectedBarber.completedAppointments,
-                        icon: CalendarDays,
-                      },
-                      {
-                        label: "Ingresos",
-                        value: formatPrice(selectedBarber.revenue),
-                        icon: DollarSign,
-                      },
-                      {
-                        label: "Ticket promedio",
-                        value: formatPrice(
-                          selectedBarber.averageTicket
-                        ),
-                        icon: TrendingUp,
-                      },
-                      {
-                        label: "Participación",
-                        value: `${selectedBarber.revenueShare.toFixed(
-                          1
-                        )}%`,
-                        icon: BarChart3,
-                      },
-                    ].map((item) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <div
-                          key={item.label}
-                          className="rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] p-4"
-                        >
-                          <div className="flex items-center gap-2 text-[11px] text-[#71717A]">
-                            <Icon size={13} />
-                            {item.label}
-                          </div>
-
-                          <div className="mt-2 text-lg font-semibold tracking-[-0.02em]">
-                            {item.value}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <div className="data text-[8px] font-bold uppercase tracking-[.18em] text-[#ff6a18]">TEAM 360</div>
+                  <h2 className="display mt-2 text-[22px] font-semibold tracking-[-.05em] text-white">{selected.name}</h2>
+                  <p className="mt-1 text-[11px] text-white/64">Perfil operativo y rendimiento del profesional.</p>
                 </div>
-
-                {/* RECENT TREND */}
-                <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-sm font-semibold">
-                        Últimos 30 días
-                      </div>
-                      <div className="mt-1 text-xs text-[#71717A]">
-                        Comparación con los 30 días anteriores
-                      </div>
-                    </div>
-
-                    <div
-                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] ${
-                        selectedBarber.growth >= 0
-                          ? "border-emerald-400/15 bg-emerald-400/[0.07] text-emerald-300"
-                          : "border-red-400/15 bg-red-400/[0.07] text-red-300"
-                      }`}
-                    >
-                      {selectedBarber.growth >= 0 ? (
-                        <ArrowUpRight size={12} />
-                      ) : (
-                        <ArrowDownRight size={12} />
-                      )}
-                      {Math.abs(selectedBarber.growth).toFixed(1)}%
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-[11px] text-[#71717A]">
-                        Ingresos
-                      </div>
-                      <div className="mt-1 text-xl font-semibold">
-                        {formatPrice(selectedBarber.recentIngresos)}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-[11px] text-[#71717A]">
-                        Turnos
-                      </div>
-                      <div className="mt-1 text-xl font-semibold">
-                        {selectedBarber.recentAppointments}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SERVICES */}
-                <div>
-                  <div className="mb-3 flex items-center gap-2">
-                    <Scissors size={15} className="text-[#8F8F96]" />
-                    <div className="text-sm font-semibold">
-                      Servicios realizados
-                    </div>
-                  </div>
-
-                  <div className="rounded-[14px] border border-white/[0.07] bg-[#0F0F0F] p-4">
-                    {selectedBarber.services.length === 0 ? (
-                      <div className="py-4 text-center text-xs text-[#71717A]">
-                        Todavía no hay servicios registrados.
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedBarber.services.map((service) => (
-                          <span
-                            key={service}
-                            className="rounded-lg border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5 text-xs text-[#B7B7BD]"
-                          >
-                            {service}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* INFORMATION */}
-                <div>
-                  <div className="mb-3 text-sm font-semibold">
-                    Información
-                  </div>
-
-                  <div className="overflow-hidden rounded-[14px] border border-white/[0.07]">
-                    <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3.5">
-                      <span className="text-xs text-[#71717A]">
-                        Incorporación
-                      </span>
-                      <span className="text-xs text-[#D4D4D8]">
-                        {formatDate(selectedBarber.created_at)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3.5">
-                      <span className="text-xs text-[#71717A]">
-                        Último turno
-                      </span>
-                      <span className="text-xs text-[#D4D4D8]">
-                        {formatDateTime(
-                          selectedBarber.lastAppointment
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between px-4 py-3.5">
-                      <span className="text-xs text-[#71717A]">
-                        Estado
-                      </span>
-                      <span
-                        className={`text-xs ${
-                          selectedBarber.active
-                            ? "text-emerald-300"
-                            : "text-[#71717A]"
-                        }`}
-                      >
-                        {selectedBarber.active
-                          ? "Activo"
-                          : "Inactivo"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ACTIONS */}
-                <div>
-                  <div className="mb-3 text-sm font-semibold">
-                    Acciones
-                  </div>
-
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.location.href = `/admin/turnos?barber=${selectedBarber.id}`;
-                      }}
-                      className="flex w-full items-center justify-between rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] px-4 py-3.5 text-sm transition hover:border-white/[0.12] hover:bg-[#121212]"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <CalendarDays size={15} />
-                        Ver agenda
-                      </span>
-                      <ChevronRight size={16} className="text-[#55555C]" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditName(selectedBarber.name);
-                        setShowEditModal(true);
-                      }}
-                      className="flex w-full items-center justify-between rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] px-4 py-3.5 text-sm transition hover:border-white/[0.12] hover:bg-[#121212]"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Pencil size={15} />
-                        Editar perfil
-                      </span>
-                      <ChevronRight size={16} className="text-[#55555C]" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleBarber(selectedBarber)}
-                      className={`flex w-full items-center justify-between rounded-[11px] border px-4 py-3.5 text-sm transition ${
-                        selectedBarber.active
-                          ? "border-red-400/10 bg-red-400/[0.035] text-red-300 hover:bg-red-400/[0.06]"
-                          : "border-emerald-400/10 bg-emerald-400/[0.035] text-emerald-300 hover:bg-emerald-400/[0.06]"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Power size={15} />
-                        {selectedBarber.active
-                          ? "Desactivar barbero"
-                          : "Activar barbero"}
-                      </span>
-                      <ChevronRight size={16} />
-                    </button>
-
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-[11px] border border-white/[0.07] bg-[#0F0F0F] px-4 py-3.5 text-sm text-[#A1A1AA] transition hover:border-white/[0.12] hover:bg-[#121212]"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <MoreHorizontal size={15} />
-                        Más opciones
-                      </span>
-                      <ChevronRight size={16} className="text-[#55555C]" />
-                    </button>
-                  </div>
-                </div>
+                <button type="button" onClick={() => setSelected(null)} className="control flex h-9 w-9 items-center justify-center rounded-[10px] text-white/48"><X size={15} /></button>
               </div>
             </div>
 
-            <button
-              type="button"
-              aria-label="Cerrar panel"
-              onClick={() => setSelectedBarber(null)}
-              className="absolute inset-0 -z-10 h-full w-full"
-            />
-          </div>
-        )}
-
-        {/* CREATE MODAL */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-[14px] border border-white/[0.08] bg-[#0F0F0F] p-6 shadow-2xl">
-              <div className="mb-6 flex items-start justify-between">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#55555C]">
-                    Equipo
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="panel p-5">
+                <div className="flex items-center gap-4">
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[15px] border border-[#ff5a00]/18 bg-[#ff5a00]/[.05] text-[15px] font-semibold text-[#ff7a22]">
+                    {initials(selected.name)}
+                    <span className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-[#090909] ${selected.active ? "bg-emerald-400" : "bg-white/20"}`} />
                   </div>
-                  <h2 className="mt-1 text-xl font-semibold">
-                    Nuevo barbero
-                  </h2>
+                  <div className="min-w-0">
+                    <div className="display truncate text-[18px] font-semibold text-white">{selected.name}</div>
+                    <div className="mt-1 text-[10px] text-white/64">Profesional del equipo · Alta {dateOnly(selected.created_at)}</div>
+                    <div className={`mt-3 flex items-center gap-1.5 data text-[7px] uppercase tracking-[.12em] ${selected.active ? "text-emerald-300/75" : "text-white/36"}`}>
+                      {selected.active ? <CircleCheck size={11} /> : <CircleX size={11} />}
+                      {selected.active ? "ACTIVO" : "INACTIVO"}
+                    </div>
+                  </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="rounded-[11px] p-2 text-[#71717A] hover:bg-white/[0.05] hover:text-white"
-                >
-                  <X size={17} />
-                </button>
               </div>
 
-              <label className="block">
-                <span className="mb-2 block text-xs font-medium text-[#A1A1AA]">
-                  Nombre completo
-                </span>
-                <input
-                  autoFocus
-                  value={newName}
-                  onChange={(event) => setNewName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") createBarber();
-                  }}
-                  placeholder="Ej. Manuel Cladera"
-                  className="h-11 w-full rounded-[11px] border border-white/[0.07] bg-[#0B0B0B] px-4 text-sm text-white outline-none placeholder:text-[#55555C] focus:border-[#FF5A00]/40"
-                />
-              </label>
+              <div>
+                <div className="data mb-3 text-[9px] font-bold uppercase tracking-[.18em] text-[#ff6a18]">Indicadores</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <DetailStat label="Turnos" value={String(selected.appointmentsCount)} icon={<CalendarDays size={13} />} />
+                  <DetailStat label="Completados" value={String(selected.completedAppointments)} icon={<Check size={13} />} />
+                  <DetailStat label="Revenue" value={money(selected.revenue)} icon={<DollarSign size={13} />} />
+                  <DetailStat label="Ticket promedio" value={money(selected.averageTicket)} icon={<TrendingUp size={13} />} />
+                </div>
+              </div>
 
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="rounded-[11px] border border-white/[0.07] px-4 py-2.5 text-sm text-[#A1A1AA] hover:bg-white/[0.04]"
-                >
-                  Cancelar
-                </button>
+              <div className="panel p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#ff6a18]">Últimos 30 días</div>
+                    <p className="mt-1 text-[10px] text-white/64">Evolución frente a los 30 días anteriores.</p>
+                  </div>
+                  <span className={`flex items-center gap-1 rounded-full border px-2 py-1 data text-[7px] ${selected.growth >= 0 ? "border-emerald-300/15 bg-emerald-300/[.05] text-emerald-300/75" : "border-red-300/15 bg-red-300/[.05] text-red-300/70"}`}>
+                    {selected.growth >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                    {Math.abs(selected.growth).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="mt-5">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <div className="data text-[7px] uppercase tracking-[.14em] text-white/30">Revenue</div>
+                      <div className="display mt-1 text-[25px] font-semibold text-white">{money(selected.recentRevenue)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="data text-[7px] uppercase tracking-[.14em] text-white/30">Participación</div>
+                      <div className="display mt-1 text-[17px] font-semibold text-white/65">{selected.revenueShare.toFixed(1)}%</div>
+                    </div>
+                  </div>
+                  <div className="bar-track mt-4 h-1.5 overflow-hidden rounded-full"><div className="bar-fill h-full rounded-full" style={{ width: `${Math.min(100, selected.revenueShare)}%` }} /></div>
+                </div>
+              </div>
 
-                <button
-                  type="button"
-                  disabled={saving || !newName.trim()}
-                  onClick={createBarber}
-                  className="rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#FF6A18] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {saving ? "Guardando..." : "Crear barbero"}
-                </button>
+              <div>
+                <div className="data mb-3 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.18em] text-[#ff6a18]"><Scissors size={12} />Servicios realizados</div>
+                <div className="panel p-4">
+                  {selected.services.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selected.services.map((service) => <span key={service} className="rounded-[8px] border border-white/[.06] bg-white/[.025] px-2.5 py-1.5 text-[8px] text-white/60">{service}</span>)}
+                    </div>
+                  ) : (
+                    <p className="text-[9px] text-white/36">No hay servicios registrados.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pb-4">
+                <div className="data mb-3 text-[9px] font-bold uppercase tracking-[.18em] text-[#ff6a18]">Acciones</div>
+                <div className="space-y-2">
+                  <button type="button" onClick={() => { setEditName(selected.name); setEditOpen(true); }} className="control flex w-full items-center justify-between rounded-[11px] px-4 py-3.5 text-[10px] font-semibold text-white/70 hover:text-white"><span className="flex items-center gap-2.5"><Pencil size={14} />Editar perfil</span><ChevronRight size={14} /></button>
+                  <button type="button" onClick={() => { window.location.href = `/admin/turnos?barber=${selected.id}`; }} className="control flex w-full items-center justify-between rounded-[11px] px-4 py-3.5 text-[10px] font-semibold text-white/70 hover:text-white"><span className="flex items-center gap-2.5"><CalendarDays size={14} />Ver agenda</span><ChevronRight size={14} /></button>
+                  <button type="button" onClick={toggleBarber} className={`flex w-full items-center justify-between rounded-[11px] border px-4 py-3.5 text-[10px] font-semibold ${selected.active ? "border-red-400/10 bg-red-400/[.035] text-red-300/75" : "border-emerald-400/10 bg-emerald-400/[.035] text-emerald-300/75"}`}><span className="flex items-center gap-2.5"><Power size={14} />{selected.active ? "Desactivar profesional" : "Activar profesional"}</span><ChevronRight size={14} /></button>
+                </div>
               </div>
             </div>
+          </aside>
+        </div>
+      )}
+
+      {createOpen && (
+        <Modal title="Nuevo profesional" eyebrow="Equipo" description="Agregá un profesional al equipo." onClose={() => setCreateOpen(false)}>
+          <label className="block">
+            <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.16em] text-white/64">Nombre completo</span>
+            <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createBarber()} placeholder="Ej. Manuel Cladera" className="control h-11 w-full rounded-[11px] px-4 text-[11px] text-white outline-none placeholder:text-white/32" />
+          </label>
+          <div className="mt-6 flex justify-end gap-2 border-t hairline pt-5">
+            <button type="button" onClick={() => setCreateOpen(false)} className="control h-10 rounded-[10px] px-4 text-[9px] font-semibold text-white/60">Cancelar</button>
+            <button type="button" disabled={saving || !newName.trim()} onClick={createBarber} className="primary h-10 rounded-[10px] px-4 text-[9px] font-semibold text-white disabled:opacity-35">{saving ? "Guardando..." : "Crear profesional"}</button>
           </div>
-        )}
+        </Modal>
+      )}
 
-        {/* EDIT MODAL */}
-        {showEditModal && selectedBarber && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-[14px] border border-white/[0.08] bg-[#0F0F0F] p-6 shadow-2xl">
-              <div className="mb-6 flex items-start justify-between">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#55555C]">
-                    Equipo 360
-                  </div>
-                  <h2 className="mt-1 text-xl font-semibold">
-                    Editar perfil
-                  </h2>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="rounded-[11px] p-2 text-[#71717A] hover:bg-white/[0.05] hover:text-white"
-                >
-                  <X size={17} />
-                </button>
-              </div>
-
-              <label className="block">
-                <span className="mb-2 block text-xs font-medium text-[#A1A1AA]">
-                  Nombre completo
-                </span>
-                <input
-                  autoFocus
-                  value={editName}
-                  onChange={(event) => setEditName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") updateBarber();
-                  }}
-                  className="h-11 w-full rounded-[11px] border border-white/[0.07] bg-[#0B0B0B] px-4 text-sm text-white outline-none focus:border-[#FF5A00]/40"
-                />
-              </label>
-
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="rounded-[11px] border border-white/[0.07] px-4 py-2.5 text-sm text-[#A1A1AA] hover:bg-white/[0.04]"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="button"
-                  disabled={saving || !editName.trim()}
-                  onClick={updateBarber}
-                  className="rounded-[11px] bg-[#FF5A00] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#FF6A18] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {saving ? "Guardando..." : "Guardar cambios"}
-                </button>
-              </div>
-            </div>
+      {editOpen && selected && (
+        <Modal title="Editar perfil" eyebrow="Team 360" description="Actualizá los datos básicos del profesional." onClose={() => setEditOpen(false)}>
+          <label className="block">
+            <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.16em] text-white/64">Nombre completo</span>
+            <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && updateBarber()} className="control h-11 w-full rounded-[11px] px-4 text-[11px] text-white outline-none" />
+          </label>
+          <div className="mt-6 flex justify-end gap-2 border-t hairline pt-5">
+            <button type="button" onClick={() => setEditOpen(false)} className="control h-10 rounded-[10px] px-4 text-[9px] font-semibold text-white/60">Cancelar</button>
+            <button type="button" disabled={saving || !editName.trim()} onClick={updateBarber} className="primary h-10 rounded-[10px] px-4 text-[9px] font-semibold text-white disabled:opacity-35">{saving ? "Guardando..." : "Guardar cambios"}</button>
           </div>
-        )}
+        </Modal>
+      )}
 
-        {/* TOAST */}
-        {toast && (
-          <div className="fixed bottom-6 right-6 z-[100] rounded-[11px] border border-white/[0.08] bg-[#121212] px-4 py-3 text-sm text-[#E4E4E7] shadow-2xl">
-            {toast}
-          </div>
-        )}
+      {toast && <div className="fixed bottom-6 right-6 z-[100] rounded-[11px] border border-white/[.08] bg-[#111] px-4 py-3 text-[9px] font-semibold text-white/82 shadow-2xl">{toast}</div>}
+    </div>
+  );
+}
+
+function Metric({ label, value, detail, icon, accent = false }: { label: string; value: string; detail: string; icon: ReactNode; accent?: boolean }) {
+  return (
+    <div className="panel relative min-h-[150px] p-5">
+      {accent && <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/75 to-transparent" />}
+      <div className="flex items-start justify-between gap-3">
+        <span className="data flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.16em] text-white/64"><span className={accent ? "text-[#ff6a18]" : "text-white/30"}>{icon}</span>{label}</span>
+        <span className="data text-[7px] uppercase tracking-[.12em] text-white/27">01</span>
+      </div>
+      <div className="display mt-7 truncate text-[30px] font-semibold leading-none tracking-[-.065em] text-white">{value}</div>
+      <div className="mt-3 truncate text-[10px] text-white/60">{detail}</div>
+    </div>
+  );
+}
+
+function Operational({ label, value, percent }: { label: string; value: string; percent: number }) {
+  return (
+    <div className="rounded-[11px] border border-white/[.05] bg-white/[.012] p-4">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-[12px] text-white/68">{label}</span>
+        <span className="data text-[10px] text-white/82">{value}</span>
+      </div>
+      <div className="bar-track h-1.5 overflow-hidden rounded-full"><div className="bar-fill h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} /></div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-[10px] border border-white/[.05] bg-[#090909] p-3"><div className="data text-[10px] uppercase tracking-[.13em] text-white/60">{label}</div><div className="display mt-2 truncate text-[18px] font-semibold text-white/88">{value}</div></div>;
+}
+
+function DetailStat({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return <div className="panel p-4"><div className="data flex items-center gap-2 text-[8px] uppercase tracking-[.13em] text-white/36">{icon}{label}</div><div className="display mt-3 truncate text-[21px] font-semibold text-white">{value}</div></div>;
+}
+
+function Modal({ title, eyebrow, description, onClose, children }: { title: string; eyebrow: string; description: string; onClose: () => void; children: ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-[440px] overflow-hidden rounded-[16px] border border-white/[.075] bg-[#0b0b0b] p-6 shadow-[0_30px_100px_rgba(0,0,0,.5)]">
+        <div className="flex items-start justify-between gap-4">
+          <div><div className="data text-[8px] font-bold uppercase tracking-[.16em] text-white/36">{eyebrow}</div><h2 className="display mt-2 text-[22px] font-semibold tracking-[-.04em] text-white">{title}</h2><p className="mt-1 text-[10px] text-white/64">{description}</p></div>
+          <button type="button" onClick={onClose} className="control flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-white/44 hover:text-white"><X size={15} /></button>
+        </div>
+        <div className="mt-6">{children}</div>
       </div>
     </div>
   );

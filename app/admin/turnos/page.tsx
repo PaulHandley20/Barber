@@ -400,58 +400,59 @@ export default function TurnosPage() {
 
       <div className="agenda-shell min-h-screen">
         <div className="relative mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
-        <header className="mb-7">
+          <header className="mb-7">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#ff6a18]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00] shadow-[0_0_12px_rgba(255,90,0,.5)]" />
-                Operación
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/82">BarberOS</span>
+                <span className="text-white/10">/</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#ff6a18]">Inteligencia de turnos</span>
+                <span className="ml-1 hidden h-px w-10 bg-gradient-to-r from-orange-500/55 to-transparent sm:block" />
               </div>
               <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
-                <h1 className="agenda-display text-[42px] font-semibold leading-[.98] tracking-[-0.055em] text-white sm:text-[46px]">Agenda</h1>
-                <span className="mb-1.5 text-[12px] font-medium capitalize text-white/38">{periodLabel}</span>
+                <h1 className="agenda-display text-[34px] font-semibold leading-[.91] tracking-[-0.075em] text-white sm:text-[42px]">Agenda</h1>
               </div>
-              <p className="mt-2 max-w-xl text-[12px] leading-5 text-white/48">Organizá la jornada, controlá los turnos y gestioná cada atención desde un solo lugar.</p>
+              <p className="mt-2 max-w-xl text-[14px] leading-5 text-white/64">Organizá la jornada, controlá los turnos y gestioná cada atención desde un solo lugar.</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex h-10 rounded-[11px] border border-white/[0.07] bg-white/[0.025] p-1">
                 {(["day", "week"] as ViewMode[]).map((mode) => (
-                  <button key={mode} type="button" onClick={() => { setViewMode(mode); setSelectedAppointment(null); }} className={`rounded-[8px] px-4 text-[10px] font-semibold transition ${viewMode === mode ? "bg-white/[0.09] text-white" : "text-white/35 hover:text-white/70"}`}>
+                  <button key={mode} type="button" onClick={() => { setViewMode(mode); setSelectedAppointment(null); }} className={`rounded-[8px] px-4 text-[13px] font-semibold transition ${viewMode === mode ? "bg-white/[0.09] text-white" : "text-white/55 hover:text-white/80"}`}>
                     {mode === "day" ? "Día" : "Semana"}
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={() => loadAppointments(true)} aria-label="Actualizar agenda" className="agenda-control flex h-10 w-10 items-center justify-center rounded-[11px] text-white/45"><RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /></button>
-              <button type="button" onClick={openNewAppointment} className="agenda-primary flex h-10 items-center gap-2 rounded-[11px] px-4 text-[10px] font-semibold text-white"><Plus size={14} />Nuevo turno</button>
+              <button type="button" onClick={() => loadAppointments(true)} aria-label="Actualizar agenda" className="agenda-control flex h-10 w-10 items-center justify-center rounded-[11px] text-white/62"><RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /></button>
+              <button type="button" onClick={openNewAppointment} className="agenda-primary flex h-10 items-center gap-2 rounded-[11px] px-4 text-[12px] font-semibold text-white"><Plus size={14} />Nuevo turno</button>
             </div>
           </div>
-        </header>
+          </header>
 
-        <main className="pb-10">
+          <main className="pb-10">
           <section className="panel mb-5 rounded-[16px] p-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => navigatePeriod(-1)} className="agenda-control flex h-10 w-10 items-center justify-center rounded-[10px] text-white/45"><ChevronLeft size={17} /></button>
-                <button type="button" onClick={goToday} className={`agenda-control h-10 rounded-[10px] px-4 text-[10px] font-semibold ${isToday ? "border-[#ff5a00]/35 bg-[#ff5a00]/10 text-[#ff7a22]" : "text-white/55"}`}>Hoy</button>
-                <button type="button" onClick={() => navigatePeriod(1)} className="agenda-control flex h-10 w-10 items-center justify-center rounded-[10px] text-white/45"><ChevronRight size={17} /></button>
+                <button type="button" onClick={() => navigatePeriod(-1)} className="agenda-control flex h-10 w-10 items-center justify-center rounded-[10px] text-white/62"><ChevronLeft size={17} /></button>
+                <button type="button" onClick={goToday} className={`agenda-control h-10 rounded-[10px] px-4 text-[12px] font-semibold ${isToday ? "border-[#ff5a00]/35 bg-[#ff5a00]/10 text-[#ff7a22]" : "text-white/68"}`}>Hoy</button>
+                <button type="button" onClick={() => navigatePeriod(1)} className="agenda-control flex h-10 w-10 items-center justify-center rounded-[10px] text-white/62"><ChevronRight size={17} /></button>
                 <div className="ml-2 hidden h-7 w-px bg-white/[0.07] sm:block" />
                 <div className="hidden sm:block">
-                  <p className="text-xs font-semibold capitalize text-white/85">{viewMode === "day" ? formatDateLong(selectedDate) : `Semana del ${formatDateShort(weekDays[0])}`}</p>
-                  <p className="mt-0.5 text-[11px] text-white/35">Don Segundo · Operación diaria</p>
+                  <p className="text-xs font-semibold capitalize text-white/90">{viewMode === "day" ? formatDateLong(selectedDate) : `Semana del ${formatDateShort(weekDays[0])}`}</p>
+                  <p className="mt-0.5 text-[13px] text-white/55">Don Segundo · Operación diaria</p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div className="relative min-w-[250px]">
-                  <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, servicio..." className="agenda-control h-10 w-full rounded-[10px] pl-9 pr-3 text-[10px] text-white/78 placeholder:text-white/25" />
+                  <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/48" />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, servicio..." className="agenda-control h-10 w-full rounded-[10px] pl-9 pr-3 text-[12px] text-white/86 placeholder:text-white/42" />
                 </div>
                 <div className="relative">
-                  <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="agenda-control h-10 min-w-[154px] appearance-none rounded-[10px] px-3 pr-8 text-[10px] text-white/55 outline-none">
+                  <select value={selectedBarber} onChange={(e) => setSelectedBarber(e.target.value)} className="agenda-control h-10 min-w-[154px] appearance-none rounded-[10px] px-3 pr-8 text-[12px] text-white/68 outline-none">
                     <option value="all">Todos los barberos</option>
                     {barbers.map((barber) => <option key={barber} value={barber}>{barber}</option>)}
                   </select>
-                  <UserRound size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/25" />
+                  <UserRound size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/42" />
                 </div>
               </div>
             </div>
@@ -477,10 +478,10 @@ export default function TurnosPage() {
               <section className="panel overflow-hidden rounded-2xl">
                 <div className="flex items-center justify-between border-b hairline px-5 py-4">
                   <div>
-                    <p className="text-sm font-semibold text-white">Timeline operativo</p>
-                    <p className="mt-0.5 text-[11px] text-white/38">09:00 — 21:00 · {dayAppointments.length} turnos visibles</p>
+                    <p className="text-sm font-semibold text-[#ff6a18]">Timeline operativo</p>
+                    <p className="mt-0.5 text-[14px] text-white/58">09:00 — 21:00 · {dayAppointments.length} turnos visibles</p>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] text-white/38">
+                  <div className="flex items-center gap-3 text-[14px] text-white/58">
                     <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-emerald-300" />Confirmado</span>
                     <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-amber-300" />Pendiente</span>
                   </div>
@@ -495,7 +496,7 @@ export default function TurnosPage() {
                     <div className="relative min-w-[760px]">
                       {HOURS.map((hour) => (
                         <div key={hour} className="grid grid-cols-[82px_1fr]" style={{ height: 72 }}>
-                          <div className="border-r grid-line px-5 pt-2 text-[10px] font-medium tabular-nums text-white/28">{String(hour).padStart(2, "0")}:00</div>
+                          <div className="border-r grid-line px-5 pt-2 text-[13px] font-medium tabular-nums text-white/55">{String(hour).padStart(2, "0")}:00</div>
                           <div className="relative border-b grid-line">
                             <div className="absolute left-0 right-0 top-[35px] border-t border-dashed border-white/[0.025]" />
                           </div>
@@ -516,16 +517,16 @@ export default function TurnosPage() {
                               <div className="flex items-start justify-between gap-3 pl-1">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[12px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
-                                    <span className="text-[10px] text-white/30">→ {formatTime(appointment.end_at)}</span>
+                                    <span className="text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
+                                    <span className="text-[12px] text-white/48">→ {formatTime(appointment.end_at)}</span>
                                   </div>
-                                  <p className="mt-1 truncate text-sm font-semibold text-white/90">{appointment.customer?.full_name ?? "Cliente sin nombre"}</p>
-                                  <div className="mt-1 flex items-center gap-3 truncate text-[10px] text-white/42">
+                                  <p className="mt-1 truncate text-sm font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</p>
+                                  <div className="mt-1 flex items-center gap-3 truncate text-[12px] text-white/60">
                                     <span className="flex items-center gap-1"><Scissors size={10} />{appointment.service?.name ?? "Servicio"}</span>
                                     {appointment.barber?.name && <span className="flex items-center gap-1"><UserRound size={10} />{appointment.barber.name}</span>}
                                   </div>
                                 </div>
-                                <span className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
+                                <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
                               </div>
                             </button>
                           );
@@ -549,12 +550,12 @@ export default function TurnosPage() {
                     return (
                       <button key={dateKey(day)} type="button" onClick={() => { setSelectedDate(day); setViewMode("day"); }} className={`group border-r hairline px-3 py-4 text-left transition last:border-r-0 hover:bg-white/[0.025] ${active ? "bg-[#ff5a00]/[0.035]" : ""}`}>
                         <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-semibold uppercase tracking-[.16em] ${active ? "text-[#ff7b3b]" : "text-white/35"}`}>{WEEKDAYS[index]}</span>
+                          <span className={`text-[12px] font-semibold uppercase tracking-[.16em] ${active ? "text-[#ff7b3b]" : "text-white/55"}`}>{WEEKDAYS[index]}</span>
                           {today && <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00] shadow-[0_0_10px_rgba(255,90,0,.65)]" />}
                         </div>
                         <div className="mt-2 flex items-end justify-between">
-                          <span className={`text-2xl font-semibold tracking-[-.04em] ${active ? "text-white" : "text-white/75"}`}>{day.getDate()}</span>
-                          <span className="text-[10px] text-white/30">{count} turnos</span>
+                          <span className={`text-2xl font-semibold tracking-[-.04em] ${active ? "text-white" : "text-white/84"}`}>{day.getDate()}</span>
+                          <span className="text-[12px] text-white/48">{count} turnos</span>
                         </div>
                       </button>
                     );
@@ -568,7 +569,7 @@ export default function TurnosPage() {
                         return (
                           <div key={dateKey(day)} className="min-h-[500px] rounded-xl border border-white/[0.055] bg-white/[0.012] p-2">
                             {items.length === 0 ? (
-                              <div className="flex min-h-[480px] items-center justify-center text-[10px] text-white/18">Libre</div>
+                              <div className="flex min-h-[480px] items-center justify-center text-[12px] text-white/30">Libre</div>
                             ) : (
                               <div className="space-y-2">
                                 {items.map((appointment) => {
@@ -576,12 +577,12 @@ export default function TurnosPage() {
                                   return (
                                     <button key={appointment.id} type="button" onClick={() => setSelectedAppointment(appointment)} className="appointment-card w-full rounded-lg border border-white/[0.065] bg-[#111313] p-3 text-left">
                                       <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[11px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
+                                        <span className="text-[13px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
                                         <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
                                       </div>
-                                      <p className="mt-2 truncate text-xs font-semibold text-white/85">{appointment.customer?.full_name ?? "Sin nombre"}</p>
-                                      <p className="mt-1 truncate text-[10px] text-white/38">{appointment.service?.name ?? "Servicio"}</p>
-                                      {appointment.barber?.name && <p className="mt-1 truncate text-[10px] text-white/28">{appointment.barber.name}</p>}
+                                      <p className="mt-2 truncate text-xs font-semibold text-white/90">{appointment.customer?.full_name ?? "Sin nombre"}</p>
+                                      <p className="mt-1 truncate text-[14px] text-white/58">{appointment.service?.name ?? "Servicio"}</p>
+                                      {appointment.barber?.name && <p className="mt-1 truncate text-[12px] text-white/45">{appointment.barber.name}</p>}
                                     </button>
                                   );
                                 })}
@@ -597,7 +598,8 @@ export default function TurnosPage() {
               <DetailPanel appointment={selectedAppointment} onClose={() => setSelectedAppointment(null)} onStatus={updateStatus} actionLoading={actionLoading} />
             </div>
           )}
-        </main>
+          </main>
+        </div>
       </div>
 
       {showNewAppointment && (
@@ -622,7 +624,6 @@ export default function TurnosPage() {
         />
       )}
     </div>
-  </div>
   );
 }
 
@@ -631,13 +632,13 @@ function Metric({ label, value, detail, icon, accent = false, className = "" }: 
     <div className={`panel relative min-h-[154px] overflow-hidden rounded-[16px] p-5 ${className}`}>
       {accent && <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/75 to-transparent" />}
       <div className="flex items-center justify-between">
-        <span className={`flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.17em] ${accent ? "text-white/48" : "text-white/30"}`}>
-          <span className={accent ? "text-[#ff6a18]" : "text-white/32"}>{icon}</span>{label}
+        <span className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.17em] ${accent ? "text-white/64" : "text-white/48"}`}>
+          <span className={accent ? "text-[#ff6a18]" : "text-white/52"}>{icon}</span>{label}
         </span>
-        <span className="text-[7px] font-medium uppercase tracking-[0.15em] text-white/16">período</span>
+        <span className="text-[9px] font-medium uppercase tracking-[0.15em] text-white/24">período</span>
       </div>
       <p className="agenda-display mt-7 text-[34px] font-semibold leading-none tracking-[-0.06em] text-white">{value}</p>
-      <p className="mt-3 text-[9px] leading-4 text-white/28">{detail}</p>
+      <p className="mt-3 text-[11px] leading-4 text-white/45">{detail}</p>
     </div>
   );
 }
@@ -650,11 +651,11 @@ function EmptyAgenda({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex min-h-[650px] flex-col items-center justify-center px-6 text-center">
       <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.025]">
-        <CalendarDays size={23} className="text-white/30" />
+        <CalendarDays size={23} className="text-white/48" />
         <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#ff5a00] shadow-[0_0_14px_rgba(255,90,0,.55)]" />
       </div>
-      <h3 className="mt-5 text-sm font-semibold text-white/80">Agenda libre</h3>
-      <p className="mt-2 max-w-sm text-xs leading-5 text-white/35">No hay turnos registrados para este día con los filtros actuales.</p>
+      <h3 className="mt-5 text-sm font-semibold text-white/88">Agenda libre</h3>
+      <p className="mt-2 max-w-sm text-xs leading-5 text-white/55">No hay turnos registrados para este día con los filtros actuales.</p>
       <button type="button" onClick={onCreate} className="mt-5 flex items-center gap-2 rounded-xl bg-[#ff5a00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6a18]"><Plus size={14} />Crear turno</button>
     </div>
   );
@@ -664,8 +665,8 @@ function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appoin
   if (!appointment) {
     return (
       <aside className="panel h-fit overflow-hidden rounded-[16px]">
-        <div className="border-b hairline px-5 py-4"><p className="text-sm font-semibold text-white">Detalle</p><p className="mt-0.5 text-[11px] text-white/35">Seleccioná un turno para abrir la información del cliente y gestionar el turno.</p></div>
-        <div className="flex min-h-[420px] flex-col items-center justify-center px-8 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]"><Clock3 size={18} className="text-white/25" /></div><p className="mt-4 text-xs font-medium text-white/55">Sin selección</p><p className="mt-1 max-w-[220px] text-[10px] leading-5 text-white/25">Elegí un turno de la agenda para gestionar su estado y consultar la información del cliente.</p></div>
+        <div className="border-b hairline px-5 py-4"><p className="text-sm font-semibold text-white">Detalle</p><p className="mt-0.5 text-[13px] text-white/55">Seleccioná un turno para abrir la información del cliente y gestionar el turno.</p></div>
+        <div className="flex min-h-[420px] flex-col items-center justify-center px-8 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]"><Clock3 size={18} className="text-white/42" /></div><p className="mt-4 text-xs font-medium text-white/68">Sin selección</p><p className="mt-1 max-w-[220px] text-[12px] leading-5 text-white/42">Elegí un turno de la agenda para gestionar su estado y consultar la información del cliente.</p></div>
       </aside>
     );
   }
@@ -677,38 +678,38 @@ function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appoin
   return (
     <aside className="panel h-fit overflow-hidden rounded-[16px] 2xl:sticky 2xl:top-[118px]">
       <div className="flex items-start justify-between border-b hairline px-5 py-4">
-        <div><p className="text-sm font-semibold text-white">Detalle del turno</p><p className="mt-0.5 text-[10px] text-white/35">Información de la atención</p></div>
-        <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-white/30 hover:bg-white/[0.04] hover:text-white"><X size={14} /></button>
+        <div><p className="text-sm font-semibold text-white">Detalle del turno</p><p className="mt-0.5 text-[12px] text-white/55">Información de la atención</p></div>
+        <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={14} /></button>
       </div>
 
       <div className="p-5">
         <div className="rounded-xl border border-white/[0.065] bg-white/[0.018] p-4">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0"><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-white/30">Cliente</p><p className="mt-2 truncate text-lg font-semibold tracking-[-.025em] text-white">{appointment.customer?.full_name ?? "Cliente sin nombre"}</p></div>
-            <span className={`shrink-0 rounded-full border px-2 py-1 text-[9px] ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
+            <div className="min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Cliente</p><p className="mt-2 truncate text-lg font-semibold tracking-[-.025em] text-white">{appointment.customer?.full_name ?? "Cliente sin nombre"}</p></div>
+            <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
           </div>
-          {appointment.customer?.phone && <p className="mt-2 flex items-center gap-1.5 text-xs text-white/40"><Phone size={11} />{appointment.customer.phone}</p>}
+          {appointment.customer?.phone && <p className="mt-2 flex items-center gap-1.5 text-xs text-white/60"><Phone size={11} />{appointment.customer.phone}</p>}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <Info label="Horario" value={`${formatTime(appointment.start_at)} — ${formatTime(appointment.end_at)}`} icon={<Clock3 size={12} />} />
           <Info label="Servicio" value={appointment.service?.name ?? "Servicio"} icon={<Scissors size={12} />} />
           <Info label="Barbero" value={appointment.barber?.name ?? "Sin asignar"} icon={<UserRound size={12} />} />
-          <Info label="Importe" value={`$${Number(appointment.service?.price ?? 0).toLocaleString("es-AR")}`} icon={<span className="text-[11px]">$</span>} />
+          <Info label="Importe" value={`$${Number(appointment.service?.price ?? 0).toLocaleString("es-AR")}`} icon={<span className="text-[13px]">$</span>} />
         </div>
 
-        {appointment.notes && <div className="mt-4"><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-white/30">Observaciones</p><p className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.018] p-3 text-xs leading-5 text-white/48">{appointment.notes}</p></div>}
+        {appointment.notes && <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Observaciones</p><p className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.018] p-3 text-xs leading-5 text-white/64">{appointment.notes}</p></div>}
 
-        {appointment.reservation_code && <div className="mt-4 flex items-center justify-between border-t hairline pt-4"><span className="text-[9px] font-semibold uppercase tracking-[.15em] text-white/28">Reserva</span><span className="font-mono text-[10px] text-white/42">{appointment.reservation_code}</span></div>}
+        {appointment.reservation_code && <div className="mt-4 flex items-center justify-between border-t hairline pt-4"><span className="text-[11px] font-semibold uppercase tracking-[.15em] text-white/45">Reserva</span><span className="font-mono text-[12px] text-white/60">{appointment.reservation_code}</span></div>}
 
         <div className="mt-5 border-t hairline pt-5">
-          <p className="mb-3 text-[9px] font-semibold uppercase tracking-[.16em] text-white/30">Acciones</p>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Acciones</p>
           <div className="grid grid-cols-2 gap-2">
-            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "completed")} className="flex items-center justify-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-2.5 text-[10px] font-semibold text-emerald-200 transition hover:bg-emerald-300/[0.10] disabled:opacity-40"><Check size={13} />{actionLoading === `${appointment.id}:completed` ? "Guardando..." : "Completar"}</button>}
-            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "no_show")} className="flex items-center justify-center gap-2 rounded-xl border border-orange-300/15 bg-orange-300/[0.05] px-3 py-2.5 text-[10px] font-semibold text-orange-200 transition hover:bg-orange-300/[0.09] disabled:opacity-40"><CircleX size={13} />No asistió</button>}
-            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "cancelled")} className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-red-300/10 bg-red-300/[0.035] px-3 py-2.5 text-[10px] font-semibold text-red-200/80 transition hover:bg-red-300/[0.07] disabled:opacity-40"><X size={13} />Cancelar turno</button>}
-            {completed && <div className="col-span-2 rounded-xl border border-sky-300/15 bg-sky-300/[0.05] px-3 py-2.5 text-center text-[10px] font-semibold text-sky-200">Turno completado correctamente</div>}
-            {cancelled && <div className="col-span-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-center text-[10px] font-semibold text-red-200">Turno cancelado</div>}
+            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "completed")} className="flex items-center justify-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-2.5 text-[12px] font-semibold text-emerald-200 transition hover:bg-emerald-300/[0.10] disabled:opacity-40"><Check size={13} />{actionLoading === `${appointment.id}:completed` ? "Guardando..." : "Completar"}</button>}
+            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "no_show")} className="flex items-center justify-center gap-2 rounded-xl border border-orange-300/15 bg-orange-300/[0.05] px-3 py-2.5 text-[12px] font-semibold text-orange-200 transition hover:bg-orange-300/[0.09] disabled:opacity-40"><CircleX size={13} />No asistió</button>}
+            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "cancelled")} className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-red-300/10 bg-red-300/[0.035] px-3 py-2.5 text-[12px] font-semibold text-red-200/80 transition hover:bg-red-300/[0.07] disabled:opacity-40"><X size={13} />Cancelar turno</button>}
+            {completed && <div className="col-span-2 rounded-xl border border-sky-300/15 bg-sky-300/[0.05] px-3 py-2.5 text-center text-[12px] font-semibold text-sky-200">Turno completado correctamente</div>}
+            {cancelled && <div className="col-span-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-center text-[12px] font-semibold text-red-200">Turno cancelado</div>}
           </div>
         </div>
       </div>
@@ -717,7 +718,7 @@ function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appoin
 }
 
 function Info({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
-  return <div className="rounded-xl border border-white/[0.055] bg-white/[0.014] p-3"><p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[.12em] text-white/28">{icon}{label}</p><p className="mt-2 truncate text-xs font-medium text-white/72">{value}</p></div>;
+  return <div className="rounded-xl border border-white/[0.055] bg-white/[0.014] p-3"><p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[.12em] text-white/45">{icon}{label}</p><p className="mt-2 truncate text-xs font-medium text-white/82">{value}</p></div>;
 }
 
 function NewAppointmentModal({ customers, services, barbers, customerId, serviceId, barberId, startAt, notes, error, creating, setCustomerId, setServiceId, setBarberId, setStartAt, setNotes, onClose, onCreate }: {
@@ -728,16 +729,16 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
-        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[11px] text-white/35">Agregá una nueva reserva a la agenda.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
+        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una nueva reserva a la agenda.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
           <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="field" /></Field>
           <Field label="Observaciones" icon={<MoreHorizontal size={12} />}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notas para el equipo..." className="field resize-none" /></Field>
-          {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[10px] text-white/48">Duración estimada: <span className="font-semibold text-white/70">30 min</span> · Estado inicial: <span className="font-semibold text-emerald-200">Confirmado</span></div>}
-          {error && <div className="flex items-center gap-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-[10px] text-red-200"><AlertCircle size={13} />{error}</div>}
+          {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración estimada: <span className="font-semibold text-white/80">30 min</span> · Estado inicial: <span className="font-semibold text-emerald-200">Confirmado</span></div>}
+          {error && <div className="flex items-center gap-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-[12px] text-red-200"><AlertCircle size={13} />{error}</div>}
         </div>
-        <div className="flex items-center justify-end gap-2 border-t hairline bg-white/[0.012] px-6 py-4"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs font-medium text-white/45 transition hover:text-white">Cancelar</button><button type="button" disabled={creating} onClick={onCreate} className="flex items-center gap-2 rounded-xl bg-[#ff5a00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6a18] disabled:cursor-not-allowed disabled:opacity-50">{creating ? <><RefreshCw size={13} className="animate-spin" />Creando...</> : <><Plus size={13} />Crear turno</>}</button></div>
+        <div className="flex items-center justify-end gap-2 border-t hairline bg-white/[0.012] px-6 py-4"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs font-medium text-white/62 transition hover:text-white">Cancelar</button><button type="button" disabled={creating} onClick={onCreate} className="flex items-center gap-2 rounded-xl bg-[#ff5a00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6a18] disabled:cursor-not-allowed disabled:opacity-50">{creating ? <><RefreshCw size={13} className="animate-spin" />Creando...</> : <><Plus size={13} />Crear turno</>}</button></div>
       </div>
       <style jsx>{`.field{width:100%;border:1px solid rgba(255,255,255,.075);border-radius:12px;background:#0b0c0c;color:rgba(255,255,255,.78);padding:10px 12px;font-size:12px;outline:none}.field:focus{border-color:rgba(255,90,0,.4)}.field::placeholder{color:rgba(255,255,255,.22)}`}</style>
     </div>
@@ -745,5 +746,5 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
 }
 
 function Field({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return <label className="block"><span className="mb-2 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[.14em] text-white/34">{icon}{label}</span>{children}</label>;
+  return <label className="block"><span className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[.14em] text-white/55">{icon}{label}</span>{children}</label>;
 }

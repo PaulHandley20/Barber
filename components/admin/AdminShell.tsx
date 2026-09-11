@@ -7,14 +7,15 @@ import Topbar from "./Topbar";
 type AdminShellContextValue = {
   collapsed: boolean;
   setCollapsed: (value: boolean) => void;
-  toggleSidebar: () => void;
 };
 
 const AdminShellContext = createContext<AdminShellContextValue | null>(null);
 
 export function useAdminShell() {
   const context = useContext(AdminShellContext);
-  if (!context) throw new Error("useAdminShell must be used inside AdminShell");
+  if (!context) {
+    throw new Error("useAdminShell must be used inside AdminShell");
+  }
   return context;
 }
 
@@ -26,28 +27,27 @@ export default function AdminShell({
   const [collapsed, setCollapsed] = useState(false);
 
   const value = useMemo(
-    () => ({
-      collapsed,
-      setCollapsed,
-      toggleSidebar: () => setCollapsed((current) => !current),
-    }),
+    () => ({ collapsed, setCollapsed }),
     [collapsed]
   );
 
   return (
     <AdminShellContext.Provider value={value}>
-      <div className="barberos-app-shell min-h-screen bg-[#070707] text-[#F5F5F4]">
+      <div className="barberos-dashboard min-h-screen bg-[#070707] text-white">
         <Sidebar />
+        <Topbar />
 
-        <div
-          className={[
-            "min-h-screen transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)]",
-            collapsed ? "lg:pl-[76px]" : "lg:pl-[248px]",
-          ].join(" ")}
+        <main
+          className="min-h-screen pt-[78px]"
+          style={{
+            paddingLeft: collapsed ? 88 : 270,
+            transition: "padding-left 260ms cubic-bezier(.22,.61,.36,1)",
+          }}
         >
-          <Topbar />
-          <main className="min-h-[calc(100vh-72px)]">{children}</main>
-        </div>
+          <div className="min-h-[calc(100vh-78px)] bg-[#070707]">
+            {children}
+          </div>
+        </main>
       </div>
     </AdminShellContext.Provider>
   );

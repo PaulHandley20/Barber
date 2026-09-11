@@ -126,6 +126,30 @@ const SEGMENTS: Array<{
 ];
 
 export default function ClientesPage() {
+  useEffect(() => {
+    const surfaces = document.querySelectorAll<HTMLElement>(
+      ".barberos-dashboard .metric-card, .barberos-dashboard .panel-surface"
+    );
+    const handlers = new Map<HTMLElement, (event: PointerEvent) => void>();
+
+    surfaces.forEach((element) => {
+      const handler = (event: PointerEvent) => {
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        element.style.setProperty("--spot-x", `${((event.clientX - rect.left) / rect.width) * 100}%`);
+        element.style.setProperty("--spot-y", `${((event.clientY - rect.top) / rect.height) * 100}%`);
+      };
+      handlers.set(element, handler);
+      element.addEventListener("pointermove", handler);
+    });
+
+    return () => {
+      handlers.forEach((handler, element) => {
+        element.removeEventListener("pointermove", handler);
+      });
+    };
+  }, []);
+
   const supabase = createClient();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -357,123 +381,340 @@ export default function ClientesPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} clientes-shell min-h-screen text-[#F5F5F4]`}>
+    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} clientes-shell barberos-dashboard min-h-screen bg-[#070707] text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
       <style jsx>{`
-        .clientes-shell {
-          --ink:#070707; --surface:#0b0b0b; --surface-2:#0f0f0f;
-          --line:rgba(255,255,255,.075); --line-soft:rgba(255,255,255,.05);
-          --orange:#ff5a00; --orange-bright:#ff7a22;
-          font-family:var(--font-barberos-ui), Manrope, sans-serif;
-          letter-spacing:-.014em;
+        .barberos-dashboard{
+          --ink:#070707;
+          --surface:#0b0b0b;
+          --surface-2:#111111;
+          --line:rgba(255,255,255,.075);
+          --line-soft:rgba(255,255,255,.045);
+          --muted:rgba(255,255,255,.46);
+          --quiet:rgba(255,255,255,.30);
+          --orange:#ff5a00;
+          --orange-bright:#ff7a22;
+          font-family:var(--font-barberos-ui),Manrope,sans-serif;
+          font-feature-settings:"kern" 1,"liga" 1,"calt" 1;
           text-rendering:optimizeLegibility;
           -webkit-font-smoothing:antialiased;
+          -moz-osx-font-smoothing:grayscale;
+          letter-spacing:-.014em;
           background:
-            radial-gradient(720px 360px at 88% -8%, rgba(255,90,0,.045), transparent 70%),
-            radial-gradient(520px 320px at 8% 14%, rgba(255,255,255,.010), transparent 74%),
+            radial-gradient(720px 360px at 88% -8%,rgba(255,90,0,.045),transparent 70%),
+            radial-gradient(520px 320px at 8% 14%,rgba(255,255,255,.010),transparent 74%),
             #070707;
         }
-        .clientes-shell h1,.clientes-shell h2,.clientes-shell h3,.clientes-shell h4,.clientes-title {
-          font-family:var(--font-barberos-display), Sora, sans-serif;
+
+        .barberos-dashboard h1,
+        .barberos-dashboard h2,
+        .barberos-dashboard h3,
+        .barberos-dashboard h4{
+          font-family:var(--font-barberos-display),Sora,sans-serif;
           font-feature-settings:"kern" 1,"liga" 1;
           text-wrap:balance;
         }
-        .clientes-number,.clientes-shell .tabular-nums {
-          font-family:var(--font-barberos-display), Sora, sans-serif;
+
+        .display-title{
+          font-family:var(--font-barberos-display),Sora,sans-serif;
+          font-size:clamp(34px,4vw,48px);
+          line-height:.91;
+          letter-spacing:-.075em;
+          font-weight:620;
+        }
+
+        .numeric-value,
+        .kpi-value,
+        .data-number{
+          font-family:var(--font-barberos-display),Sora,sans-serif;
           font-variant-numeric:tabular-nums lining-nums;
-          font-feature-settings:"tnum" 1,"lnum" 1,"kern" 1;
+          font-feature-settings:"tnum" 1,"lnum" 1,"zero" 1,"kern" 1;
           letter-spacing:-.065em;
         }
-        .clientes-eyebrow,.clientes-meta { font-family:var(--font-barberos-ui),Manrope,sans-serif; }
-        .clientes-panel {
-          position:relative; isolation:isolate; overflow:hidden;
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.022),0 18px 58px rgba(0,0,0,.15);
-          transition:transform 220ms cubic-bezier(.22,.61,.36,1),border-color 220ms ease,box-shadow 220ms ease,background 220ms ease;
+
+        .eyebrow,
+        .meta-label{
+          font-family:var(--font-barberos-ui),Manrope,sans-serif;
+          text-transform:uppercase;
+          letter-spacing:.18em;
         }
-        .clientes-panel::before {
-          content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
-          background:radial-gradient(480px circle at 82% -8%,rgba(255,90,0,.052),rgba(255,90,0,.012) 32%,transparent 68%);
-          opacity:.28; transition:opacity 240ms ease;
+
+        .eyebrow{font-size:8px;line-height:1;font-weight:800}
+        .meta-label{font-size:9px;line-height:1;font-weight:650}
+        .caption{font-size:9px;line-height:1.45;font-weight:520}
+
+        .panel-surface{
+          position:relative;
+          isolation:isolate;
+          overflow:hidden;
+          background:
+            linear-gradient(145deg,rgba(255,255,255,.028),rgba(255,255,255,.010) 52%,rgba(255,90,0,.012)),
+            rgba(10,10,10,.96);
+          border:1px solid var(--line)!important;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.022),
+            0 18px 58px rgba(0,0,0,.15);
+          transition:
+            transform 240ms cubic-bezier(.22,.61,.36,1),
+            border-color 240ms ease,
+            box-shadow 240ms ease;
         }
-        .clientes-panel:hover {
-          transform:translateY(-1px); border-color:rgba(255,90,0,.13);
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.032),0 24px 70px rgba(0,0,0,.20);
+
+        .panel-surface::before{
+          content:"";
+          position:absolute;
+          inset:0;
+          z-index:-1;
+          pointer-events:none;
+          background:
+            radial-gradient(
+              480px circle at var(--spot-x,82%) var(--spot-y,-8%),
+              rgba(255,90,0,.052),
+              rgba(255,90,0,.012) 32%,
+              transparent 68%
+            );
+          opacity:.34;
+          transition:opacity 260ms ease;
         }
-        .clientes-panel:hover::before { opacity:.46; }
-        .clientes-kpi::after {
-          content:""; position:absolute; left:18px; right:18px; bottom:0; height:1px;
+
+        .panel-surface::after{
+          content:"";
+          position:absolute;
+          top:0;
+          left:7%;
+          right:7%;
+          height:1px;
+          pointer-events:none;
+          background:linear-gradient(
+            90deg,
+            transparent,
+            rgba(255,255,255,.12),
+            rgba(255,90,0,.20),
+            rgba(255,255,255,.08),
+            transparent
+          );
+          opacity:.20;
+        }
+
+        .panel-surface:hover{
+          transform:translateY(-1px);
+          border-color:rgba(255,90,0,.14)!important;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.032),
+            0 24px 70px rgba(0,0,0,.22),
+            0 0 0 1px rgba(255,90,0,.018);
+        }
+
+        .panel-surface:hover::before{opacity:.50}
+
+        .metric-card{
+          min-height:138px;
+          position:relative;
+          isolation:isolate;
+          overflow:hidden;
+        }
+
+        .metric-card::after{
+          content:"";
+          pointer-events:none;
+          position:absolute;
+          left:18px;
+          right:18px;
+          bottom:0;
+          height:1px;
           background:linear-gradient(90deg,transparent,rgba(255,90,0,.78),transparent);
-          transform:scaleX(.16); opacity:.55; transition:transform 260ms ease,opacity 260ms ease;
+          transform:scaleX(.16);
+          transform-origin:center;
+          opacity:.60;
+          transition:transform 260ms ease,opacity 260ms ease;
         }
-        .clientes-kpi:hover::after { transform:scaleX(1); opacity:1; }
-        .clientes-primary {
-          position:relative; overflow:hidden;
+
+        .metric-card:hover{
+          border-color:rgba(255,255,255,.105)!important;
+          transform:translateY(-1px);
+        }
+
+        .metric-card:hover::after{
+          transform:scaleX(1);
+          opacity:1;
+        }
+
+        .glass-control{
+          border:1px solid rgba(255,255,255,.08);
+          background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 10px 30px rgba(0,0,0,.16);
+          backdrop-filter:blur(18px);
+        }
+
+        .primary-action{
+          position:relative;
+          overflow:hidden;
           background:linear-gradient(135deg,#ff6a18 0%,#ff5a00 52%,#e84b00 100%);
-          box-shadow:0 12px 30px rgba(255,90,0,.14),inset 0 1px 0 rgba(255,255,255,.25);
+          box-shadow:0 12px 30px rgba(255,90,0,.14),inset 0 1px 0 rgba(255,255,255,.26);
         }
-        .clientes-primary::before {
-          content:""; position:absolute; inset:0; background:linear-gradient(108deg,transparent 20%,rgba(255,255,255,.25) 47%,transparent 72%);
-          transform:translateX(-120%); transition:transform 700ms cubic-bezier(.22,.61,.36,1);
+
+        .primary-action::before{
+          content:"";
+          position:absolute;
+          inset:0;
+          background:linear-gradient(108deg,transparent 20%,rgba(255,255,255,.30) 47%,transparent 72%);
+          transform:translateX(-140%);
+          transition:transform 650ms cubic-bezier(.22,.61,.36,1);
         }
-        .clientes-primary:hover::before { transform:translateX(120%); }
-        .clientes-control:focus-visible,.clientes-shell input:focus-visible,.clientes-shell textarea:focus-visible {
-          outline:none; border-color:rgba(255,90,0,.38); box-shadow:0 0 0 3px rgba(255,90,0,.07);
+
+        .primary-action:hover::before{transform:translateX(140%)}
+
+        .system-strip{
+          position:relative;
+          overflow:hidden;
+          border:1px solid rgba(255,255,255,.065);
+          background:linear-gradient(90deg,rgba(255,90,0,.045),rgba(255,255,255,.012) 35%,rgba(255,255,255,.008));
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 12px 40px rgba(0,0,0,.12);
         }
-        .clientes-header { margin-bottom:28px; }
-        .clientes-main button,.clientes-main input,.clientes-main textarea { font-family:var(--font-barberos-ui),Manrope,sans-serif; }
-        .clientes-shell table { border-collapse:separate; border-spacing:0; }
-        .clientes-shell tbody tr { transition:background 180ms ease; }
-        .clientes-shell tbody tr:hover { background:rgba(255,255,255,.018); }
+
+        .interactive-row{
+          position:relative;
+          transition:background 180ms ease,transform 180ms cubic-bezier(.22,.61,.36,1);
+        }
+
+        .interactive-row:hover{
+          background:linear-gradient(90deg,rgba(255,90,0,.035),rgba(255,255,255,.018) 52%,transparent);
+          transform:translateX(3px);
+        }
+
+        .dashboard-grid-bg{
+          background-image:
+            linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);
+          background-size:48px 48px;
+          mask-image:linear-gradient(to bottom,rgba(0,0,0,.86),transparent 72%);
+        }
+
+        .dashboard-noise{
+          opacity:.035;
+          background-image:repeating-radial-gradient(circle at 0 0,rgba(255,255,255,.08) 0 .35px,transparent .5px 3.6px);
+          mix-blend-mode:soft-light;
+        }
+
+        .focus-ring:focus-visible,
+        .barberos-dashboard button:focus-visible,
+        .barberos-dashboard input:focus-visible,
+        .barberos-dashboard textarea:focus-visible{
+          outline:2px solid rgba(255,90,0,.72);
+          outline-offset:3px;
+        }
+
+        .customer-avatar{
+          font-family:var(--font-barberos-display),Sora,sans-serif;
+          font-variant-numeric:tabular-nums;
+          letter-spacing:-.04em;
+        }
+
+        .customer-row{
+          position:relative;
+          transition:background 180ms ease,transform 180ms ease;
+        }
+
+        .customer-row:hover{
+          background:linear-gradient(90deg,rgba(255,90,0,.025),rgba(255,255,255,.016) 55%,transparent);
+        }
+
+        .customer-row-selected{
+          background:linear-gradient(90deg,rgba(255,90,0,.07),rgba(255,90,0,.014) 72%,transparent)!important;
+          box-shadow:inset 2px 0 0 rgba(255,90,0,.88);
+        }
+
+        .customer-row-selected .customer-avatar{
+          border-color:rgba(255,90,0,.34)!important;
+          background:rgba(255,90,0,.08)!important;
+          color:#ff9a66!important;
+        }
+
+        .segment-active{
+          background:rgba(255,255,255,.085)!important;
+          color:#fff!important;
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+        }
+
+        .progress-track{
+          height:4px;
+          border-radius:999px;
+          background:rgba(255,255,255,.055);
+          overflow:hidden;
+        }
+
+        .progress-fill{
+          height:100%;
+          border-radius:999px;
+          background:linear-gradient(90deg,#b83d00,#ff5a00,#ff7a22);
+        }
+
+        .detail-stat{
+          border:1px solid rgba(255,255,255,.065);
+          background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.008));
+        }
+
+        .drawer-scroll::-webkit-scrollbar{width:5px}
+        .drawer-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:999px}
+        .drawer-scroll::-webkit-scrollbar-track{background:transparent}
+
+        @media(max-width:900px){
+          .display-title{font-size:34px}
+        }
+
+        .agenda-display{font-family:var(--font-barberos-display),Sora,sans-serif}
+        .agenda-control{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);transition:all .18s ease}
+        .agenda-control:hover{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.045)}
+        .agenda-control:focus{outline:none;border-color:rgba(255,90,0,.4);box-shadow:0 0 0 3px rgba(255,90,0,.07)}
+        .agenda-primary{background:#ff5a00;box-shadow:0 10px 28px rgba(255,90,0,.12);transition:all .18s ease}
+        .agenda-primary:hover{background:#ff6a18;transform:translateY(-1px);box-shadow:0 14px 34px rgba(255,90,0,.2)}
+        .panel{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.018),transparent 30%),rgba(11,11,11,.88);box-shadow:0 20px 60px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.018)}
+        .metric-card{min-height:154px}
+        .metric-card::after{left:18px;right:18px;bottom:0}
+        .clientes-kpi{min-height:154px}
+        .clientes-shell .system-strip{border:1px solid rgba(255,255,255,.065);background:linear-gradient(90deg,rgba(255,90,0,.045),rgba(255,255,255,.012) 35%,rgba(255,255,255,.008));box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 12px 40px rgba(0,0,0,.12)}
+        .clientes-shell .display-title{font-size:34px;line-height:.91;letter-spacing:-.075em;font-weight:600}
+        @media(min-width:640px){.clientes-shell .display-title{font-size:42px}}
+
+        @media(prefers-reduced-motion:reduce){
+          .barberos-dashboard *,
+          .barberos-dashboard *::before,
+          .barberos-dashboard *::after{
+            animation-duration:.01ms!important;
+            animation-iteration-count:1!important;
+            transition-duration:.01ms!important;
+          }
+        }
       `}</style>
-      <div className="relative mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
-      {/* HEADER */}
-      <header className="clientes-header mb-7 px-0 py-0">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <div className="mb-3 flex items-center gap-2 clientes-eyebrow text-[8px] font-extrabold uppercase tracking-[0.22em] text-[#ff6a18]">
-              <Users size={13} />
-              GESTIÓN DE CLIENTES
+      <div className="relative overflow-hidden">
+        <div className="relative mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
+          <header className="mb-7">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+              <div className="min-w-0">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/82">BarberOS</span>
+                  <span className="text-white/10">/</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#ff6a18]">Inteligencia de clientes</span>
+                  <span className="ml-1 hidden h-px w-10 bg-gradient-to-r from-orange-500/55 to-transparent sm:block" />
+                </div>
+                <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
+                  <h1 className="agenda-display display-title text-[34px] font-semibold leading-[.91] tracking-[-0.075em] text-white sm:text-[42px]">Clientes</h1>
+                </div>
+                <p className="mt-2 max-w-xl text-[14px] leading-5 text-white/64">Gestioná tu base de clientes, entendé su actividad y detectá oportunidades desde un solo lugar.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => loadData()} className="agenda-control flex h-10 items-center gap-2 rounded-[11px] px-4 text-[12px] font-semibold text-white/68">
+                  <History size={14} />Actualizar
+                </button>
+                <button type="button" onClick={() => { setError(""); setShowCreate(true); }} className="agenda-primary flex h-10 items-center gap-2 rounded-[11px] px-4 text-[12px] font-semibold text-white">
+                  <Plus size={14} />Nuevo cliente
+                </button>
+              </div>
             </div>
+          </header>
 
-            <h1 className="clientes-title text-[42px] font-semibold leading-[.91] tracking-[-.075em] text-white sm:text-[46px]">
-              Clientes
-            </h1>
-
-            <p className="mt-2 max-w-xl text-[14px] leading-6 text-[#C4C4C1]">
-              Una vista completa de tu base de clientes, actividad, valor y oportunidades.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => loadData()}
-              className="clientes-control rounded-[11px] border border-white/[0.08] bg-white/[0.025] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[.13em] text-white/65 transition hover:border-white/[0.15] hover:bg-white/[0.045] hover:text-white"
-            >
-              Actualizar
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setError("");
-                setShowCreate(true);
-              }}
-              className="clientes-primary group flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[.13em] text-white transition"
-            >
-              <Plus size={16} strokeWidth={2.2} />
-              Nuevo cliente
-              <ArrowUpRight
-                size={14}
-                className="opacity-60 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="clientes-main pb-10">
+          <main className="clientes-main pb-10">
         {/* KPI GRID */}
-        <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
           {[
             {
               label: "Clientes",
@@ -511,25 +752,25 @@ export default function ClientesPage() {
             return (
               <div
                 key={item.label}
-                className="clientes-panel clientes-kpi group rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-5 transition"
+                className="metric-card panel-surface clientes-panel clientes-kpi group rounded-[16px] border p-5 transition"
               >
                 <div className="flex items-center justify-between">
-                  <span className="clientes-meta text-[9px] font-semibold uppercase tracking-[.16em] text-white/55">
+                  <span className="meta-label text-white/82">
                     {item.label}
                   </span>
                   <Icon
                     size={15}
-                    className="text-[#777773] transition group-hover:text-[#FF6A18]"
+                    className="text-[#A9A9A5] transition group-hover:text-[#FF6A18]"
                   />
                 </div>
 
                 <div className="mt-4 flex items-end justify-between">
-                  <span className="clientes-number text-[30px] font-semibold tracking-[-.065em] text-white tabular-nums">
+                  <span className="numeric-value kpi-value text-white">
                     {item.value.toLocaleString("es-AR")}
                   </span>
                 </div>
 
-                <p className="mt-1.5 text-[10px] leading-4 text-white/38">{item.meta}</p>
+                <p className="mt-1.5 text-[11px] leading-4 text-white/58">{item.meta}</p>
               </div>
             );
           })}
@@ -537,65 +778,65 @@ export default function ClientesPage() {
 
         {/* INSIGHT STRIP */}
         <section className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr]">
-          <div className="clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-5">
-            <div className="flex items-center gap-2 clientes-meta text-[9px] font-semibold uppercase tracking-[.16em] text-white/55">
+          <div className="panel-surface clientes-panel rounded-[16px] border p-5">
+            <div className="flex items-center gap-2 clientes-meta text-[10px] font-semibold uppercase tracking-[.16em] text-[#ff6a18]">
               <TrendingUp size={14} className="text-[#FF6A18]" />
               Valor medio
             </div>
             <p className="mt-3 text-[23px] font-semibold tracking-[-0.025em] text-white">
               ${Math.round(averageCustomerValue).toLocaleString("es-AR")}
             </p>
-            <p className="mt-1 text-[11px] text-[#A6A6A2]">
+            <p className="mt-1 text-[12px] text-[#D0D0CC]">
               facturación histórica / clientes
             </p>
           </div>
 
-          <div className="clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-5">
-            <div className="flex items-center gap-2 clientes-meta text-[9px] font-semibold uppercase tracking-[.16em] text-white/55">
+          <div className="panel-surface clientes-panel rounded-[16px] border p-5">
+            <div className="flex items-center gap-2 clientes-meta text-[10px] font-semibold uppercase tracking-[.16em] text-[#ff6a18]">
               <History size={14} />
               Actividad
             </div>
             <p className="mt-3 text-[23px] font-semibold tracking-[-0.025em] text-white">
               {totalVisits.toLocaleString("es-AR")}
             </p>
-            <p className="mt-1 text-[11px] text-[#A6A6A2]">
+            <p className="mt-1 text-[12px] text-[#D0D0CC]">
               visitas no canceladas registradas
             </p>
           </div>
 
-          <div className="clientes-panel clientes-opportunity rounded-[16px] border border-orange-500/[.16] bg-orange-500/[.035] p-5">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-[#FF9A66]">
+          <div className="panel-surface clientes-panel clientes-opportunity rounded-[16px] border border-orange-500/[.16] bg-orange-500/[.035] p-5">
+            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.13em] text-[#FF9A66]">
               <Sparkles size={14} />
               Oportunidad GESTIÓN
             </div>
             <p className="mt-3 text-[15px] font-medium text-white">
               {riskCustomers + inactiveCustomers} clientes requieren atención
             </p>
-            <p className="mt-1 text-[11px] text-[#C7A18E]">
+            <p className="mt-1 text-[12px] text-[#D2B09B]">
               revisar recuperación y reactivación
             </p>
           </div>
         </section>
 
         {/* FILTER / SEARCH BAR */}
-        <section className="mb-5 rounded-[16px] border border-white/[.075] bg-[#0d0d0d] p-3">
+        <section className="panel mb-5 rounded-[16px] p-3">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[11px] border border-white/[.07] bg-[#0b0b0b] px-4 py-2.5">
-              <Search size={17} className="shrink-0 text-[#999995]" />
+              <Search size={17} className="shrink-0 text-[#BDBDB9]" />
 
               <input
                 type="text"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Buscar cliente, teléfono o email..."
-                className="w-full bg-transparent text-[11px] text-white outline-none placeholder:text-white/25"
+                className="w-full bg-transparent text-[12px] text-white outline-none placeholder:text-white/42"
               />
 
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="text-[#A1A19D] transition hover:text-white"
+                  className="text-[#C2C2BE] transition hover:text-white"
                 >
                   <X size={15} />
                 </button>
@@ -611,10 +852,10 @@ export default function ClientesPage() {
                     key={item.id}
                     type="button"
                     onClick={() => setSegment(item.id)}
-                    className={`whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-semibold transition ${
+                    className={`focus-ring whitespace-nowrap rounded-lg px-3 py-2 text-[12px] font-semibold transition ${
                       active
-                        ? "bg-white/[0.09] text-white"
-                        : "text-[#B0B0AC] hover:bg-white/[0.045] hover:text-white"
+                        ? "segment-active"
+                        : "text-[#C8C8C4] hover:bg-white/[0.045] hover:text-white"
                     }`}
                   >
                     {item.label}
@@ -626,20 +867,20 @@ export default function ClientesPage() {
         </section>
 
         {/* MASTER DETAIL */}
-        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_390px] items-stretch">
           {/* CUSTOMER TABLE */}
-          <div className="overflow-hidden clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d]">
+          <div className="panel overflow-hidden rounded-[16px]">
             <div className="flex items-center justify-between border-b border-white/[0.075] px-6 py-5">
               <div>
                 <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-white">
                   Cliente 360
                 </h2>
-                <p className="mt-1 text-[11px] text-[#A6A6A2]">
+                <p className="mt-1 text-[12px] text-[#D0D0CC]">
                   {filteredCustomers.length} de {totalCustomers} clientes
                 </p>
               </div>
 
-              <div className="rounded-lg border border-white/[0.075] bg-white/[0.025] px-3 py-1.5 text-[11px] text-[#C4C4C1]">
+              <div className="rounded-lg border border-white/[0.075] bg-white/[0.025] px-3 py-1.5 text-[12px] text-[#D8D8D4]">
                 {SEGMENTS.find((item) => item.id === segment)?.description}
               </div>
             </div>
@@ -667,18 +908,18 @@ export default function ClientesPage() {
             ) : filteredCustomers.length === 0 ? (
               <div className="flex min-h-[520px] flex-col items-center justify-center px-6 text-center">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.075] bg-[#0B0B0B]">
-                  <Search size={19} className="text-[#A1A19D]" />
+                  <Search size={19} className="text-[#C2C2BE]" />
                 </div>
                 <h3 className="text-sm font-medium text-white">
                   No encontramos clientes
                 </h3>
-                <p className="mt-1 max-w-sm text-xs leading-5 text-[#A6A6A2]">
+                <p className="mt-1 max-w-sm text-xs leading-5 text-[#D0D0CC]">
                   Probá con otro término de búsqueda o cambiá el segmento.
                 </p>
               </div>
             ) : (
               <>
-                <div className="hidden grid-cols-[minmax(220px,1.4fr)_120px_120px_140px_120px_24px] gap-4 border-b border-white/[0.05] px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A6A6A2] lg:grid">
+                <div className="hidden grid-cols-[minmax(220px,1.4fr)_120px_120px_140px_120px_24px] gap-4 border-b border-white/[0.05] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC] lg:grid">
                   <span>Cliente</span>
                   <span>Visitas</span>
                   <span>Valor</span>
@@ -697,43 +938,41 @@ export default function ClientesPage() {
                         key={customer.id}
                         type="button"
                         onClick={() => setSelectedCustomer(customer)}
-                        className={`group grid w-full grid-cols-[1fr_auto] gap-4 px-6 py-4 text-left transition lg:grid-cols-[minmax(220px,1.4fr)_120px_120px_140px_120px_24px] ${
-                          isSelected
-                            ? "bg-white/[0.055]"
-                            : "hover:bg-white/[0.025]"
+                        className={`customer-row group grid w-full grid-cols-[1fr_auto] gap-4 px-6 py-4 text-left transition lg:grid-cols-[minmax(220px,1.4fr)_120px_120px_140px_120px_24px] ${
+                          isSelected ? "customer-row-selected" : ""
                         }`}
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#0B0B0B] text-[11px] font-semibold text-[#E6E6E3]">
+                          <div className="customer-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#0B0B0B] text-[12px] font-semibold text-[#E6E6E3] transition">
                             {getInitials(customer.full_name)}
                           </div>
 
                           <div className="min-w-0">
-                            <div className="truncate text-[13px] font-semibold text-white">
+                            <div className="truncate text-[14px] font-semibold text-white">
                               {customer.full_name}
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-[#B7B7B3]">
+                            <div className="mt-1 flex items-center gap-2 text-[12px] text-[#D0D0CC]">
                               <Phone size={10} />
                               <span>{customer.phone}</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="hidden items-center text-[13px] font-medium text-[#E4E4E1] tabular-nums lg:flex">
+                        <div className="hidden items-center text-[14px] font-medium text-[#E4E4E1] tabular-nums lg:flex">
                           {customer.visits}
                         </div>
 
-                        <div className="hidden items-center text-[13px] font-medium text-white tabular-nums lg:flex">
+                        <div className="hidden items-center text-[14px] font-medium text-white tabular-nums lg:flex">
                           ${customer.spent.toLocaleString("es-AR")}
                         </div>
 
-                        <div className="hidden items-center text-[11px] text-[#C0C0BC] lg:flex">
+                        <div className="hidden items-center text-[12px] text-[#C0C0BC] lg:flex">
                           {formatDate(customer.lastVisit)}
                         </div>
 
                         <div className="hidden items-center lg:flex">
                           <span
-                            className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${
+                            className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
                               customerSegment === "vip"
                                 ? "border-[#FF5A00]/25 bg-[#FF5A00]/10 text-[#FF9A66]"
                                 : customerSegment === "risk"
@@ -761,7 +1000,7 @@ export default function ClientesPage() {
                           />
                         </div>
 
-                        <div className="col-span-2 flex items-center gap-4 border-t border-white/[0.04] pt-3 text-[11px] text-[#B7B7B3] lg:hidden">
+                        <div className="col-span-2 flex items-center gap-4 border-t border-white/[0.04] pt-3 text-[12px] text-[#D0D0CC] lg:hidden">
                           <span>{customer.visits} visitas</span>
                           <span>
                             ${customer.spent.toLocaleString("es-AR")}
@@ -779,7 +1018,7 @@ export default function ClientesPage() {
           </div>
 
           {/* CUSTOMER 360 DETAIL */}
-          <aside className="h-fit overflow-hidden clientes-panel rounded-[16px] border border-white/[.075] bg-[#0d0d0d] xl:sticky xl:top-5">
+          <aside className="panel h-full overflow-hidden rounded-[16px] xl:sticky xl:top-0">
             {!selectedCustomer ? (
               <div className="flex min-h-[520px] flex-col items-center justify-center px-8 text-center">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0B0B0B]">
@@ -788,7 +1027,7 @@ export default function ClientesPage() {
                 <h3 className="text-[14px] font-semibold text-white">
                   Cliente 360
                 </h3>
-                <p className="mt-2 max-w-[270px] text-[11px] leading-5 text-[#A6A6A2]">
+                <p className="mt-2 max-w-[270px] text-[12px] leading-5 text-[#D0D0CC]">
                   Seleccioná un cliente para consultar actividad, valor,
                   historial y oportunidades.
                 </p>
@@ -799,7 +1038,7 @@ export default function ClientesPage() {
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-[13px] font-semibold text-[#FF9A66]">
+                      <div className="customer-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#FF5A00]/20 bg-[#FF5A00]/[0.08] text-[14px] font-semibold text-[#FF9A66]">
                         {getInitials(selectedCustomer.full_name)}
                       </div>
 
@@ -807,7 +1046,7 @@ export default function ClientesPage() {
                         <h3 className="truncate text-[15px] font-semibold text-white">
                           {selectedCustomer.full_name}
                         </h3>
-                        <p className="mt-1 text-[10px] text-[#B7B7B3]">
+                        <p className="mt-1 text-[11px] text-[#D0D0CC]">
                           Cliente desde{" "}
                           {formatMemberSince(selectedCustomer.created_at)}
                         </p>
@@ -818,7 +1057,7 @@ export default function ClientesPage() {
                       <button
                         type="button"
                         onClick={() => setShowActions((value) => !value)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.075] text-[#A1A19D] transition hover:bg-white/[0.05] hover:text-white"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.075] text-[#C2C2BE] transition hover:bg-white/[0.05] hover:text-white"
                       >
                         <MoreHorizontal size={16} />
                       </button>
@@ -827,13 +1066,13 @@ export default function ClientesPage() {
                         <div className="absolute right-0 top-10 z-20 w-40 rounded-xl border border-white/[0.10] bg-[#171717] p-1.5 shadow-2xl">
                           <button
                             type="button"
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[11px] text-[#DADAD7] transition hover:bg-white/[0.06]"
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06]"
                           >
                             Editar cliente
                           </button>
                           <button
                             type="button"
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[11px] text-[#DADAD7] transition hover:bg-white/[0.06]"
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06]"
                           >
                             Ver agenda
                           </button>
@@ -844,14 +1083,14 @@ export default function ClientesPage() {
 
                   <div className="mt-5 flex flex-wrap gap-2">
                     {selectedSegment && (
-                      <span className="rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.07] px-2.5 py-1 text-[10px] font-semibold text-[#FF9A66]">
+                      <span className="rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.07] px-2.5 py-1 text-[11px] font-semibold text-[#FF9A66]">
                         {SEGMENTS.find((item) => item.id === selectedSegment)
                           ?.label}
                       </span>
                     )}
 
                     {selectedCustomer.favoriteService && (
-                      <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 text-[10px] font-medium text-[#C9C9C6]">
+                      <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 text-[11px] font-medium text-[#C9C9C6]">
                         {selectedCustomer.favoriteService}
                       </span>
                     )}
@@ -862,7 +1101,7 @@ export default function ClientesPage() {
                 <div className="grid grid-cols-3 gap-2 border-b border-white/[0.075] p-4">
                   <button
                     type="button"
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[10px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
                   >
                     <Phone size={14} />
                     Llamar
@@ -870,7 +1109,7 @@ export default function ClientesPage() {
 
                   <button
                     type="button"
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[10px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
                   >
                     <MessageCircle size={14} />
                     WhatsApp
@@ -878,7 +1117,7 @@ export default function ClientesPage() {
 
                   <button
                     type="button"
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[10px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
                   >
                     <CalendarDays size={14} />
                     Turno
@@ -887,14 +1126,14 @@ export default function ClientesPage() {
 
                 {/* CONTACT */}
                 <div className="border-b border-white/[0.075] p-6">
-                  <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B7B7B3]">
+                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
                     Contacto
                   </p>
 
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <Phone size={14} className="text-[#8F8F8B]" />
-                      <span className="text-[12px] text-[#E1E1DE]">
+                      <span className="text-[13px] text-[#E1E1DE]">
                         {selectedCustomer.phone}
                       </span>
                     </div>
@@ -902,7 +1141,7 @@ export default function ClientesPage() {
                     {selectedCustomer.email && (
                       <div className="flex items-center gap-3">
                         <Mail size={14} className="text-[#8F8F8B]" />
-                        <span className="truncate text-[12px] text-[#E1E1DE]">
+                        <span className="truncate text-[13px] text-[#E1E1DE]">
                           {selectedCustomer.email}
                         </span>
                       </div>
@@ -913,7 +1152,7 @@ export default function ClientesPage() {
                 {/* VALUE */}
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B7B7B3]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
                       Valor del cliente
                     </p>
                     <TrendingUp size={14} className="text-[#FF6A18]" />
@@ -921,14 +1160,14 @@ export default function ClientesPage() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
-                      <p className="text-[10px] text-[#B0B0AC]">Visitas</p>
+                      <p className="text-[11px] text-[#C8C8C4]">Visitas</p>
                       <p className="mt-2 text-[20px] font-semibold text-white tabular-nums">
                         {selectedCustomer.visits}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
-                      <p className="text-[10px] text-[#B0B0AC]">Gasto</p>
+                      <p className="text-[11px] text-[#C8C8C4]">Gasto</p>
                       <p className="mt-2 truncate text-[17px] font-semibold text-white tabular-nums">
                         ${selectedCustomer.spent.toLocaleString("es-AR")}
                       </p>
@@ -937,10 +1176,10 @@ export default function ClientesPage() {
 
                   <div className="mt-2 rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] text-[#B0B0AC]">
+                      <p className="text-[11px] text-[#C8C8C4]">
                         Ticket promedio
                       </p>
-                      <span className="text-[10px] text-[#FF9A66]">LTV</span>
+                      <span className="text-[11px] text-[#FF9A66]">LTV</span>
                     </div>
                     <p className="mt-2 text-[17px] font-semibold text-white tabular-nums">
                       $
@@ -956,16 +1195,16 @@ export default function ClientesPage() {
                 {/* ACTIVITY */}
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B7B7B3]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
                       Actividad reciente
                     </p>
-                    <span className="text-[10px] text-[#A6A6A2]">
+                    <span className="text-[11px] text-[#D0D0CC]">
                       {selectedCustomerAppointments.length} turnos
                     </span>
                   </div>
 
                   {selectedCustomerAppointments.length === 0 ? (
-                    <p className="text-[11px] leading-5 text-[#A6A6A2]">
+                    <p className="text-[12px] leading-5 text-[#D0D0CC]">
                       Todavía no hay visitas registradas.
                     </p>
                   ) : (
@@ -977,16 +1216,16 @@ export default function ClientesPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-[11px] font-semibold text-[#E6E6E3]">
+                              <p className="truncate text-[12px] font-semibold text-[#E6E6E3]">
                                 {appointment.service?.name ?? "Servicio"}
                               </p>
-                              <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[#A6A6A2]">
+                              <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#D0D0CC]">
                                 <Clock3 size={10} />
                                 {formatDateTime(appointment.start_at)}
                               </div>
                             </div>
 
-                            <span className="shrink-0 text-[11px] font-semibold text-white tabular-nums">
+                            <span className="shrink-0 text-[12px] font-semibold text-white tabular-nums">
                               $
                               {Number(
                                 appointment.service?.price ?? 0
@@ -995,7 +1234,7 @@ export default function ClientesPage() {
                           </div>
 
                           {appointment.notes && (
-                            <p className="mt-3 border-t border-white/[0.05] pt-3 text-[10px] leading-4 text-[#A6A6A2]">
+                            <p className="mt-3 border-t border-white/[0.05] pt-3 text-[11px] leading-4 text-[#D0D0CC]">
                               {appointment.notes}
                             </p>
                           )}
@@ -1008,10 +1247,10 @@ export default function ClientesPage() {
                 {/* NOTES */}
                 {selectedCustomer.notes && (
                   <div className="border-b border-white/[0.075] p-6">
-                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B7B7B3]">
+                    <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
                       Observaciones
                     </p>
-                    <p className="rounded-xl border border-white/[0.065] bg-[#0B0B0B] p-4 text-[11px] leading-5 text-[#C4C4C1]">
+                    <p className="rounded-xl border border-white/[0.065] bg-[#0B0B0B] p-4 text-[12px] leading-5 text-[#D8D8D4]">
                       {selectedCustomer.notes}
                     </p>
                   </div>
@@ -1022,14 +1261,14 @@ export default function ClientesPage() {
                   <button
                     type="button"
                     onClick={closeDetail}
-                    className="text-[11px] text-[#A6A6A2] transition hover:text-white"
+                    className="text-[12px] text-[#D0D0CC] transition hover:text-white"
                   >
                     Cerrar perfil
                   </button>
 
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FF8A50] transition hover:text-[#FFB18F]"
+                    className="flex items-center gap-1.5 text-[12px] font-semibold text-[#FF8A50] transition hover:text-[#FFB18F]"
                   >
                     Ver historial completo
                     <ChevronRight size={13} />
@@ -1039,7 +1278,9 @@ export default function ClientesPage() {
             )}
           </aside>
         </section>
-      </main>
+          </main>
+        </div>
+      </div>
 
       {/* CREATE CUSTOMER MODAL */}
       {showCreate && (
@@ -1047,13 +1288,13 @@ export default function ClientesPage() {
           <div className="w-full max-w-lg overflow-hidden rounded-[16px] border border-white/[.09] bg-[#0d0d0d] shadow-2xl">
             <div className="flex items-start justify-between border-b border-white/[0.075] p-6">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#FF6A18]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#FF6A18]">
                   GESTIÓN
                 </p>
                 <h2 className="mt-1 text-[19px] font-semibold text-white">
                   Nuevo cliente
                 </h2>
-                <p className="mt-1 text-[11px] text-[#A6A6A2]">
+                <p className="mt-1 text-[12px] text-[#D0D0CC]">
                   Crear un perfil dentro de la base de clientes.
                 </p>
               </div>
@@ -1061,7 +1302,7 @@ export default function ClientesPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="text-[#A6A6A2] transition hover:text-white"
+                className="text-[#D0D0CC] transition hover:text-white"
               >
                 <X size={18} />
               </button>
@@ -1089,7 +1330,7 @@ export default function ClientesPage() {
                 },
               ].map((field) => (
                 <label key={field.key} className="block">
-                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#B7B7B3]">
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC]">
                     {field.label} {field.required && "*"}
                   </span>
                   <input
@@ -1101,13 +1342,13 @@ export default function ClientesPage() {
                       }))
                     }
                     placeholder={field.placeholder}
-                    className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[12px] text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
+                    className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[13px] text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
                   />
                 </label>
               ))}
 
               <label className="block">
-                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#B7B7B3]">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC]">
                   Observaciones
                 </span>
                 <textarea
@@ -1120,12 +1361,12 @@ export default function ClientesPage() {
                   }
                   rows={4}
                   placeholder="Preferencias, información relevante..."
-                  className="w-full resize-none rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[12px] leading-5 text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
+                  className="w-full resize-none rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[13px] leading-5 text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
                 />
               </label>
 
               {error && (
-                <div className="rounded-xl border border-red-400/15 bg-red-400/[0.06] px-4 py-3 text-[11px] text-red-300">
+                <div className="rounded-xl border border-red-400/15 bg-red-400/[0.06] px-4 py-3 text-[12px] text-red-300">
                   {error}
                 </div>
               )}
@@ -1135,7 +1376,7 @@ export default function ClientesPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[11px] font-semibold text-[#C9C9C6] transition hover:bg-white/[0.04]"
+                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-[#C9C9C6] transition hover:bg-white/[0.04]"
               >
                 Cancelar
               </button>
@@ -1144,7 +1385,7 @@ export default function ClientesPage() {
                 type="button"
                 disabled={saving}
                 onClick={createCustomer}
-                className="rounded-xl bg-[#FF5A00] px-4 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#FF6814] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-[#FF5A00] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#FF6814] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Creando..." : "Crear cliente"}
               </button>
@@ -1155,12 +1396,11 @@ export default function ClientesPage() {
 
       {/* TOAST */}
       {notice && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-[#151515] px-4 py-3 text-[11px] font-medium text-emerald-300 shadow-2xl">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-[#151515] px-4 py-3 text-[12px] font-medium text-emerald-300 shadow-2xl">
           <UserCheck size={14} />
           {notice}
         </div>
       )}
-      </div>
     </div>
   );
 }
