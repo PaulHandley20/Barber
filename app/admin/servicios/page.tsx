@@ -15,7 +15,6 @@ import {
   MoreHorizontal,
   DollarSign,
   TrendingUp,
-  BarChart3,
   CalendarDays,
   Sparkles,
   ArrowUpRight,
@@ -145,14 +144,12 @@ function StatCard({
   helper,
   icon: Icon,
   accent = false,
-  index,
 }: {
   label: string;
   value: string | number;
   helper: string;
   icon: typeof Scissors;
   accent?: boolean;
-  index: string;
 }) {
   return (
     <div className="metric-card panel-surface group relative min-h-[154px] p-5">
@@ -168,9 +165,6 @@ function StatCard({
           <span className="meta-label text-white/68">{label}</span>
         </div>
 
-        <span className="data text-[8px] uppercase tracking-[.12em] text-white/24">
-          {index}
-        </span>
       </div>
 
       <div className="display mt-7 truncate text-[30px] font-semibold leading-none tracking-[-.065em] text-white">
@@ -1159,11 +1153,6 @@ export default function ServiciosPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="glass-control hidden items-center gap-2 rounded-[11px] px-3.5 py-2.5 text-[11px] text-white/64 lg:flex">
-              <BarChart3 size={14} className="text-white/42" />
-              <span>{totalUsage} atenciones registradas</span>
-            </div>
-
             <button
               type="button"
               onClick={openCreate}
@@ -1179,9 +1168,8 @@ export default function ServiciosPage() {
           </div>
         </header>
 
-        <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            index="01"
             label="Servicios"
             value={services.length}
             helper={`${activeServices.length} activos · ${inactiveServices.length} inactivos`}
@@ -1190,7 +1178,6 @@ export default function ServiciosPage() {
           />
 
           <StatCard
-            index="02"
             label="Precio promedio"
             value={formatCompactPrice(averagePrice)}
             helper="Promedio actual del catálogo"
@@ -1198,23 +1185,13 @@ export default function ServiciosPage() {
           />
 
           <StatCard
-            index="03"
-            label="Atenciones"
-            value={totalUsage}
-            helper="Reservas no canceladas"
-            icon={CalendarDays}
-          />
-
-          <StatCard
-            index="04"
-            label="Ingresos atribuibles"
+            label="Ingresos"
             value={formatCompactPrice(totalRevenue)}
             helper="Generados por servicios registrados"
             icon={TrendingUp}
           />
 
           <StatCard
-            index="05"
             label="Duración media"
             value={formatDuration(Math.round(averageDuration))}
             helper="Tiempo medio por servicio"
@@ -1233,7 +1210,7 @@ export default function ServiciosPage() {
                   Actividad del catálogo
                 </h2>
                 <p className="mt-1 text-[13px] leading-5 text-white/62">
-                  Evolución diaria de los ingresos asociados a los servicios.
+                  Evolución diaria de los ingresos de los servicios.
                 </p>
               </div>
 
@@ -1483,8 +1460,7 @@ export default function ServiciosPage() {
 
         <div className="mt-4 flex items-center gap-2 px-1 text-[11px] leading-5 text-white/48">
           <RefreshCw size={12} />
-          Los ingresos atribuibles se calculan a partir de turnos no
-          cancelados registrados en Supabase.
+          Los ingresos se calculan a partir de turnos no cancelados registrados en Supabase.
         </div>
       </div>
 
@@ -1737,7 +1713,7 @@ export default function ServiciosPage() {
                     }))
                   }
                   rows={3}
-                  placeholder="Descripción breve que puede mostrarse al reservar."
+                  placeholder="Descripción que se mostrará en el catálogo y durante la reserva."
                   className="w-full resize-none rounded-[11px] border border-white/[0.08] bg-[#080808] px-3.5 py-3 text-[13px] leading-5 text-white outline-none placeholder:text-white/38 focus:border-[#ff5a00]/40"
                 />
               </label>
@@ -1829,6 +1805,13 @@ export default function ServiciosPage() {
                     )}
                   </button>
                 </div>
+              </div>
+
+              <div className="rounded-[12px] border border-[#ff5a00]/10 bg-[#ff5a00]/[0.03] px-4 py-3 text-[12px] leading-5 text-white/58">
+                Los cambios se guardan en el catálogo central de BarberOS. La
+                Agenda y cualquier módulo de reservas que consulte
+                <span className="mx-1 font-semibold text-white/78">services</span>
+                utilizarán automáticamente estos datos actualizados.
               </div>
 
               <div className="flex justify-end gap-2.5 border-t border-white/[0.055] pt-5">

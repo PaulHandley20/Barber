@@ -41,7 +41,7 @@ type Appointment = {
 };
 
 type CustomerOption = { id: string; full_name: string; phone: string | null };
-type ServiceOption = { id: string; name: string; price: number };
+type ServiceOption = { id: string; name: string; price: number; duration_minutes?: number | null };
 type BarberOption = { id: string; name: string };
 
 type ViewMode = "day" | "week";
@@ -218,7 +218,7 @@ export default function TurnosPage() {
   async function loadFormOptions() {
     const [customersResult, servicesResult, barbersResult] = await Promise.all([
       supabase.from("customers").select("id, full_name, phone").order("full_name"),
-      supabase.from("services").select("id, name, price").order("name"),
+      supabase.from("services").select("id, name, price, duration_minutes").order("name"),
       supabase.from("barbers").select("id, name").order("name"),
     ]);
 
@@ -306,16 +306,61 @@ export default function TurnosPage() {
 
   async function updateStatus(appointment: Appointment, status: string) {
     setActionLoading(`${appointment.id}:${status}`);
-    const { error: updateError } = await supabase.from("appointments").update({ status }).eq("id", appointment.id);
+    setError("");
 
-    if (updateError) {
-      console.error("Error updating appointment:", updateError);
-      setError("No se pudo actualizar el estado del turno.");
-    } else {
-      setAppointments((current) => current.map((item) => item.id === appointment.id ? { ...item, status } : item));
-      setSelectedAppointment((current) => current?.id === appointment.id ? { ...current, status } : current);
+    try {
+      const { error: updateError } = await supabase
+        .from("appointments")
+        .update({ status })
+        .eq("id", appointment.id);
+
+      if (updateError) {
+        const details = [
+          updateError.message,
+          updateError.details,
+          updateError.hint,
+          updateError.code ? `Código ${updateError.code}` : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+        console.error("=== BARBEROS · ERROR AL ACTUALIZAR TURNO ===");
+        console.error("appointment_id:", appointment.id);
+        console.error("requested_status:", status);
+        console.error("message:", updateError.message);
+        console.error("details:", updateError.details);
+        console.error("hint:", updateError.hint);
+        console.error("code:", updateError.code);
+        console.error("============================================");
+
+        setError(
+          details ||
+            "Supabase rechazó la actualización del estado del turno."
+        );
+        return;
+      }
+
+      setAppointments((current) =>
+        current.map((item) =>
+          item.id === appointment.id ? { ...item, status } : item
+        )
+      );
+
+      setSelectedAppointment((current) =>
+        current?.id === appointment.id
+          ? { ...current, status }
+          : current
+      );
+    } catch (unexpectedError) {
+      console.error("Unexpected appointment update error:", unexpectedError);
+      setError(
+        unexpectedError instanceof Error
+          ? unexpectedError.message
+          : "Ocurrió un error inesperado al actualizar el turno."
+      );
+    } finally {
+      setActionLoading("");
     }
-    setActionLoading("");
   }
 
   function openNewAppointment() {
@@ -339,7 +384,7 @@ export default function TurnosPage() {
 
     const selectedService = services.find((service) => service.id === newServiceId);
     const start = new Date(newStartAt);
-    const duration = 30;
+    const duration = Math.max(5, Number(selectedService?.duration_minutes ?? 30));
     const end = new Date(start.getTime() + duration * 60000);
 
     setCreating(true);
@@ -635,7 +680,6 @@ function Metric({ label, value, detail, icon, accent = false, className = "" }: 
         <span className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.17em] ${accent ? "text-white/64" : "text-white/48"}`}>
           <span className={accent ? "text-[#ff6a18]" : "text-white/52"}>{icon}</span>{label}
         </span>
-        <span className="text-[9px] font-medium uppercase tracking-[0.15em] text-white/24">período</span>
       </div>
       <p className="agenda-display mt-7 text-[34px] font-semibold leading-none tracking-[-0.06em] text-white">{value}</p>
       <p className="mt-3 text-[11px] leading-4 text-white/45">{detail}</p>
@@ -706,8 +750,8 @@ function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appoin
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Acciones</p>
           <div className="grid grid-cols-2 gap-2">
             {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "completed")} className="flex items-center justify-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-2.5 text-[12px] font-semibold text-emerald-200 transition hover:bg-emerald-300/[0.10] disabled:opacity-40"><Check size={13} />{actionLoading === `${appointment.id}:completed` ? "Guardando..." : "Completar"}</button>}
-            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "no_show")} className="flex items-center justify-center gap-2 rounded-xl border border-orange-300/15 bg-orange-300/[0.05] px-3 py-2.5 text-[12px] font-semibold text-orange-200 transition hover:bg-orange-300/[0.09] disabled:opacity-40"><CircleX size={13} />No asistió</button>}
-            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "cancelled")} className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-red-300/10 bg-red-300/[0.035] px-3 py-2.5 text-[12px] font-semibold text-red-200/80 transition hover:bg-red-300/[0.07] disabled:opacity-40"><X size={13} />Cancelar turno</button>}
+            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => { if (window.confirm("¿Confirmás que el cliente no asistió a este turno?")) onStatus(appointment, "no_show"); }} className="flex items-center justify-center gap-2 rounded-xl border border-orange-300/15 bg-orange-300/[0.05] px-3 py-2.5 text-[12px] font-semibold text-orange-200 transition hover:bg-orange-300/[0.09] disabled:opacity-40"><CircleX size={13} />No asistió</button>}
+            {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => { if (window.confirm("¿Confirmás la cancelación de este turno?")) onStatus(appointment, "cancelled"); }} className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-red-300/10 bg-red-300/[0.035] px-3 py-2.5 text-[12px] font-semibold text-red-200/80 transition hover:bg-red-300/[0.07] disabled:opacity-40"><X size={13} />Cancelar turno</button>}
             {completed && <div className="col-span-2 rounded-xl border border-sky-300/15 bg-sky-300/[0.05] px-3 py-2.5 text-center text-[12px] font-semibold text-sky-200">Turno completado correctamente</div>}
             {cancelled && <div className="col-span-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-center text-[12px] font-semibold text-red-200">Turno cancelado</div>}
           </div>
@@ -735,7 +779,7 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
           <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="field" /></Field>
           <Field label="Observaciones" icon={<MoreHorizontal size={12} />}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notas para el equipo..." className="field resize-none" /></Field>
-          {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración estimada: <span className="font-semibold text-white/80">30 min</span> · Estado inicial: <span className="font-semibold text-emerald-200">Confirmado</span></div>}
+          {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración estimada: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · Estado inicial: <span className="font-semibold text-emerald-200">Confirmado</span></div>}
           {error && <div className="flex items-center gap-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-[12px] text-red-200"><AlertCircle size={13} />{error}</div>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t hairline bg-white/[0.012] px-6 py-4"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs font-medium text-white/62 transition hover:text-white">Cancelar</button><button type="button" disabled={creating} onClick={onCreate} className="flex items-center gap-2 rounded-xl bg-[#ff5a00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6a18] disabled:cursor-not-allowed disabled:opacity-50">{creating ? <><RefreshCw size={13} className="animate-spin" />Creando...</> : <><Plus size={13} />Crear turno</>}</button></div>

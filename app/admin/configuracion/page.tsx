@@ -23,6 +23,10 @@ import {
   UserRound,
   CircleCheck,
   ExternalLink,
+  LogOut,
+  KeyRound,
+  Mail,
+  CheckCircle2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -64,6 +68,27 @@ type Settings = {
   updated_at?: string;
 };
 
+type BusinessHour = {
+  id: string;
+  day_of_week: number;
+  is_open: boolean;
+  open_time: string | null;
+  close_time: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+const WEEK_DAYS = [
+  { day: 1, label: "Lunes", short: "Lun" },
+  { day: 2, label: "Martes", short: "Mar" },
+  { day: 3, label: "Miércoles", short: "Mié" },
+  { day: 4, label: "Jueves", short: "Jue" },
+  { day: 5, label: "Viernes", short: "Vie" },
+  { day: 6, label: "Sábado", short: "Sáb" },
+  { day: 0, label: "Domingo", short: "Dom" },
+];
+
+
 const defaultSettings: Omit<Settings, "id"> = {
   name: "Don Segundo",
   description: "Barbería tradicional con atención personalizada.",
@@ -79,6 +104,21 @@ const defaultSettings: Omit<Settings, "id"> = {
   appointment_confirmation_enabled: true,
   appointment_reminder_enabled: true,
 };
+
+function normalizeTime(value: string | null) {
+  if (!value) return "";
+  return value.slice(0, 5);
+}
+
+function buildDefaultHours(): BusinessHour[] {
+  return WEEK_DAYS.map((day) => ({
+    id: `local-${day.day}`,
+    day_of_week: day.day,
+    is_open: day.day >= 1 && day.day <= 5,
+    open_time: day.day >= 1 && day.day <= 5 ? "09:00" : day.day === 6 ? "09:00" : null,
+    close_time: day.day >= 1 && day.day <= 5 ? "19:00" : day.day === 6 ? "14:00" : null,
+  }));
+}
 
 const sections = [
   {
@@ -317,57 +357,109 @@ export default function ConfiguracionPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [activeSection, setActiveSection] = useState("general");
+  const [hours, setHours] = useState<BusinessHour[]>([]);
+  const [originalHours, setOriginalHours] = useState<BusinessHour[]>([]);
+  const [hoursSaving, setHoursSaving] = useState(false);
+  const [hoursLoading, setHoursLoading] = useState(true);
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountName, setAccountName] = useState("Manuel Cladera");
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
 
-    async function loadSettings() {
+    async function loadAll() {
       setLoading(true);
+      setHoursLoading(true);
       setError("");
 
-      const { data, error: queryError } = await supabase
-        .from("barbershop_settings")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
+      const [settingsResult, hoursResult, userResult] = await Promise.all([
+        supabase
+          .from("barbershop_settings")
+          .select("*")
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("barbershop_hours")
+          .select("*")
+          .order("day_of_week", { ascending: true }),
+        supabase.auth.getUser(),
+      ]);
 
       if (!mounted) return;
 
-      if (queryError) {
-        console.error(queryError);
+      const { data: settingsData, error: settingsError } = settingsResult;
+      if (settingsError) {
+        console.error("Settings load error:", settingsError);
         setError("No se pudieron cargar las configuraciones.");
         setLoading(false);
-        return;
-      }
-
-      if (data) {
-        setSettings(data as Settings);
-        setOriginalSettings(data as Settings);
+      } else if (settingsData) {
+        setSettings(settingsData as Settings);
+        setOriginalSettings(settingsData as Settings);
         setLoading(false);
-        return;
-      }
+      } else {
+        const { data: created, error: createError } = await supabase
+          .from("barbershop_settings")
+          .insert(defaultSettings)
+          .select("*")
+          .single();
 
-      const { data: created, error: createError } = await supabase
-        .from("barbershop_settings")
-        .insert(defaultSettings)
-        .select("*")
-        .single();
+        if (!mounted) return;
 
-      if (!mounted) return;
-
-      if (createError || !created) {
-        console.error(createError);
-        setError("No se pudo crear la configuración inicial.");
+        if (createError || !created) {
+          console.error("Settings create error:", createError);
+          setError("No se pudo crear la configuración inicial.");
+        } else {
+          setSettings(created as Settings);
+          setOriginalSettings(created as Settings);
+        }
         setLoading(false);
-        return;
       }
 
-      setSettings(created as Settings);
-      setOriginalSettings(created as Settings);
-      setLoading(false);
+      const { data: hoursData, error: hoursError } = hoursResult;
+      if (hoursError) {
+        console.error("Hours load error:", hoursError);
+        setError((current) => current || "No se pudieron cargar los horarios.");
+        const fallback = buildDefaultHours();
+        setHours(fallback);
+        setOriginalHours(fallback);
+      } else {
+        const normalized = (hoursData ?? []).map((row) => ({
+          ...row,
+          open_time: normalizeTime(row.open_time),
+          close_time: normalizeTime(row.close_time),
+        })) as BusinessHour[];
+
+        const byDay = new Map(normalized.map((row) => [row.day_of_week, row]));
+        const complete = WEEK_DAYS.map((day) =>
+          byDay.get(day.day) ?? buildDefaultHours().find((row) => row.day_of_week === day.day)!
+        );
+        setHours(complete);
+        setOriginalHours(complete);
+      }
+      setHoursLoading(false);
+
+      if (userResult.data.user) {
+        const user = userResult.data.user;
+        setAccountEmail(user.email ?? "");
+        const metadataName =
+          (user.user_metadata?.full_name as string | undefined) ||
+          (user.user_metadata?.name as string | undefined);
+        if (metadataName?.trim()) setAccountName(metadataName.trim());
+      }
     }
 
-    loadSettings();
+    loadAll();
 
     return () => {
       mounted = false;
@@ -432,6 +524,178 @@ export default function ConfiguracionPage() {
     setSettings(data as Settings);
     setOriginalSettings(data as Settings);
     setMessage("Cambios guardados correctamente.");
+  }
+
+  function updateHour(day: number, patch: Partial<BusinessHour>) {
+    setHours((current) =>
+      current.map((hour) =>
+        hour.day_of_week === day ? { ...hour, ...patch } : hour
+      )
+    );
+    setMessage("");
+    setError("");
+  }
+
+  const hasHoursChanges = useMemo(() => {
+    if (!hours.length || !originalHours.length) return false;
+    return JSON.stringify(hours) !== JSON.stringify(originalHours);
+  }, [hours, originalHours]);
+
+  async function saveHours() {
+    if (!hours.length) return;
+
+    setHoursSaving(true);
+    setMessage("");
+    setError("");
+
+    for (const hour of hours) {
+      if (hour.is_open && (!hour.open_time || !hour.close_time)) {
+        setHoursSaving(false);
+        setError(`Completá el horario de ${WEEK_DAYS.find((d) => d.day === hour.day_of_week)?.label ?? "ese día"}.`);
+        return;
+      }
+
+      if (hour.is_open && hour.open_time >= hour.close_time!) {
+        setHoursSaving(false);
+        setError(`El horario de ${WEEK_DAYS.find((d) => d.day === hour.day_of_week)?.label ?? "ese día"} no es válido.`);
+        return;
+      }
+    }
+
+    const payload = hours.map((hour) => ({
+      id: hour.id.startsWith("local-") ? undefined : hour.id,
+      day_of_week: hour.day_of_week,
+      is_open: hour.is_open,
+      open_time: hour.is_open ? hour.open_time : null,
+      close_time: hour.is_open ? hour.close_time : null,
+      updated_at: new Date().toISOString(),
+    }));
+
+    const existing = hours.filter((hour) => !hour.id.startsWith("local-"));
+    const hasExisting = existing.length > 0;
+
+    let result;
+    if (hasExisting) {
+      result = await supabase
+        .from("barbershop_hours")
+        .upsert(payload, { onConflict: "day_of_week" })
+        .select("*");
+    } else {
+      result = await supabase
+        .from("barbershop_hours")
+        .insert(payload.map(({ id: _id, ...row }) => row))
+        .select("*");
+    }
+
+    if (result.error) {
+      console.error("Hours save error:", result.error);
+      setError("No se pudieron guardar los horarios.");
+      setHoursSaving(false);
+      return;
+    }
+
+    const normalized = (result.data ?? []).map((row) => ({
+      ...row,
+      open_time: normalizeTime(row.open_time),
+      close_time: normalizeTime(row.close_time),
+    })) as BusinessHour[];
+    const byDay = new Map(normalized.map((row) => [row.day_of_week, row]));
+    const complete = WEEK_DAYS.map((day) => byDay.get(day.day) ?? hours.find((h) => h.day_of_week === day.day)!);
+
+    setHours(complete);
+    setOriginalHours(complete);
+    setHoursSaving(false);
+    setMessage("Horarios guardados correctamente.");
+  }
+
+  function discardHours() {
+    setHours(originalHours);
+    setMessage("");
+    setError("");
+  }
+
+  async function changeEmail() {
+    setEmailError("");
+    setEmailMessage("");
+
+    const normalizedEmail = newEmail.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setEmailError("Ingresá un email nuevo.");
+      return;
+    }
+
+    if (!/^\\S+@\\S+\\.\\S+$/.test(normalizedEmail)) {
+      setEmailError("Ingresá un email válido.");
+      return;
+    }
+
+    if (normalizedEmail === (accountEmail || "").trim().toLowerCase()) {
+      setEmailError("El nuevo email debe ser diferente al actual.");
+      return;
+    }
+
+    setEmailSaving(true);
+
+    const { data, error: emailUpdateError } = await supabase.auth.updateUser({
+      email: normalizedEmail,
+    });
+
+    setEmailSaving(false);
+
+    if (emailUpdateError) {
+      console.error("Email update error:", emailUpdateError);
+      setEmailError(emailUpdateError.message || "No se pudo actualizar el email.");
+      return;
+    }
+
+    setEmailMessage(
+      "Solicitud enviada. Revisá tu correo para confirmar el cambio de email."
+    );
+
+    if (data.user?.email) {
+      setAccountEmail(data.user.email);
+    }
+  }
+
+  async function changePassword() {
+    setPasswordError("");
+    setPasswordMessage("");
+
+    if (newPassword.length < 8) {
+      setPasswordError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    const { error: passwordError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    setPasswordSaving(false);
+
+    if (passwordError) {
+      console.error("Password update error:", passwordError);
+      setPasswordError("No se pudo actualizar la contraseña.");
+      return;
+    }
+
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordMessage("Contraseña actualizada correctamente.");
+  }
+
+  async function signOut() {
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      console.error("Sign out error:", signOutError);
+      setError("No se pudo cerrar la sesión.");
+      return;
+    }
+    window.location.href = "/login";
   }
 
   function discardChanges() {
@@ -715,9 +979,10 @@ export default function ConfiguracionPage() {
             </nav>
 
             <div className="mt-3 border-t border-white/[0.06] pt-2">
-              <a
-                href="/admin/horarios"
-                className="group flex items-center gap-3 rounded-[11px] px-3 py-3 text-[12px] font-semibold text-white/50 transition hover:bg-white/[0.035] hover:text-white"
+              <button
+                type="button"
+                onClick={() => goToSection("horarios")}
+                className="group flex w-full items-center gap-3 rounded-[11px] px-3 py-3 text-left text-[12px] font-semibold text-white/50 transition hover:bg-white/[0.035] hover:text-white"
               >
                 <SlidersHorizontal size={14} />
                 <span className="flex-1">Gestionar horarios</span>
@@ -725,7 +990,7 @@ export default function ConfiguracionPage() {
                   size={13}
                   className="transition group-hover:translate-x-0.5"
                 />
-              </a>
+              </button>
             </div>
           </aside>
 
@@ -784,8 +1049,8 @@ export default function ConfiguracionPage() {
                   />
                 </div>
 
-                <div className="mt-6 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
+                <div className="mt-6 grid items-stretch gap-3 md:grid-cols-3">
+                  <div className="h-full rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
                     <div className="data text-[9px] font-bold uppercase tracking-[.16em] text-[#FF6A18]">
                       Identidad
                     </div>
@@ -794,7 +1059,7 @@ export default function ConfiguracionPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
+                  <div className="h-full rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
                     <div className="data text-[9px] font-bold uppercase tracking-[.16em] text-[#FF6A18]">
                       Reservas
                     </div>
@@ -805,7 +1070,7 @@ export default function ConfiguracionPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
+                  <div className="h-full rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
                     <div className="data text-[9px] font-bold uppercase tracking-[.16em] text-[#FF6A18]">
                       Fidelización
                     </div>
@@ -947,16 +1212,16 @@ export default function ConfiguracionPage() {
 
                     <div className="mt-6 flex items-end gap-3">
                       <span className="display text-[32px] font-semibold leading-none tracking-[-.055em] text-white">
-                        5
+                        Puntos
                       </span>
                       <span className="pb-0.5 text-[13px] text-white/58">
-                        cortes
+                        por servicio
                       </span>
                     </div>
 
                     <p className="mt-2 text-[13px] leading-5 text-white/58">
-                      Cada 5 cortes completados, el cliente obtiene un
-                      beneficio.
+                      La asignación de puntos y los beneficios se administran
+                      desde Fidelización y se aplican a los servicios reales.
                     </p>
                   </div>
 
@@ -1078,24 +1343,102 @@ export default function ConfiguracionPage() {
               id="horarios"
               className="panel-surface scroll-mt-6 rounded-[16px]"
             >
-              <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-                <SectionHeader
-                  icon={<Clock3 size={18} />}
-                  eyebrow="Disponibilidad"
-                  title="Horarios de atención"
-                  description="Configurá los días y horarios en los que la barbería recibe clientes."
-                />
-
-                <a
-                  href="/admin/horarios"
-                  className="group control inline-flex shrink-0 items-center justify-center gap-2 rounded-[11px] px-4 py-2.5 text-[11px] font-semibold text-white/72 transition hover:border-[#FF5A00]/20 hover:text-white"
-                >
-                  Configurar horarios
-                  <ChevronRight
-                    size={13}
-                    className="transition group-hover:translate-x-0.5"
+              <div className="border-b border-white/[0.065] p-5 sm:p-6">
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                  <SectionHeader
+                    icon={<Clock3 size={18} />}
+                    eyebrow="Disponibilidad"
+                    title="Horarios de atención"
+                    description="Definí los días y horarios reales en los que la barbería recibe clientes."
                   />
-                </a>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={discardHours}
+                      disabled={!hasHoursChanges || hoursSaving}
+                      className="control inline-flex h-9 items-center gap-2 rounded-[10px] px-3 text-[11px] font-semibold text-white/65 disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      <RotateCcw size={13} />
+                      Descartar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveHours}
+                      disabled={!hasHoursChanges || hoursSaving || hoursLoading}
+                      className="primary-action inline-flex h-9 items-center gap-2 rounded-[10px] px-3.5 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      <Save size={13} />
+                      {hoursSaving ? "Guardando..." : "Guardar horarios"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 sm:p-6">
+                {hoursLoading ? (
+                  <div className="rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-5 text-[13px] text-white/55">
+                    Cargando disponibilidad...
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-[14px] border border-white/[0.065] bg-white/[0.012]">
+                    {WEEK_DAYS.map((day) => {
+                      const hour = hours.find((item) => item.day_of_week === day.day);
+                      if (!hour) return null;
+
+                      return (
+                        <div
+                          key={day.day}
+                          className="grid gap-4 border-b border-white/[0.055] p-4 last:border-b-0 md:grid-cols-[150px_90px_minmax(0,1fr)] md:items-center"
+                        >
+                          <div>
+                            <p className="text-[14px] font-semibold text-white/86">{day.label}</p>
+                            <p className="mt-0.5 text-[11px] text-white/42">
+                              {hour.is_open ? "Atención habilitada" : "Día cerrado"}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Toggle
+                              checked={hour.is_open}
+                              onChange={(value) => updateHour(day.day, { is_open: value })}
+                            />
+                            <span className={`text-[11px] font-semibold ${hour.is_open ? "text-white/72" : "text-white/38"}`}>
+                              {hour.is_open ? "Abierto" : "Cerrado"}
+                            </span>
+                          </div>
+
+                          <div className={`grid grid-cols-2 gap-3 ${hour.is_open ? "" : "opacity-35 pointer-events-none"}`}>
+                            <label className="block">
+                              <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Apertura</span>
+                              <input
+                                type="time"
+                                value={hour.open_time ?? ""}
+                                onChange={(event) => updateHour(day.day, { open_time: event.target.value })}
+                                className="h-10 w-full rounded-[10px] border border-white/[0.085] bg-[#0B0B0B] px-3 text-[13px] font-medium text-white outline-none focus:border-[#FF5A00]/45"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Cierre</span>
+                              <input
+                                type="time"
+                                value={hour.close_time ?? ""}
+                                onChange={(event) => updateHour(day.day, { close_time: event.target.value })}
+                                className="h-10 w-full rounded-[10px] border border-white/[0.085] bg-[#0B0B0B] px-3 text-[13px] font-medium text-white outline-none focus:border-[#FF5A00]/45"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="mt-4 flex items-start gap-3 rounded-[12px] border border-[#FF5A00]/12 bg-[#FF5A00]/[0.03] p-4">
+                  <Info size={14} className="mt-0.5 shrink-0 text-[#FF6A18]" />
+                  <p className="text-[12px] leading-5 text-white/58">
+                    Estos horarios quedan guardados en Supabase y son la base de la disponibilidad operativa de BarberOS. El motor de reservas deberá consultarlos para mostrar únicamente franjas válidas.
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -1108,51 +1451,201 @@ export default function ConfiguracionPage() {
                   icon={<UserRound size={18} />}
                   eyebrow="Acceso al workspace"
                   title="Cuenta"
-                  description="Información de la cuenta que administra este workspace."
+                  description="Gestioná la sesión y las credenciales de la cuenta autenticada en Supabase."
                 />
               </div>
 
               <div className="p-5 sm:p-6">
-                <div className="flex flex-col gap-5 rounded-[14px] border border-white/[0.065] bg-white/[0.018] p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-5 rounded-[14px] border border-white/[0.065] bg-white/[0.018] p-5 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex items-center gap-4">
                     <div className="display flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[13px] font-semibold text-black">
                       MC
                     </div>
-                    <div>
-                      <p className="text-[15px] font-semibold text-white/88">
-                        Manuel Cladera
-                      </p>
-                      <p className="mt-1 text-[12px] text-white/52">
-                        Administrador de {settings.name}
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold text-white/88">{accountName}</p>
+                      <p className="mt-1 flex items-center gap-1.5 truncate text-[12px] text-white/52">
+                        <Mail size={12} />
+                        {accountEmail || "Sesión autenticada"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <div className="data rounded-full border border-[#FF5A00]/20 bg-[#FF5A00]/[0.06] px-3 py-1.5 text-[9px] font-medium uppercase tracking-[.12em] text-[#FF7A32]">
-                      Professional
+                      Administrador
                     </div>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-white/[0.065] text-white/30">
-                      <ShieldCheck size={14} />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailError("");
+                        setEmailMessage("");
+                        setNewEmail("");
+                        setEmailOpen(true);
+                      }}
+                      className="control inline-flex h-9 items-center gap-2 rounded-[10px] px-3 text-[11px] font-semibold text-white/72 hover:text-white"
+                    >
+                      <Mail size={13} />
+                      Cambiar email
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPasswordError("");
+                        setPasswordMessage("");
+                        setPasswordOpen(true);
+                      }}
+                      className="control inline-flex h-9 items-center gap-2 rounded-[10px] px-3 text-[11px] font-semibold text-white/72 hover:text-white"
+                    >
+                      <KeyRound size={13} />
+                      Cambiar contraseña
+                    </button>
+                    <button
+                      type="button"
+                      onClick={signOut}
+                      className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-red-400/15 bg-red-400/[0.04] px-3 text-[11px] font-semibold text-red-300/75 transition hover:border-red-400/25 hover:bg-red-400/[0.07] hover:text-red-200"
+                    >
+                      <LogOut size={13} />
+                      Cerrar sesión
+                    </button>
                   </div>
                 </div>
 
                 <div className="mt-4 flex items-start gap-3 rounded-[12px] border border-white/[0.055] bg-white/[0.012] p-4">
-                  <ExternalLink
-                    size={14}
-                    className="mt-0.5 shrink-0 text-[#FF6A18]"
-                  />
+                  <ShieldCheck size={14} className="mt-0.5 shrink-0 text-[#FF6A18]" />
                   <p className="text-[12px] leading-5 text-white/54">
-                    La gestión de acceso y autenticación se puede ampliar
-                    posteriormente con Supabase Auth sin cambiar la estructura
-                    de este módulo.
+                    La sesión y el cambio de contraseña se gestionan mediante Supabase Auth. La cuenta que aparece arriba es la sesión actualmente autenticada.
                   </p>
                 </div>
               </div>
             </section>
           </div>
         </div>
+
+        {emailOpen ? (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+            <div className="w-full max-w-md overflow-hidden rounded-[16px] border border-white/[0.09] bg-[#0D0D0D] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
+              <div className="flex items-start justify-between border-b border-white/[0.065] p-5">
+                <div>
+                  <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">
+                    Seguridad
+                  </div>
+                  <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">
+                    Cambiar email
+                  </h2>
+                  <p className="mt-1 text-[13px] leading-5 text-white/58">
+                    Actualizá el email utilizado para acceder a BarberOS.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEmailOpen(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-[9px] text-white/35 hover:bg-white/[0.04] hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4 p-5">
+                <div className="rounded-[10px] border border-white/[0.055] bg-white/[0.012] p-3">
+                  <div className="data text-[9px] font-bold uppercase tracking-[.14em] text-white/40">
+                    Email actual
+                  </div>
+                  <div className="mt-1 truncate text-[13px] font-medium text-white/75">
+                    {accountEmail || "Sesión autenticada"}
+                  </div>
+                </div>
+
+                {emailMessage ? (
+                  <div className="flex items-start gap-2 rounded-[10px] border border-emerald-400/20 bg-emerald-400/[0.05] p-3 text-[12px] leading-5 text-emerald-300">
+                    <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
+                    <span>{emailMessage}</span>
+                  </div>
+                ) : null}
+
+                {emailError ? (
+                  <div className="rounded-[10px] border border-red-400/20 bg-red-400/[0.05] p-3 text-[12px] text-red-300">
+                    {emailError}
+                  </div>
+                ) : null}
+
+                <label className="block">
+                  <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.16em] text-white/62">
+                    Nuevo email
+                  </span>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="nuevo@email.com"
+                    autoComplete="email"
+                    className="h-11 w-full rounded-[11px] border border-white/[0.085] bg-[#0B0B0B] px-4 text-[13px] text-white outline-none focus:border-[#FF5A00]/45"
+                  />
+                </label>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEmailOpen(false)}
+                    className="control rounded-[10px] px-4 py-2.5 text-[11px] font-semibold text-white/65 hover:text-white"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={changeEmail}
+                    disabled={emailSaving || Boolean(emailMessage)}
+                    className="primary-action rounded-[10px] px-4 py-2.5 text-[11px] font-bold text-white disabled:opacity-40"
+                  >
+                    {emailSaving ? "Actualizando..." : "Actualizar email"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {passwordOpen ? (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+            <div className="w-full max-w-md overflow-hidden rounded-[16px] border border-white/[0.09] bg-[#0D0D0D] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
+              <div className="flex items-start justify-between border-b border-white/[0.065] p-5">
+                <div>
+                  <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">Seguridad</div>
+                  <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">Cambiar contraseña</h2>
+                  <p className="mt-1 text-[13px] leading-5 text-white/58">Actualizá la contraseña de la cuenta autenticada.</p>
+                </div>
+                <button type="button" onClick={() => setPasswordOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-[9px] text-white/35 hover:bg-white/[0.04] hover:text-white">×</button>
+              </div>
+
+              <div className="space-y-4 p-5">
+                {passwordMessage ? (
+                  <div className="flex items-center gap-2 rounded-[10px] border border-emerald-400/20 bg-emerald-400/[0.05] p-3 text-[12px] text-emerald-300">
+                    <CheckCircle2 size={14} /> {passwordMessage}
+                  </div>
+                ) : null}
+                {passwordError ? (
+                  <div className="rounded-[10px] border border-red-400/20 bg-red-400/[0.05] p-3 text-[12px] text-red-300">{passwordError}</div>
+                ) : null}
+
+                <label className="block">
+                  <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.16em] text-white/62">Nueva contraseña</span>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Mínimo 8 caracteres" className="h-11 w-full rounded-[11px] border border-white/[0.085] bg-[#0B0B0B] px-4 text-[13px] text-white outline-none focus:border-[#FF5A00]/45" />
+                </label>
+                <label className="block">
+                  <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.16em] text-white/62">Repetir contraseña</span>
+                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repetí la nueva contraseña" className="h-11 w-full rounded-[11px] border border-white/[0.085] bg-[#0B0B0B] px-4 text-[13px] text-white outline-none focus:border-[#FF5A00]/45" />
+                </label>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setPasswordOpen(false)} className="control rounded-[10px] px-4 py-2.5 text-[11px] font-semibold text-white/65 hover:text-white">Cancelar</button>
+                  <button type="button" onClick={changePassword} disabled={passwordSaving || Boolean(passwordMessage)} className="primary-action rounded-[10px] px-4 py-2.5 text-[11px] font-bold text-white disabled:opacity-40">
+                    {passwordSaving ? "Actualizando..." : "Actualizar contraseña"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <footer className="mt-7 flex flex-col gap-3 border-t border-white/[0.055] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-[12px] text-white/42">
@@ -1161,7 +1654,7 @@ export default function ConfiguracionPage() {
           </div>
 
           <div className="data text-[9px] uppercase tracking-[.14em] text-white/28">
-            {hasChanges ? "Cambios sin guardar" : "Configuración sincronizada"}
+            {hasChanges || hasHoursChanges ? "Cambios sin guardar" : "Configuración sincronizada"}
           </div>
         </footer>
       </div>

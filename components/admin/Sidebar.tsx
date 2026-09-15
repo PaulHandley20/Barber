@@ -9,18 +9,16 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
-  Clock3,
   Gift,
   LayoutDashboard,
   Settings2,
-  Sparkles,
   Users,
   UserRoundCog,
   UsersRound,
 } from "lucide-react";
 import { useAdminShell } from "./AdminShell";
 
-const navItems = [
+const navigation = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Agenda", href: "/admin/turnos", icon: CalendarDays },
   { label: "Clientes", href: "/admin/clientes", icon: Users },
@@ -38,67 +36,54 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex flex-col bg-[#070707] ${
-        collapsed ? "w-[88px]" : "w-[270px]"
-      }`}
-      style={{ transition: "width 260ms cubic-bezier(.22,.61,.36,1)" }}
+      className={[
+        "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#070707]",
+        "transition-[width] duration-300 ease-[cubic-bezier(.22,.61,.36,1)]",
+        collapsed ? "w-[82px]" : "w-[248px]",
+      ].join(" ")}
     >
-      <div className="flex h-full flex-col px-4 py-5">
-        <div className={`mb-8 flex items-center ${collapsed ? "justify-center" : "justify-between px-2"}`}>
-          <Link href="/admin" className="group flex items-center gap-3">
-            <div className="relative h-9 w-9 overflow-hidden rounded-[11px]">
+      <div className="flex h-full flex-col px-3.5 py-5">
+        <div
+          className={[
+            "mb-9 flex h-[42px] items-center",
+            collapsed ? "justify-center" : "px-2",
+          ].join(" ")}
+        >
+          <Link href="/admin" className="flex items-center">
+            <div className="relative h-[31px] w-[31px] shrink-0">
               <Image
                 src="/brand/barberos-mark.png"
                 alt="barberOS"
                 fill
+                priority
                 className="object-contain"
               />
             </div>
+
             {!collapsed && (
-              <div>
-                <div className="display text-[21px] font-semibold leading-none tracking-[-0.065em] text-white">
+              <div className="ml-3.5">
+                <div
+                  className="text-[20px] font-medium leading-none tracking-[-0.055em] text-white"
+                  style={{ fontFamily: "var(--font-barberos-display, Inter, sans-serif)" }}
+                >
                   barber<span className="text-[#ff6a18]">OS</span>
                 </div>
-                <div className="display mt-1.5 text-[8px] font-semibold uppercase tracking-[0.13em] text-white/35">
+                <div className="mt-1.5 text-[7px] font-medium uppercase tracking-[0.19em] text-white/25">
                   Business platform
                 </div>
               </div>
             )}
           </Link>
-
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              aria-label="Contraer menú"
-              className="grid h-8 w-8 place-items-center rounded-lg text-white/35 transition hover:bg-white/[0.045] hover:text-white"
-            >
-              <ChevronLeft size={15} strokeWidth={1.8} />
-            </button>
-          )}
         </div>
 
-        {collapsed && (
-          <button
-            type="button"
-            onClick={() => setCollapsed(false)}
-            aria-label="Expandir menú"
-            className="mx-auto mb-7 grid h-8 w-8 place-items-center rounded-lg text-white/35 transition hover:bg-white/[0.045] hover:text-white"
-          >
-            <ChevronRight size={15} strokeWidth={1.8} />
-          </button>
-        )}
-
-        <div className={`${collapsed ? "" : "px-1"} mb-3`}>
+        <nav className="space-y-[3px]">
           {!collapsed && (
-            <div className="display px-3 text-[8px] font-bold uppercase tracking-[0.18em] text-white/25">
-              Workspace
+            <div className="mb-3 px-3 text-[8px] font-medium uppercase tracking-[0.19em] text-white/22">
+              Navegación
             </div>
           )}
-        </div>
 
-        <nav className="space-y-1">
-          {navItems.map((item) => {
+          {navigation.map((item) => {
             const Icon = item.icon;
             const active =
               item.href === "/admin"
@@ -110,26 +95,34 @@ export default function Sidebar() {
                 key={item.href}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
-                className={`group relative flex h-[46px] items-center rounded-[13px] transition-all duration-200 ${
-                  collapsed ? "justify-center" : "gap-3 px-3"
-                } ${
+                className={[
+                  "group relative flex h-[43px] items-center rounded-[10px]",
+                  "transition-all duration-200",
+                  collapsed ? "justify-center" : "gap-3 px-3",
                   active
-                    ? "bg-white/[0.055] text-white"
-                    : "text-white/47 hover:bg-white/[0.032] hover:text-white/82"
-                }`}
+                    ? "bg-white/[0.048] text-white"
+                    : "text-white/43 hover:bg-white/[0.028] hover:text-white/78",
+                ].join(" ")}
               >
                 {active && (
-                  <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-[#ff6a18]" />
+                  <span className="absolute left-0 top-1/2 h-[18px] w-[2px] -translate-y-1/2 rounded-full bg-[#ff6a18]" />
                 )}
 
                 <Icon
-                  size={18}
-                  strokeWidth={active ? 2 : 1.65}
-                  className={active ? "text-[#ff6a18]" : "text-white/38 group-hover:text-white/65"}
+                  size={17}
+                  strokeWidth={active ? 1.75 : 1.5}
+                  className={
+                    active
+                      ? "text-[#ff6a18]"
+                      : "text-white/32 group-hover:text-white/58"
+                  }
                 />
 
                 {!collapsed && (
-                  <span className="display text-[14px] font-semibold leading-none tracking-[-0.045em]">
+                  <span
+                    className="text-[13px] font-medium tracking-[-0.018em]"
+                    style={{ fontFamily: "var(--font-barberos-ui, Inter, sans-serif)" }}
+                  >
                     {item.label}
                   </span>
                 )}
@@ -139,36 +132,30 @@ export default function Sidebar() {
         </nav>
 
         <div className="mt-auto">
-          {!collapsed && (
-            <div className="mb-4 rounded-[15px] bg-white/[0.025] px-3.5 py-3">
-              <div className="flex items-center gap-2">
-                <Sparkles size={13} className="text-[#ff6a18]" />
-                <span className="display text-[10px] font-semibold text-white/65">
-                  Workspace activo
+          <button
+            type="button"
+            onClick={() => setCollapsed(!collapsed)}
+            className={[
+              "flex h-[40px] w-full items-center rounded-[10px] text-white/25 transition",
+              "hover:bg-white/[0.03] hover:text-white/60",
+              collapsed ? "justify-center" : "gap-3 px-3",
+            ].join(" ")}
+            aria-label={collapsed ? "Expandir navegación" : "Ocultar navegación"}
+          >
+            {collapsed ? (
+              <ChevronRight size={16} strokeWidth={1.5} />
+            ) : (
+              <>
+                <ChevronLeft size={16} strokeWidth={1.5} />
+                <span
+                  className="text-[10px] font-medium"
+                  style={{ fontFamily: "var(--font-barberos-ui, Inter, sans-serif)" }}
+                >
+                  Ocultar navegación
                 </span>
-              </div>
-              <div className="display mt-1 text-[13px] font-semibold tracking-[-0.035em] text-white/90">
-                Don Segundo
-              </div>
-            </div>
-          )}
-
-          <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"}`}>
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/[0.075] text-[11px] font-bold text-white/80">
-              MC
-            </div>
-
-            {!collapsed && (
-              <div className="min-w-0">
-                <div className="display truncate text-[13px] font-semibold tracking-[-0.035em] text-white/86">
-                  Manuel Cladera
-                </div>
-                <div className="display mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
-                  Administrador
-                </div>
-              </div>
+              </>
             )}
-          </div>
+          </button>
         </div>
       </div>
     </aside>

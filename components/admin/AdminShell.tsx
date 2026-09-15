@@ -33,18 +33,28 @@ export default function AdminShell({
 
   return (
     <AdminShellContext.Provider value={value}>
-      <div className="barberos-dashboard min-h-screen bg-[#070707] text-white">
+      <div
+        className="barberos-dashboard min-h-screen bg-[#070707] text-white"
+        style={
+          {
+            "--font-barberos-ui":
+              "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+            "--font-barberos-display":
+              "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          } as React.CSSProperties
+        }
+      >
         <Sidebar />
         <Topbar />
 
         <main
-          className="min-h-screen pt-[78px]"
-          style={{
-            paddingLeft: collapsed ? 88 : 270,
-            transition: "padding-left 260ms cubic-bezier(.22,.61,.36,1)",
-          }}
+          className={[
+            "min-h-screen bg-[#070707] pt-[76px]",
+            "transition-[padding-left] duration-300 ease-[cubic-bezier(.22,.61,.36,1)]",
+            collapsed ? "lg:pl-[82px]" : "lg:pl-[248px]",
+          ].join(" ")}
         >
-          <div className="min-h-[calc(100vh-78px)] bg-[#070707]">
+          <div className="min-h-[calc(100vh-76px)] bg-[#070707]">
             {children}
           </div>
         </main>

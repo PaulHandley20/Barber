@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Plus,
@@ -22,6 +23,9 @@ import {
   MessageCircle,
   History,
   Sparkles,
+  Trash2,
+  ShieldCheck,
+  Pencil,
 } from "lucide-react";
 import { DM_Mono, Manrope, Sora } from "next/font/google";
 import { createClient } from "@/lib/supabase/client";
@@ -37,6 +41,7 @@ type Customer = {
   email: string | null;
   notes: string | null;
   created_at: string;
+  deleted_at: string | null;
 };
 
 type Appointment = {
@@ -165,6 +170,17 @@ export default function ClientesPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerWithStats | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const router = useRouter();
+
   const [newCustomer, setNewCustomer] = useState({
     full_name: "",
     phone: "",
@@ -185,7 +201,8 @@ export default function ClientesPage() {
           phone,
           email,
           notes,
-          created_at
+          created_at,
+          deleted_at
         `)
         .order("full_name", { ascending: true }),
 
@@ -220,7 +237,7 @@ export default function ClientesPage() {
       return;
     }
 
-    setCustomers(customersResponse.data ?? []);
+    setCustomers((customersResponse.data ?? []).filter((customer) => !customer.deleted_at));
     setAppointments(
       (appointmentsResponse.data ?? []) as unknown as Appointment[]
     );
@@ -362,17 +379,213 @@ export default function ClientesPage() {
       .single();
 
     if (insertError) {
-      console.error("Error creating customer:", insertError);
-      setError("No se pudo crear el cliente.");
+      console.error("=== BARBEROS · ERROR AL CREAR CLIENTE ===");
+      console.error(insertError);
+      setError(
+        insertError.message ||
+          "No se pudo crear el cliente. Revisá los permisos de la tabla customers."
+      );
       setSaving(false);
       return;
     }
 
-    setCustomers((current) => [...current, data as Customer]);
+    const createdCustomer = data as Customer;
+    setCustomers((current) =>
+      [...current, createdCustomer].sort((a, b) =>
+        a.full_name.localeCompare(b.full_name, "es")
+      )
+    );
+
+    const createdWithStats: CustomerWithStats = {
+      ...createdCustomer,
+      visits: 0,
+      spent: 0,
+      lastVisit: null,
+      favoriteService: null,
+    };
+
+    setSelectedCustomer(createdWithStats);
     setNewCustomer({ full_name: "", phone: "", email: "", notes: "" });
     setShowCreate(false);
     setSaving(false);
     setNotice("Cliente creado correctamente.");
+  }
+
+  function openEditCustomer() {
+    if (!selectedCustomer) return;
+
+    setEditingCustomer(selectedCustomer);
+    setShowActions(false);
+    setError("");
+    setShowEdit(true);
+  }
+
+  async function updateCustomer() {
+    if (!editingCustomer) return;
+
+    if (!editingCustomer.full_name.trim() || !editingCustomer.phone.trim()) {
+      setError("Nombre y teléfono son obligatorios.");
+      return;
+    }
+
+    setEditSaving(true);
+    setError("");
+
+    const { data, error: updateError } = await supabase
+      .from("customers")
+      .update({
+        full_name: editingCustomer.full_name.trim(),
+        phone: editingCustomer.phone.trim(),
+        email: editingCustomer.email?.trim() || null,
+        notes: editingCustomer.notes?.trim() || null,
+      })
+      .eq("id", editingCustomer.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("=== BARBEROS · ERROR AL EDITAR CLIENTE ===");
+      console.error(updateError);
+      setError(
+        updateError.message ||
+          "No se pudo actualizar el cliente. Revisá los permisos de la tabla customers."
+      );
+      setEditSaving(false);
+      return;
+    }
+
+    const updated = data as Customer;
+
+    setCustomers((current) =>
+      current
+        .map((customer) =>
+          customer.id === updated.id ? updated : customer
+        )
+        .sort((a, b) => a.full_name.localeCompare(b.full_name, "es"))
+    );
+
+    setSelectedCustomer((current) =>
+      current && current.id === updated.id
+        ? {
+            ...current,
+            ...updated,
+          }
+        : current
+    );
+
+    setEditingCustomer(null);
+    setShowEdit(false);
+    setEditSaving(false);
+    setNotice("Cliente actualizado correctamente.");
+  }
+
+  function openDeleteCustomer() {
+    if (!selectedCustomer) return;
+
+    setShowActions(false);
+    setDeletePassword("");
+    setDeleteError("");
+    setShowDelete(true);
+  }
+
+  async function deleteCustomer() {
+    if (!selectedCustomer) return;
+
+    if (!deletePassword) {
+      setDeleteError("Ingresá tu contraseña para confirmar la eliminación.");
+      return;
+    }
+
+    setDeleteSaving(true);
+    setDeleteError("");
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user?.email) {
+        throw new Error(
+          "No pudimos verificar la sesión del administrador."
+        );
+      }
+
+      const { error: reauthError } =
+        await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: deletePassword,
+        });
+
+      if (reauthError) {
+        console.error("BARBEROS · REAUTENTICACIÓN FALLIDA:", reauthError);
+        throw new Error("La contraseña no es correcta.");
+      }
+
+      const customerId = selectedCustomer.id;
+
+      // Soft delete: ocultamos el perfil, pero conservamos el registro para
+      // mantener intactos los turnos históricos y su relación con appointments.
+      const { error: deleteDbError } = await supabase
+        .from("customers")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", customerId);
+
+      if (deleteDbError) {
+        console.error("=== BARBEROS · ERROR AL ELIMINAR CLIENTE ===");
+        console.error(deleteDbError);
+
+        if (deleteDbError.code === "42501") {
+          throw new Error(
+            "Supabase rechazó la baja del perfil por permisos. Revisá la política RLS de UPDATE sobre customers."
+          );
+        }
+
+        throw new Error(
+          deleteDbError.message ||
+            "No se pudo eliminar el cliente."
+        );
+      }
+
+      setCustomers((current) =>
+        current.filter((customer) => customer.id !== customerId)
+      );
+      setSelectedCustomer(null);
+      setShowDelete(false);
+      setDeletePassword("");
+      setNotice("Perfil eliminado. El historial de turnos se conservó.");
+    } catch (unexpectedError) {
+      console.error("BARBEROS · ERROR EN ELIMINACIÓN:", unexpectedError);
+      setDeleteError(
+        unexpectedError instanceof Error
+          ? unexpectedError.message
+          : "No se pudo eliminar el cliente."
+      );
+    } finally {
+      setDeleteSaving(false);
+    }
+  }
+
+  function callCustomer(phone: string) {
+    window.location.href = `tel:${phone.replace(/[^+\\d]/g, "")}`;
+  }
+
+  function whatsappCustomer(phone: string) {
+    const digits = phone.replace(/\\D/g, "");
+    const normalized =
+      digits.startsWith("54")
+        ? digits
+        : digits.startsWith("0")
+          ? `54${digits.slice(1)}`
+          : `54${digits}`;
+
+    window.open(`https://wa.me/${normalized}`, "_blank", "noopener,noreferrer");
+  }
+
+  function goToAppointment() {
+    if (!selectedCustomer) return;
+
+    router.push(`/admin/turnos?customer=${encodeURIComponent(selectedCustomer.id)}`);
   }
 
   function closeDetail() {
@@ -943,7 +1156,7 @@ export default function ClientesPage() {
                         }`}
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="customer-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#0B0B0B] text-[12px] font-semibold text-[#E6E6E3] transition">
+                          <div className="customer-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#0B0B0B] text-[13px] font-semibold text-[#F0F0ED] transition">
                             {getInitials(customer.full_name)}
                           </div>
 
@@ -1018,7 +1231,7 @@ export default function ClientesPage() {
           </div>
 
           {/* CUSTOMER 360 DETAIL */}
-          <aside className="panel h-full overflow-hidden rounded-[16px] xl:sticky xl:top-0">
+          <aside className="panel h-full max-h-[calc(100vh-110px)] overflow-hidden rounded-[16px] xl:sticky xl:top-0">
             {!selectedCustomer ? (
               <div className="flex min-h-[520px] flex-col items-center justify-center px-8 text-center">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0B0B0B]">
@@ -1027,13 +1240,13 @@ export default function ClientesPage() {
                 <h3 className="text-[14px] font-semibold text-white">
                   Cliente 360
                 </h3>
-                <p className="mt-2 max-w-[270px] text-[12px] leading-5 text-[#D0D0CC]">
+                <p className="mt-2 max-w-[270px] text-[13px] leading-5 text-[#D8D8D4]">
                   Seleccioná un cliente para consultar actividad, valor,
                   historial y oportunidades.
                 </p>
               </div>
             ) : (
-              <div>
+              <div className="drawer-scroll max-h-[calc(100vh-110px)] overflow-y-auto">
                 {/* PROFILE */}
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="flex items-start justify-between gap-4">
@@ -1043,10 +1256,10 @@ export default function ClientesPage() {
                       </div>
 
                       <div className="min-w-0">
-                        <h3 className="truncate text-[15px] font-semibold text-white">
+                        <h3 className="truncate text-[17px] font-semibold text-white">
                           {selectedCustomer.full_name}
                         </h3>
-                        <p className="mt-1 text-[11px] text-[#D0D0CC]">
+                        <p className="mt-1 text-[12px] text-[#DADAD7]">
                           Cliente desde{" "}
                           {formatMemberSince(selectedCustomer.created_at)}
                         </p>
@@ -1066,15 +1279,28 @@ export default function ClientesPage() {
                         <div className="absolute right-0 top-10 z-20 w-40 rounded-xl border border-white/[0.10] bg-[#171717] p-1.5 shadow-2xl">
                           <button
                             type="button"
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06]"
+                            onClick={openEditCustomer}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06] hover:text-white"
                           >
+                            <Pencil size={13} />
                             Editar cliente
                           </button>
                           <button
                             type="button"
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06]"
+                            onClick={goToAppointment}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06] hover:text-white"
                           >
+                            <CalendarDays size={13} />
                             Ver agenda
+                          </button>
+                          <div className="my-1 h-px bg-white/[0.07]" />
+                          <button
+                            type="button"
+                            onClick={openDeleteCustomer}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-red-300 transition hover:bg-red-400/[0.08] hover:text-red-200"
+                          >
+                            <Trash2 size={13} />
+                            Eliminar perfil
                           </button>
                         </div>
                       )}
@@ -1101,7 +1327,8 @@ export default function ClientesPage() {
                 <div className="grid grid-cols-3 gap-2 border-b border-white/[0.075] p-4">
                   <button
                     type="button"
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
+                    onClick={() => callCustomer(selectedCustomer.phone)}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-[#E4E4E1] transition hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-white"
                   >
                     <Phone size={14} />
                     Llamar
@@ -1109,7 +1336,8 @@ export default function ClientesPage() {
 
                   <button
                     type="button"
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
+                    onClick={() => whatsappCustomer(selectedCustomer.phone)}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-[#E4E4E1] transition hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-white"
                   >
                     <MessageCircle size={14} />
                     WhatsApp
@@ -1117,7 +1345,8 @@ export default function ClientesPage() {
 
                   <button
                     type="button"
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] text-[#D4D4D1] transition hover:border-white/[0.14] hover:bg-white/[0.035]"
+                    onClick={goToAppointment}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-[#E4E4E1] transition hover:border-[#FF5A00]/25 hover:bg-[#FF5A00]/[0.035] hover:text-white"
                   >
                     <CalendarDays size={14} />
                     Turno
@@ -1126,7 +1355,7 @@ export default function ClientesPage() {
 
                 {/* CONTACT */}
                 <div className="border-b border-white/[0.075] p-6">
-                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
+                  <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
                     Contacto
                   </p>
 
@@ -1152,7 +1381,7 @@ export default function ClientesPage() {
                 {/* VALUE */}
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
                       Valor del cliente
                     </p>
                     <TrendingUp size={14} className="text-[#FF6A18]" />
@@ -1160,15 +1389,15 @@ export default function ClientesPage() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
-                      <p className="text-[11px] text-[#C8C8C4]">Visitas</p>
-                      <p className="mt-2 text-[20px] font-semibold text-white tabular-nums">
+                      <p className="text-[12px] text-[#D8D8D4]">Visitas</p>
+                      <p className="mt-2 text-[24px] font-semibold text-white tabular-nums">
                         {selectedCustomer.visits}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
-                      <p className="text-[11px] text-[#C8C8C4]">Gasto</p>
-                      <p className="mt-2 truncate text-[17px] font-semibold text-white tabular-nums">
+                      <p className="text-[12px] text-[#D8D8D4]">Gasto</p>
+                      <p className="mt-2 truncate text-[18px] font-semibold text-white tabular-nums">
                         ${selectedCustomer.spent.toLocaleString("es-AR")}
                       </p>
                     </div>
@@ -1176,12 +1405,12 @@ export default function ClientesPage() {
 
                   <div className="mt-2 rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] text-[#C8C8C4]">
+                      <p className="text-[12px] text-[#D8D8D4]">
                         Ticket promedio
                       </p>
-                      <span className="text-[11px] text-[#FF9A66]">LTV</span>
+                      <span className="text-[10px] font-semibold text-[#FF9A66]">LTV</span>
                     </div>
-                    <p className="mt-2 text-[17px] font-semibold text-white tabular-nums">
+                    <p className="mt-2 text-[19px] font-semibold text-white tabular-nums">
                       $
                       {Math.round(
                         selectedCustomer.visits
@@ -1195,16 +1424,16 @@ export default function ClientesPage() {
                 {/* ACTIVITY */}
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
                       Actividad reciente
                     </p>
-                    <span className="text-[11px] text-[#D0D0CC]">
+                    <span className="text-[12px] text-[#D8D8D4]">
                       {selectedCustomerAppointments.length} turnos
                     </span>
                   </div>
 
                   {selectedCustomerAppointments.length === 0 ? (
-                    <p className="text-[12px] leading-5 text-[#D0D0CC]">
+                    <p className="text-[13px] leading-5 text-[#D8D8D4]">
                       Todavía no hay visitas registradas.
                     </p>
                   ) : (
@@ -1216,10 +1445,10 @@ export default function ClientesPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-[12px] font-semibold text-[#E6E6E3]">
+                              <p className="truncate text-[13px] font-semibold text-[#F0F0ED]">
                                 {appointment.service?.name ?? "Servicio"}
                               </p>
-                              <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#D0D0CC]">
+                              <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[#D8D8D4]">
                                 <Clock3 size={10} />
                                 {formatDateTime(appointment.start_at)}
                               </div>
@@ -1234,7 +1463,7 @@ export default function ClientesPage() {
                           </div>
 
                           {appointment.notes && (
-                            <p className="mt-3 border-t border-white/[0.05] pt-3 text-[11px] leading-4 text-[#D0D0CC]">
+                            <p className="mt-3 border-t border-white/[0.05] pt-3 text-[12px] leading-5 text-[#D8D8D4]">
                               {appointment.notes}
                             </p>
                           )}
@@ -1247,7 +1476,7 @@ export default function ClientesPage() {
                 {/* NOTES */}
                 {selectedCustomer.notes && (
                   <div className="border-b border-white/[0.075] p-6">
-                    <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#D0D0CC]">
+                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
                       Observaciones
                     </p>
                     <p className="rounded-xl border border-white/[0.065] bg-[#0B0B0B] p-4 text-[12px] leading-5 text-[#D8D8D4]">
@@ -1257,20 +1486,22 @@ export default function ClientesPage() {
                 )}
 
                 {/* FOOTER */}
-                <div className="flex items-center justify-between p-5">
+                <div className="flex items-center justify-between gap-3 p-5">
                   <button
                     type="button"
-                    onClick={closeDetail}
-                    className="text-[12px] text-[#D0D0CC] transition hover:text-white"
+                    onClick={openDeleteCustomer}
+                    className="flex items-center gap-1.5 text-[12px] font-medium text-[#D0D0CC] transition hover:text-red-300"
                   >
-                    Cerrar perfil
+                    <Trash2 size={13} />
+                    Eliminar perfil
                   </button>
 
                   <button
                     type="button"
+                    onClick={closeDetail}
                     className="flex items-center gap-1.5 text-[12px] font-semibold text-[#FF8A50] transition hover:text-[#FFB18F]"
                   >
-                    Ver historial completo
+                    Cerrar perfil
                     <ChevronRight size={13} />
                   </button>
                 </div>
@@ -1388,6 +1619,245 @@ export default function ClientesPage() {
                 className="rounded-xl bg-[#FF5A00] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#FF6814] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Creando..." : "Crear cliente"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT CUSTOMER MODAL */}
+      {showEdit && editingCustomer && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !editSaving) {
+              setShowEdit(false);
+              setEditingCustomer(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-lg overflow-hidden rounded-[16px] border border-white/[.09] bg-[#0d0d0d] shadow-2xl">
+            <div className="flex items-start justify-between border-b border-white/[0.075] p-6">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#FF6A18]">
+                  GESTIÓN
+                </p>
+                <h2 className="mt-1 text-[20px] font-semibold text-white">
+                  Editar cliente
+                </h2>
+                <p className="mt-1 text-[13px] text-[#D0D0CC]">
+                  Actualizá la información del perfil.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={editSaving}
+                onClick={() => {
+                  setShowEdit(false);
+                  setEditingCustomer(null);
+                }}
+                className="text-[#D0D0CC] transition hover:text-white disabled:opacity-50"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-6">
+              <label className="block">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                  Nombre completo *
+                </span>
+                <input
+                  value={editingCustomer.full_name}
+                  onChange={(event) =>
+                    setEditingCustomer((current) =>
+                      current
+                        ? { ...current, full_name: event.target.value }
+                        : current
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                  Teléfono *
+                </span>
+                <input
+                  value={editingCustomer.phone}
+                  onChange={(event) =>
+                    setEditingCustomer((current) =>
+                      current
+                        ? { ...current, phone: event.target.value }
+                        : current
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition focus:border-[#FF5A00]/45"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                  Email
+                </span>
+                <input
+                  type="email"
+                  value={editingCustomer.email ?? ""}
+                  onChange={(event) =>
+                    setEditingCustomer((current) =>
+                      current
+                        ? { ...current, email: event.target.value }
+                        : current
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition focus:border-[#FF5A00]/45"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                  Observaciones
+                </span>
+                <textarea
+                  rows={4}
+                  value={editingCustomer.notes ?? ""}
+                  onChange={(event) =>
+                    setEditingCustomer((current) =>
+                      current
+                        ? { ...current, notes: event.target.value }
+                        : current
+                    )
+                  }
+                  className="w-full resize-none rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] leading-5 text-white outline-none transition focus:border-[#FF5A00]/45"
+                />
+              </label>
+
+              {error && (
+                <div className="rounded-xl border border-red-400/15 bg-red-400/[0.06] px-4 py-3 text-[12px] leading-5 text-red-300">
+                  {error}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-white/[0.075] p-5">
+              <button
+                type="button"
+                disabled={editSaving}
+                onClick={() => {
+                  setShowEdit(false);
+                  setEditingCustomer(null);
+                }}
+                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-[#D0D0CC] transition hover:bg-white/[0.04] disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={editSaving}
+                onClick={updateCustomer}
+                className="rounded-xl bg-[#FF5A00] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#FF6814] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {editSaving ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CUSTOMER · ADMIN REAUTHENTICATION */}
+      {showDelete && selectedCustomer && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-5 backdrop-blur-md"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !deleteSaving) {
+              setShowDelete(false);
+              setDeletePassword("");
+              setDeleteError("");
+            }
+          }}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-[18px] border border-red-400/20 bg-[#0d0d0d] shadow-[0_30px_100px_rgba(0,0,0,.55)]">
+            <div className="border-b border-white/[0.075] p-6">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/[0.07] text-red-300">
+                <ShieldCheck size={19} />
+              </div>
+
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-red-300">
+                Confirmación de administrador
+              </p>
+
+              <h2 className="mt-1.5 text-[21px] font-semibold tracking-[-0.025em] text-white">
+                Eliminar perfil
+              </h2>
+
+              <p className="mt-2 text-[13px] leading-5 text-[#D0D0CC]">
+                Vas a quitar de la base activa el perfil de{" "}
+                <span className="font-semibold text-white">
+                  {selectedCustomer.full_name}
+                </span>
+                .
+              </p>
+
+              <div className="mt-4 rounded-xl border border-red-400/15 bg-red-400/[0.045] px-4 py-3 text-[12px] leading-5 text-red-200">
+                El perfil dejará de aparecer entre los clientes activos. Los turnos
+                y el historial de este cliente se conservarán. Para continuar,
+                verificá nuevamente tu contraseña de administrador.
+              </div>
+            </div>
+
+            <div className="space-y-4 p-6">
+              <label className="block">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                  Contraseña del administrador
+                </span>
+                <input
+                  type="password"
+                  autoFocus
+                  value={deletePassword}
+                  onChange={(event) => {
+                    setDeletePassword(event.target.value);
+                    setDeleteError("");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !deleteSaving) {
+                      deleteCustomer();
+                    }
+                  }}
+                  placeholder="Ingresá tu contraseña"
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition placeholder:text-[#777773] focus:border-red-400/40 focus:ring-2 focus:ring-red-400/[0.07]"
+                />
+              </label>
+
+              {deleteError && (
+                <div className="rounded-xl border border-red-400/15 bg-red-400/[0.06] px-4 py-3 text-[12px] leading-5 text-red-300">
+                  {deleteError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-white/[0.075] p-5">
+              <button
+                type="button"
+                disabled={deleteSaving}
+                onClick={() => {
+                  setShowDelete(false);
+                  setDeletePassword("");
+                  setDeleteError("");
+                }}
+                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-[#D0D0CC] transition hover:bg-white/[0.04] disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={deleteSaving || !deletePassword}
+                onClick={deleteCustomer}
+                className="flex items-center gap-2 rounded-xl bg-red-500/90 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+                {deleteSaving ? "Verificando..." : "Eliminar perfil"}
               </button>
             </div>
           </div>
