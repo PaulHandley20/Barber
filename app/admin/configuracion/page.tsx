@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DM_Mono, Manrope, Sora } from "next/font/google";
 import {
   Bell,
+  ImagePlus,
   CalendarDays,
   Check,
   ChevronRight,
@@ -14,6 +15,8 @@ import {
   Phone,
   RotateCcw,
   Save,
+  Trash2,
+  Upload,
   Scissors,
   Settings2,
   ShieldCheck,
@@ -56,6 +59,7 @@ type Settings = {
   address: string | null;
   phone: string | null;
   instagram: string | null;
+  logo_url: string | null;
   online_booking_enabled: boolean;
   min_booking_notice_hours: number;
   max_booking_days_ahead: number;
@@ -95,6 +99,7 @@ const defaultSettings: Omit<Settings, "id"> = {
   address: "",
   phone: "",
   instagram: "",
+  logo_url: null,
   online_booking_enabled: true,
   min_booking_notice_hours: 1,
   max_booking_days_ahead: 30,
@@ -175,17 +180,20 @@ function Toggle({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
-      aria-pressed={checked}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-all duration-200 ${
+      className={`relative h-7 w-12 shrink-0 rounded-full border p-[3px] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A00]/40 ${
         checked
-          ? "border-[#FF5A00] bg-[#FF5A00]"
-          : "border-white/[0.10] bg-white/[0.07]"
+          ? "border-[#FF6A18] bg-[#FF5A00]"
+          : "border-white/[0.11] bg-[#181818]"
       }`}
     >
       <span
-        className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-          checked ? "translate-x-5" : "translate-x-0"
+        className={`block h-[19px] w-[19px] rounded-full shadow-[0_1px_3px_rgba(0,0,0,.35)] transition-transform duration-200 ${
+          checked
+            ? "translate-x-[21px] bg-white"
+            : "translate-x-0 bg-[#777]"
         }`}
       />
     </button>
@@ -348,6 +356,8 @@ function StatusCard({
 export default function ConfiguracionPage() {
   const supabase = createClient();
 
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const [settings, setSettings] = useState<Settings | null>(null);
   const [originalSettings, setOriginalSettings] = useState<Settings | null>(
     null
@@ -361,6 +371,8 @@ export default function ConfiguracionPage() {
   const [originalHours, setOriginalHours] = useState<BusinessHour[]>([]);
   const [hoursSaving, setHoursSaving] = useState(false);
   const [hoursLoading, setHoursLoading] = useState(true);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [removingLogo, setRemovingLogo] = useState(false);
   const [accountEmail, setAccountEmail] = useState("");
   const [accountName, setAccountName] = useState("Manuel Cladera");
   const [emailOpen, setEmailOpen] = useState(false);
@@ -404,8 +416,9 @@ export default function ConfiguracionPage() {
         setError("No se pudieron cargar las configuraciones.");
         setLoading(false);
       } else if (settingsData) {
-        setSettings(settingsData as Settings);
-        setOriginalSettings(settingsData as Settings);
+        const normalizedSettings = { ...settingsData, logo_url: settingsData.logo_url ?? null } as Settings;
+        setSettings(normalizedSettings);
+        setOriginalSettings(normalizedSettings);
         setLoading(false);
       } else {
         const { data: created, error: createError } = await supabase
@@ -420,8 +433,9 @@ export default function ConfiguracionPage() {
           console.error("Settings create error:", createError);
           setError("No se pudo crear la configuración inicial.");
         } else {
-          setSettings(created as Settings);
-          setOriginalSettings(created as Settings);
+          const normalizedCreated = { ...created, logo_url: created.logo_url ?? null } as Settings;
+          setSettings(normalizedCreated);
+          setOriginalSettings(normalizedCreated);
         }
         setLoading(false);
       }
@@ -497,6 +511,7 @@ export default function ConfiguracionPage() {
         address: settings.address,
         phone: settings.phone,
         instagram: settings.instagram,
+        logo_url: settings.logo_url || null,
         online_booking_enabled: settings.online_booking_enabled,
         min_booking_notice_hours: settings.min_booking_notice_hours,
         max_booking_days_ahead: settings.max_booking_days_ahead,
@@ -521,9 +536,151 @@ export default function ConfiguracionPage() {
       return;
     }
 
-    setSettings(data as Settings);
-    setOriginalSettings(data as Settings);
+    const normalizedSaved = { ...data, logo_url: data.logo_url ?? null } as Settings;
+    setSettings(normalizedSaved);
+    setOriginalSettings(normalizedSaved);
+    if (normalizedSaved.logo_url) {
+      window.localStorage.setItem("barberos:workspace-logo", normalizedSaved.logo_url);
+    } else {
+      window.localStorage.removeItem("barberos:workspace-logo");
+    }
+    window.dispatchEvent(
+      new CustomEvent("barberos:workspace-logo-updated", {
+        detail: { logoUrl: normalizedSaved.logo_url ?? null },
+      })
+    );
     setMessage("Cambios guardados correctamente.");
+  }
+
+  async function uploadLogo(file: File) {
+    if (!settings) return;
+
+    const allowed = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+    if (!allowed.includes(file.type)) {
+      setError("Usá un archivo PNG, JPG, WEBP o SVG.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("El logo no puede superar los 5 MB.");
+      return;
+    }
+
+    setUploadingLogo(true);
+    setError("");
+    setMessage("");
+
+    const extension = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `workspace/${settings.id}/logo-${Date.now()}.${extension}`;
+
+    const upload = await supabase.storage
+      .from("barberos-assets")
+      .upload(path, file, {
+        upsert: false,
+        cacheControl: "3600",
+        contentType: file.type,
+      });
+
+    if (upload.error) {
+      console.error("Logo upload error:", upload.error);
+      setUploadingLogo(false);
+      setError(`No se pudo subir el logo: ${upload.error.message}`);
+      return;
+    }
+
+    const publicUrl = supabase.storage
+      .from("barberos-assets")
+      .getPublicUrl(path).data.publicUrl;
+
+    const { data, error: updateError } = await supabase
+      .from("barbershop_settings")
+      .update({
+        logo_url: publicUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", settings.id)
+      .select("*")
+      .single();
+
+    if (updateError || !data) {
+      await supabase.storage.from("barberos-assets").remove([path]);
+      console.error("Logo settings update error:", updateError);
+      setUploadingLogo(false);
+      setError(
+        updateError?.message
+          ? `No se pudo guardar el logo: ${updateError.message}`
+          : "No se pudo guardar el logo."
+      );
+      return;
+    }
+
+    const normalized = { ...data, logo_url: publicUrl } as Settings;
+    setSettings(normalized);
+    setOriginalSettings(normalized);
+    setUploadingLogo(false);
+    setMessage("Logo actualizado correctamente.");
+
+    window.localStorage.setItem("barberos:workspace-logo", publicUrl);
+    window.dispatchEvent(
+      new CustomEvent("barberos:workspace-logo-updated", {
+        detail: { logoUrl: publicUrl },
+      })
+    );
+  }
+
+  async function removeLogo() {
+    if (!settings?.logo_url) return;
+
+    setRemovingLogo(true);
+    setError("");
+    setMessage("");
+
+    const oldUrl = settings.logo_url;
+    const { data, error: updateError } = await supabase
+      .from("barbershop_settings")
+      .update({
+        logo_url: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", settings.id)
+      .select("*")
+      .single();
+
+    if (updateError || !data) {
+      console.error("Logo remove error:", updateError);
+      setRemovingLogo(false);
+      setError("No se pudo quitar el logo.");
+      return;
+    }
+
+    try {
+      const marker = "/storage/v1/object/public/barberos-assets/";
+      const url = new URL(oldUrl);
+      const index = url.pathname.indexOf(marker);
+      if (index >= 0) {
+        const storagePath = decodeURIComponent(
+          url.pathname.slice(index + marker.length)
+        );
+        if (storagePath) {
+          await supabase.storage.from("barberos-assets").remove([storagePath]);
+        }
+      }
+    } catch (storageError) {
+      console.warn("Could not remove old logo file:", storageError);
+    }
+
+    const normalized = { ...data, logo_url: null } as Settings;
+    setSettings(normalized);
+    setOriginalSettings(normalized);
+    setRemovingLogo(false);
+    setMessage("Logo eliminado correctamente.");
+
+    window.localStorage.removeItem("barberos:workspace-logo");
+    window.dispatchEvent(
+      new CustomEvent("barberos:workspace-logo-updated", {
+        detail: { logoUrl: null },
+      })
+    );
   }
 
   function updateHour(day: number, patch: Partial<BusinessHour>) {
@@ -921,7 +1078,7 @@ export default function ConfiguracionPage() {
         </section>
 
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="panel-surface h-fit rounded-[16px] p-2 lg:sticky lg:top-6">
+          <aside className="panel-surface h-fit rounded-[16px] p-2 lg:sticky lg:top-6 lg:-mt-2">
             <div className="px-3 pb-3 pt-2">
               <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">
                 CONFIGURACIÓN
@@ -1049,8 +1206,84 @@ export default function ConfiguracionPage() {
                   />
                 </div>
 
+                <div className="mt-6 rounded-[14px] border border-white/[0.065] bg-white/[0.018] p-4 sm:p-5">
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-white/[0.08] bg-[#080808]">
+                        {settings.logo_url ? (
+                          <img
+                            src={settings.logo_url}
+                            alt={`Logo de ${settings.name || "la barbería"}`}
+                            className="h-full w-full object-contain p-2"
+                          />
+                        ) : (
+                          <ImagePlus size={22} className="text-white/25" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="data text-[9px] font-bold uppercase tracking-[.16em] text-[#FF6A18]">
+                          Identidad visual
+                        </div>
+                        <p className="mt-1 text-[14px] font-semibold text-white/88">
+                          Logo de la barbería
+                        </p>
+                        <p className="mt-1 text-[12px] leading-5 text-white/48">
+                          Se utiliza como identidad del workspace y queda guardado en Supabase.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) uploadLogo(file);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        disabled={uploadingLogo || removingLogo}
+                        className="control inline-flex h-9 items-center gap-2 rounded-[10px] px-3 text-[11px] font-semibold text-white/75 transition hover:border-white/[0.14] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {uploadingLogo ? (
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-[#FF6A18]" />
+                        ) : (
+                          <Upload size={13} />
+                        )}
+                        {settings.logo_url ? "Reemplazar logo" : "Subir logo"}
+                      </button>
+
+                      {settings.logo_url ? (
+                        <button
+                          type="button"
+                          onClick={removeLogo}
+                          disabled={uploadingLogo || removingLogo}
+                          className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-red-400/15 bg-red-400/[0.03] px-3 text-[11px] font-semibold text-red-300/80 transition hover:border-red-400/25 hover:bg-red-400/[0.06] hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {removingLogo ? (
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-300/20 border-t-red-300" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                          Quitar
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-white/[0.055] pt-3 text-[11px] leading-5 text-white/38">
+                    Formatos permitidos: PNG, JPG, WEBP o SVG · máximo 5 MB.
+                  </div>
+                </div>
+
                 <div className="mt-6 grid items-stretch gap-3 md:grid-cols-3">
-                  <div className="h-full rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
+                  <div className="flex h-[88px] min-h-[88px] flex-col justify-between rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
                     <div className="data text-[9px] font-bold uppercase tracking-[.16em] text-[#FF6A18]">
                       Identidad
                     </div>
@@ -1059,7 +1292,7 @@ export default function ConfiguracionPage() {
                     </div>
                   </div>
 
-                  <div className="h-full rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
+                  <div className="flex h-[88px] min-h-[88px] flex-col justify-between rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
                     <div className="data text-[9px] font-bold uppercase tracking-[.16em] text-[#FF6A18]">
                       Reservas
                     </div>
@@ -1070,7 +1303,7 @@ export default function ConfiguracionPage() {
                     </div>
                   </div>
 
-                  <div className="h-full rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
+                  <div className="flex h-[88px] min-h-[88px] flex-col justify-between rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4">
                     <div className="data text-[9px] font-bold uppercase tracking-[.16em] text-[#FF6A18]">
                       Fidelización
                     </div>
@@ -1458,8 +1691,16 @@ export default function ConfiguracionPage() {
               <div className="p-5 sm:p-6">
                 <div className="flex flex-col gap-5 rounded-[14px] border border-white/[0.065] bg-white/[0.018] p-5 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="display flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[13px] font-semibold text-black">
-                      MC
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/[0.09] bg-[#111]">
+                      {settings.logo_url ? (
+                        <img
+                          src={settings.logo_url}
+                          alt=""
+                          className="h-full w-full object-contain p-2"
+                        />
+                      ) : (
+                        <span className="display text-[13px] font-semibold text-white">MC</span>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-[15px] font-semibold text-white/88">{accountName}</p>
