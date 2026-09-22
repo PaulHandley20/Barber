@@ -594,7 +594,7 @@ export default function ClientesPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} clientes-shell barberos-dashboard min-h-screen bg-[#070707] text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
+    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} clientes-shell barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
       <style jsx>{`
         .barberos-dashboard{
           --ink:#070707;
@@ -615,7 +615,7 @@ export default function ClientesPage() {
           background:
             radial-gradient(720px 360px at 88% -8%,rgba(255,90,0,.045),transparent 70%),
             radial-gradient(520px 320px at 8% 14%,rgba(255,255,255,.010),transparent 74%),
-            #070707;
+            transparent;
         }
 
         .barberos-dashboard h1,

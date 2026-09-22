@@ -303,7 +303,7 @@ export default function EquipoPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-page min-h-screen bg-[#070707] text-[#f5f5f4]`}>
+    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-page min-h-screen text-[#f5f5f4]`}>
       <style jsx>{`
         .barberos-page {
           --line: rgba(255,255,255,.075);

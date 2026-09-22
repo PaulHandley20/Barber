@@ -33,7 +33,7 @@ const dmMono = DM_Mono({
 export default function ReferidosPage() {
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen bg-[#070707] text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-white`}
     >
       <style jsx>{`
         .barberos-dashboard {
@@ -54,7 +54,7 @@ export default function ReferidosPage() {
           background:
             radial-gradient(720px 360px at 88% -8%, rgba(255,90,0,.045), transparent 70%),
             radial-gradient(520px 320px at 8% 14%, rgba(255,255,255,.010), transparent 74%),
-            #070707;
+            transparent;
         }
 
         .barberos-dashboard h1,

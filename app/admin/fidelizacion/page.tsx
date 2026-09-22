@@ -487,7 +487,7 @@ export default function FidelizacionPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen bg-[#070707] text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
+      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
     >
       <style jsx>{`
         .barberos-dashboard {
@@ -509,7 +509,7 @@ export default function FidelizacionPage() {
           background:
             radial-gradient(720px 360px at 88% -8%,rgba(255,90,0,.045),transparent 70%),
             radial-gradient(520px 320px at 8% 14%,rgba(255,255,255,.010),transparent 74%),
-            #070707;
+            transparent;
         }
         .barberos-dashboard h1,.barberos-dashboard h2,.barberos-dashboard h3,.barberos-dashboard h4,.barberos-dashboard .display{
           font-family:var(--font-barberos-display),Sora,sans-serif;

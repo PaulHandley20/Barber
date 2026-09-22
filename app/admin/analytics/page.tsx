@@ -900,7 +900,7 @@ export default function AnalyticsPage() {
           background:
             radial-gradient(720px 360px at 88% -8%,rgba(255,90,0,.045),transparent 70%),
             radial-gradient(520px 320px at 8% 14%,rgba(255,255,255,.010),transparent 74%),
-            #070707;
+            transparent;
         }
 
         .barberos-dashboard h1,

@@ -871,7 +871,7 @@ export default function ConfiguracionPage() {
 
   if (loading) {
     return (
-      <main className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen bg-[#070707] text-white`}>
+      <main className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen text-white`}>
         <div className="flex min-h-screen items-center justify-center">
           <div className="panel-surface flex items-center gap-3 rounded-[14px] px-5 py-4">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-[#FF5A00]" />
@@ -886,7 +886,7 @@ export default function ConfiguracionPage() {
 
   if (!settings) {
     return (
-      <main className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen bg-[#070707] p-6 text-white`}>
+      <main className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen p-6 text-white`}>
         <div className="mx-auto max-w-[1680px] rounded-[16px] border border-red-500/20 bg-red-500/[0.05] p-6">
           <div className="display text-[18px] font-semibold">
             Configuración no disponible
@@ -901,7 +901,7 @@ export default function ConfiguracionPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-config min-h-screen bg-[#070707] text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-config min-h-screen text-white`}
     >
       <style jsx global>{`
         .barberos-config {
@@ -919,7 +919,7 @@ export default function ConfiguracionPage() {
           background:
             radial-gradient(720px 360px at 88% -8%,rgba(255,90,0,.045),transparent 70%),
             radial-gradient(520px 320px at 8% 14%,rgba(255,255,255,.010),transparent 74%),
-            #070707;
+            transparent;
         }
         .barberos-config .display {
           font-family: var(--font-barberos-display), Sora, sans-serif;

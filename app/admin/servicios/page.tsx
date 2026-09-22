@@ -840,7 +840,7 @@ export default function ServiciosPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-services min-h-screen bg-[#070707] text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-services min-h-screen text-white`}
     >
       <style jsx>{`
         .barberos-services {
@@ -867,7 +867,7 @@ export default function ServiciosPage() {
               rgba(255, 255, 255, 0.01),
               transparent 74%
             ),
-            #070707;
+            transparent;
         }
 
         .barberos-services h1,

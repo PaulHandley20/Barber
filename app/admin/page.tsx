@@ -1060,7 +1060,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <main
-        className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen bg-[#070707] text-white`}
+        className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-white`}
       >
         <div className="flex min-h-screen items-center justify-center">
           <div className="panel-surface flex items-center gap-3 rounded-2xl px-6 py-4 text-[13px] text-white/70">
@@ -1074,7 +1074,7 @@ export default function AdminDashboardPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen bg-[#070707] text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
+      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
     >
       <style jsx>{`
         .barberos-dashboard {
@@ -1096,7 +1096,7 @@ export default function AdminDashboardPage() {
           background:
             radial-gradient(720px 360px at 88% -8%,rgba(255,90,0,.045),transparent 70%),
             radial-gradient(520px 320px at 8% 14%,rgba(255,255,255,.010),transparent 74%),
-            #070707;
+            transparent;
         }
 
         .barberos-dashboard h1,

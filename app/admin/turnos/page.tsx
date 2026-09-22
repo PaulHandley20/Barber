@@ -413,7 +413,7 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen bg-[#070707] text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
+    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
       <style jsx>{`
         .agenda-shell {
           --ink: #070707; --surface: #0b0b0b; --surface-2: #0f0f0f;

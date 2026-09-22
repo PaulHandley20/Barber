@@ -426,7 +426,7 @@ export default function HorariosPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0b0c0e] text-[#f5f5f5]">
+    <main className="min-h-screen text-[#f5f5f5]">
       <div className="mx-auto max-w-7xl px-8 py-10">
         {/* HEADER */}
         <header className="mb-10 flex items-end justify-between gap-6">
