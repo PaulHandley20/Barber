@@ -420,7 +420,7 @@ export default function TurnosPage() {
           --line: rgba(255,255,255,.075); --line-soft: rgba(255,255,255,.05);
           --orange: #ff5a00; --orange-bright: #ff7a22;
           font-family: var(--font-barberos-ui), Manrope, sans-serif;
-          background: radial-gradient(circle at 78% -8%, rgba(255,90,0,.065), transparent 24%), linear-gradient(180deg, rgba(255,255,255,.012), transparent 22%);
+          background: radial-gradient(720px 360px at 88% -8%, rgba(255,90,0,.045), transparent 70%), radial-gradient(520px 320px at 8% 14%, rgba(255,255,255,.010), transparent 74%), transparent;
         }
         .agenda-display { font-family: var(--font-barberos-display), Sora, sans-serif; }
         .agenda-data { font-family: var(--font-barberos-data), DM Mono, monospace; font-variant-numeric: tabular-nums; }

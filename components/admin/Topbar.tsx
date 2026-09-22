@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,6 +9,8 @@ import {
   Settings2,
   Sparkles,
   UserRound,
+  CalendarDays,
+  CheckCircle2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAdminShell } from "./AdminShellContext";
@@ -136,6 +137,9 @@ export default function Topbar() {
 
   const meta = getPageMeta(pathname);
 
+  const [scrolled, setScrolled] =
+    useState(false);
+
   const [notificationsOpen, setNotificationsOpen] =
     useState(false);
 
@@ -152,14 +156,21 @@ export default function Topbar() {
     useState<string | null>(null);
 
   /*
-   * Nombre visible del administrador.
-   *
-   * No usamos el email como fallback visual.
-   * Para este workspace el administrador es Manuel Cladera.
+   * IMPORTANTE:
+   * Fallback real del administrador.
+   * Si Supabase devuelve full_name, usamos ese.
+   * Si no, usamos Manuel Cladera.
    */
-  const adminName = "Manuel Cladera";
+  const [adminName, setAdminName] =
+    useState("Manuel Cladera");
 
-  const firstName = "Manuel";
+  const firstName =
+    adminName.trim().split(" ")[0] ||
+    "Manuel";
+
+  /* ============================================================
+     LOAD WORKSPACE + USER
+  ============================================================ */
 
   useEffect(() => {
     const supabase = createClient();
@@ -167,20 +178,50 @@ export default function Topbar() {
     let active = true;
 
     async function loadWorkspace() {
-      const { data } = await supabase
-        .from("barbershop_settings")
-        .select("name, logo_url")
-        .limit(1)
-        .maybeSingle();
+      const [settingsRes, userRes] =
+        await Promise.all([
+          supabase
+            .from("barbershop_settings")
+            .select("name, logo_url")
+            .limit(1)
+            .maybeSingle(),
+
+          supabase.auth.getUser(),
+        ]);
 
       if (!active) return;
 
-      if (data) {
-        if (data.name) {
-          setShopName(data.name);
+      if (settingsRes.data) {
+        if (settingsRes.data.name) {
+          setShopName(settingsRes.data.name);
         }
 
-        setShopPhoto(data.logo_url ?? null);
+        setShopPhoto(
+          settingsRes.data.logo_url ?? null
+        );
+      }
+
+      const user = userRes.data.user;
+
+      if (user) {
+        const metadata =
+          user.user_metadata ?? {};
+
+        const metadataName =
+          typeof metadata.full_name === "string"
+            ? metadata.full_name
+            : typeof metadata.name === "string"
+              ? metadata.name
+              : null;
+
+        /*
+         * No usamos el email como nombre visual.
+         */
+        if (metadataName?.trim()) {
+          setAdminName(metadataName.trim());
+        } else {
+          setAdminName("Manuel Cladera");
+        }
       }
     }
 
@@ -188,7 +229,8 @@ export default function Topbar() {
       const now = new Date();
 
       const soonLimit = new Date(
-        now.getTime() + 3 * 60 * 60 * 1000
+        now.getTime() +
+          3 * 60 * 60 * 1000
       ).toISOString();
 
       const columns =
@@ -219,7 +261,10 @@ export default function Topbar() {
             "start_at",
             now.toISOString()
           )
-          .lte("start_at", soonLimit)
+          .lte(
+            "start_at",
+            soonLimit
+          )
           .order("start_at", {
             ascending: true,
           })
@@ -247,7 +292,8 @@ export default function Topbar() {
         ((pendingRes.data ?? []) as unknown as Row[]).map(
           (row): Notification => ({
             id: `pending-${row.id}`,
-            title: "Turno pendiente de confirmar",
+            title:
+              "Turno pendiente de confirmar",
             detail: `${
               row.customer?.full_name ??
               "Cliente"
@@ -292,12 +338,17 @@ export default function Topbar() {
     loadWorkspace();
     loadNotifications();
 
-    function onLogoUpdated(event: Event) {
-      const detail = (
-        event as CustomEvent<{
-          logoUrl: string | null;
-        }>
-      ).detail;
+    function onLogoUpdated(
+      event: Event
+    ) {
+      const detail =
+        (
+          event as CustomEvent<{
+            logoUrl:
+              | string
+              | null;
+          }>
+        ).detail;
 
       setShopPhoto(
         detail?.logoUrl ?? null
@@ -318,6 +369,37 @@ export default function Topbar() {
       );
     };
   }, []);
+
+  /* ============================================================
+     SCROLL
+  ============================================================ */
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(
+        window.scrollY > 8
+      );
+    };
+
+    onScroll();
+
+    window.addEventListener(
+      "scroll",
+      onScroll,
+      { passive: true }
+    );
+
+    return () => {
+      window.removeEventListener(
+        "scroll",
+        onScroll
+      );
+    };
+  }, []);
+
+  /* ============================================================
+     CLOSE MENUS
+  ============================================================ */
 
   useEffect(() => {
     const closeMenus = (
@@ -364,6 +446,7 @@ export default function Topbar() {
 
   function openNotifications() {
     setProfileOpen(false);
+
     setNotificationsOpen(
       (value) => !value
     );
@@ -371,6 +454,7 @@ export default function Topbar() {
 
   function openProfile() {
     setNotificationsOpen(false);
+
     setProfileOpen(
       (value) => !value
     );
@@ -391,85 +475,58 @@ export default function Topbar() {
   return (
     <header
       className={[
-        "fixed left-0 right-0 top-0 z-40 h-[72px]",
-        "transition-[left] duration-300 ease-out",
+        "fixed top-0 right-0 z-30 h-[72px]",
+        "transition-[left,background-color,backdrop-filter,box-shadow]",
+        "duration-300 ease-out",
         collapsed
-          ? "lg:left-[82px]"
-          : "lg:left-[270px]",
+          ? "lg:left-[76px]"
+          : "lg:left-[240px]",
+        scrolled
+          ? "bg-[#050505]/65 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,.28)]"
+          : "bg-transparent",
       ].join(" ")}
-      style={{
-        fontFamily:
-          "var(--font-barberos-ui, Manrope, Inter, sans-serif)",
-      }}
     >
-      {/* ====================================================== */}
-      {/* ATMÓSFERA                                               */}
-      {/* ====================================================== */}
+      {/* ========================================================
+          SUBTLE ORANGE ATMOSPHERE
+      ======================================================== */}
 
       <div
         aria-hidden="true"
-        className="
-          pointer-events-none
-          absolute
-          inset-0
-          overflow-hidden
-        "
+        className="pointer-events-none absolute inset-0 overflow-hidden"
       >
         <div
           className="
             absolute
-            right-[10%]
-            top-[-190px]
-            h-[340px]
-            w-[500px]
+            right-[8%]
+            top-[-260px]
+            h-[420px]
+            w-[600px]
             rounded-full
-            bg-[radial-gradient(ellipse,rgba(255,90,0,0.035),transparent_70%)]
-          "
-        />
-
-        <div
-          className="
-            absolute
-            left-[22%]
-            top-0
-            h-[1px]
-            w-[300px]
-            bg-gradient-to-r
-            from-transparent
-            via-[#ff6a00]/[0.06]
-            to-transparent
+            bg-[radial-gradient(ellipse,rgba(255,90,0,0.065)_0%,rgba(255,90,0,0.025)_35%,transparent_72%)]
           "
         />
       </div>
 
-      {/* ====================================================== */}
-      {/* CONTENIDO                                               */}
-      {/* ====================================================== */}
+      {/* ========================================================
+          CONTENT
+      ======================================================== */}
 
-      <div
-        className="
-          relative
-          flex
-          h-full
-          items-center
-          justify-between
-          px-5
-          sm:px-7
-          lg:px-9
-        "
-      >
-        {/* ==================================================== */}
-        {/* LEFT                                                  */}
-        {/* ==================================================== */}
+      <div className="relative flex h-full items-center justify-between px-5 sm:px-7 lg:px-9">
+
+        {/* ======================================================
+            LEFT
+        ====================================================== */}
 
         <div className="min-w-0">
+
           <div className="flex items-center gap-2">
             <span
               className="
-                text-[9px]
+                font-[family:var(--font-barberos-ui)]
+                text-[8px]
                 font-semibold
                 uppercase
-                tracking-[0.18em]
+                tracking-[0.20em]
                 text-white/25
               "
             >
@@ -477,18 +534,19 @@ export default function Topbar() {
             </span>
 
             <ChevronRight
-              size={10}
-              strokeWidth={1.5}
+              size={9}
+              strokeWidth={1.4}
               className="text-white/12"
             />
 
             <span
               className="
                 truncate
-                text-[9px]
+                font-[family:var(--font-barberos-ui)]
+                text-[8px]
                 font-semibold
                 uppercase
-                tracking-[0.18em]
+                tracking-[0.20em]
                 text-[#ff6a18]
               "
             >
@@ -498,27 +556,29 @@ export default function Topbar() {
 
           <p
             className="
-              mt-[5px]
+              mt-1
+              font-[family:var(--font-barberos-ui)]
               text-[13px]
               font-medium
-              tracking-[-0.02em]
-              text-white/78
+              tracking-[-0.015em]
+              text-white/82
             "
           >
-            Hola, {firstName} · bienvenido
+            Hola, {adminName} · bienvenido
           </p>
         </div>
 
-        {/* ==================================================== */}
-        {/* RIGHT                                                 */}
-        {/* ==================================================== */}
+        {/* ======================================================
+            RIGHT
+        ====================================================== */}
 
         <div className="flex items-center gap-1">
-          {/* ANALYTICS */}
+
+          {/* Analytics / Intelligence */}
 
           <Link
             href="/admin/analytics"
-            aria-label="Ir a Analytics"
+            aria-label="Abrir Analytics"
             title="Analytics"
             className="
               hidden
@@ -526,8 +586,8 @@ export default function Topbar() {
               w-10
               items-center
               justify-center
-              rounded-[12px]
-              text-white/35
+              rounded-[11px]
+              text-white/38
               transition-all
               duration-200
               hover:bg-white/[0.035]
@@ -536,12 +596,12 @@ export default function Topbar() {
             "
           >
             <Sparkles
-              size={16}
-              strokeWidth={1.55}
+              size={17}
+              strokeWidth={1.45}
             />
           </Link>
 
-          {/* NOTIFICATIONS */}
+          {/* Notifications */}
 
           <div
             className="relative"
@@ -557,52 +617,32 @@ export default function Topbar() {
                 notificationsOpen
               }
               className={[
-                "relative flex h-10 w-10 items-center justify-center rounded-[12px]",
-                "text-white/35 transition-all duration-200",
-                "hover:bg-white/[0.035] hover:text-white/80",
+                "relative flex h-10 w-10 items-center justify-center rounded-[11px]",
+                "font-[family:var(--font-barberos-ui)]",
+                "text-white/40 transition-all duration-200",
+                "hover:bg-white/[0.035] hover:text-white/85",
                 notificationsOpen
-                  ? "bg-white/[0.045] text-white/80"
+                  ? "bg-white/[0.05] text-white"
                   : "",
               ].join(" ")}
             >
               <Bell
-                size={16}
-                strokeWidth={1.5}
+                size={17}
+                strokeWidth={1.45}
               />
 
-              {unreadCount > 0 ? (
-                <span
-                  className="
-                    absolute
-                    right-[7px]
-                    top-[6px]
-                    flex
-                    h-[15px]
-                    min-w-[15px]
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#ff5a00]
-                    px-1
-                    text-[8px]
-                    font-bold
-                    leading-none
-                    text-white
-                    shadow-[0_0_12px_rgba(255,90,0,.22)]
-                  "
-                >
-                  {unreadCount}
-                </span>
-              ) : (
+              {unreadCount > 0 && (
                 <span
                   className="
                     absolute
                     right-[8px]
                     top-[7px]
-                    h-[5px]
-                    w-[5px]
+                    flex
+                    h-[6px]
+                    w-[6px]
                     rounded-full
-                    bg-[#ff6a18]
+                    bg-[#ff5a00]
+                    shadow-[0_0_10px_rgba(255,90,0,.65)]
                   "
                 />
               )}
@@ -613,46 +653,24 @@ export default function Topbar() {
                 className="
                   absolute
                   right-0
-                  top-[48px]
+                  top-[54px]
                   w-[340px]
                   overflow-hidden
-                  rounded-[18px]
+                  rounded-[17px]
                   border
-                  border-white/[0.07]
-                  bg-[#0A0A0A]
-                  shadow-[0_28px_80px_rgba(0,0,0,.55)]
+                  border-white/[0.075]
+                  bg-[#0a0a0a]/95
+                  shadow-[0_30px_90px_rgba(0,0,0,.65)]
+                  backdrop-blur-2xl
                 "
               >
-                {/* HEADER */}
-
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    px-4
-                    py-4
-                  "
-                >
+                <div className="flex items-center justify-between px-4 py-4">
                   <div>
-                    <p
-                      className="
-                        text-[13px]
-                        font-semibold
-                        tracking-[-0.015em]
-                        text-white/90
-                      "
-                    >
+                    <p className="font-[family:var(--font-barberos-ui)] text-[13px] font-semibold text-white/90">
                       Notificaciones
                     </p>
 
-                    <p
-                      className="
-                        mt-1
-                        text-[10px]
-                        text-white/30
-                      "
-                    >
+                    <p className="mt-1 font-[family:var(--font-barberos-ui)] text-[10px] text-white/30">
                       Actividad reciente
                     </p>
                   </div>
@@ -664,10 +682,10 @@ export default function Topbar() {
                         markNotificationsRead
                       }
                       className="
+                        font-[family:var(--font-barberos-ui)]
                         text-[10px]
                         font-medium
                         text-[#ff6a18]
-                        transition
                         hover:text-[#ff8540]
                       "
                     >
@@ -676,39 +694,22 @@ export default function Topbar() {
                   )}
                 </div>
 
-                {/* LIST */}
-
                 <div className="max-h-[310px] overflow-y-auto">
-                  {notifications.length ===
-                  0 ? (
-                    <div className="px-5 py-9 text-center">
-                      <Bell
-                        size={20}
+                  {notifications.length === 0 ? (
+                    <div className="px-5 py-10 text-center">
+                      <CheckCircle2
+                        size={22}
                         strokeWidth={1.3}
-                        className="mx-auto text-white/15"
+                        className="mx-auto text-[#20d68a]"
                       />
 
-                      <p
-                        className="
-                          mt-3
-                          text-[11px]
-                          font-medium
-                          text-white/45
-                        "
-                      >
+                      <p className="mt-3 font-[family:var(--font-barberos-ui)] text-[11px] font-medium text-white/50">
                         Todo tranquilo
                       </p>
 
-                      <p
-                        className="
-                          mt-1
-                          text-[10px]
-                          leading-4
-                          text-white/25
-                        "
-                      >
-                        No hay turnos pendientes
-                        ni próximos.
+                      <p className="mt-1 font-[family:var(--font-barberos-ui)] text-[10px] leading-4 text-white/25">
+                        No hay nuevas
+                        notificaciones.
                       </p>
                     </div>
                   ) : (
@@ -727,51 +728,31 @@ export default function Topbar() {
                             hover:bg-white/[0.025]
                           "
                         >
-                          <div
+                          <span
                             className={[
-                              "mt-[6px] h-2 w-2 shrink-0 rounded-full",
+                              "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
                               notification.unread
-                                ? "bg-[#ff6a18]"
-                                : "bg-white/12",
+                                ? "bg-[#ff5a00]"
+                                : "bg-white/15",
                             ].join(" ")}
                           />
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-3">
-                              <p
-                                className="
-                                  text-[11px]
-                                  font-medium
-                                  leading-4
-                                  text-white/75
-                                "
-                              >
+                              <p className="font-[family:var(--font-barberos-ui)] text-[11px] font-medium text-white/75">
                                 {
                                   notification.title
                                 }
                               </p>
 
-                              <span
-                                className="
-                                  shrink-0
-                                  text-[9px]
-                                  text-white/22
-                                "
-                              >
+                              <span className="shrink-0 font-[family:var(--font-barberos-ui)] text-[9px] text-white/25">
                                 {
                                   notification.time
                                 }
                               </span>
                             </div>
 
-                            <p
-                              className="
-                                mt-1
-                                text-[10px]
-                                leading-4
-                                text-white/32
-                              "
-                            >
+                            <p className="mt-1 font-[family:var(--font-barberos-ui)] text-[10px] leading-4 text-white/35">
                               {
                                 notification.detail
                               }
@@ -782,8 +763,6 @@ export default function Topbar() {
                     )
                   )}
                 </div>
-
-                {/* FOOTER */}
 
                 <Link
                   href="/admin/turnos"
@@ -796,32 +775,33 @@ export default function Topbar() {
                     flex
                     items-center
                     justify-between
-                    border-t
-                    border-white/[0.045]
+                    bg-white/[0.018]
                     px-4
-                    py-3
+                    py-3.5
+                    font-[family:var(--font-barberos-ui)]
                     text-[10px]
                     font-medium
-                    text-white/35
+                    text-white/45
                     transition
-                    hover:bg-white/[0.025]
-                    hover:text-white/70
+                    hover:bg-white/[0.035]
+                    hover:text-white/75
                   "
                 >
                   <span>
-                    Ver agenda completa
+                    Ver agenda
                   </span>
 
                   <ChevronRight
                     size={13}
-                    strokeWidth={1.5}
                   />
                 </Link>
               </div>
             )}
           </div>
 
-          {/* PROFILE */}
+          {/* ====================================================
+              PROFILE
+          ==================================================== */}
 
           <div
             className="relative ml-1"
@@ -830,18 +810,20 @@ export default function Topbar() {
             <button
               type="button"
               onClick={openProfile}
-              aria-expanded={profileOpen}
-              aria-label="Abrir menú de Manuel Cladera"
-              className={[
-                "group flex h-[48px] items-center gap-2.5 rounded-[14px] px-1.5",
-                "transition-all duration-200",
-                "hover:bg-white/[0.028]",
+              aria-expanded={
                 profileOpen
-                  ? "bg-white/[0.04]"
+              }
+              aria-label="Abrir perfil"
+              className={[
+                "group flex h-[48px] items-center gap-2.5 rounded-[13px] px-2",
+                "transition-all duration-200",
+                "hover:bg-white/[0.035]",
+                profileOpen
+                  ? "bg-white/[0.045]"
                   : "",
               ].join(" ")}
             >
-              {/* FOTO */}
+              {/* Avatar */}
 
               <div className="relative">
                 <div
@@ -853,26 +835,22 @@ export default function Topbar() {
                     rounded-full
                     border
                     border-white/[0.10]
-                    bg-[#111]
+                    bg-[#101010]
                   "
                 >
-                  <Image
-                    src={
-                      shopPhoto ||
-                      "/brand/barberos-mark.png"
-                    }
-                    alt="Manuel Cladera"
-                    fill
-                    sizes="34px"
-                    unoptimized={Boolean(
-                      shopPhoto
-                    )}
-                    className={
-                      shopPhoto
-                        ? "object-cover"
-                        : "object-contain p-[5px]"
-                    }
-                  />
+                  {shopPhoto ? (
+                    <img
+                      src={shopPhoto}
+                      alt={`Logo de ${shopName}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src="/brand/barberos-mark.png"
+                      alt="barberOS"
+                      className="h-full w-full object-contain p-[5px]"
+                    />
+                  )}
                 </div>
 
                 <span
@@ -885,57 +863,44 @@ export default function Topbar() {
                     rounded-full
                     border-2
                     border-[#050505]
-                    bg-[#20D68A]
+                    bg-[#20d68a]
                   "
                 />
               </div>
 
-              {/* USER INFO */}
+              {/* Name */}
 
               <div className="hidden text-left sm:block">
                 <p
                   className="
+                    font-[family:var(--font-barberos-ui)]
                     text-[11px]
                     font-semibold
-                    tracking-[-0.015em]
-                    text-white/82
+                    tracking-[-0.01em]
+                    text-white/88
                   "
                 >
-                  Manuel Cladera
+                  {adminName}
                 </p>
 
-                <div className="mt-[3px] flex items-center gap-1.5">
-                  <span
-                    className="
-                      max-w-[110px]
-                      truncate
-                      text-[9px]
-                      text-white/30
-                    "
-                  >
-                    {shopName}
-                  </span>
-
-                  <span className="text-white/12">
-                    ·
-                  </span>
-
-                  <span
-                    className="
-                      text-[9px]
-                      text-white/30
-                    "
-                  >
-                    Admin
-                  </span>
-                </div>
+                <p
+                  className="
+                    mt-0.5
+                    font-[family:var(--font-barberos-ui)]
+                    text-[8px]
+                    font-medium
+                    text-white/30
+                  "
+                >
+                  Administrador
+                </p>
               </div>
 
               <ChevronDown
                 size={12}
-                strokeWidth={1.45}
+                strokeWidth={1.4}
                 className={[
-                  "hidden text-white/22 transition-transform duration-200 sm:block",
+                  "hidden text-white/25 transition-transform duration-200 sm:block",
                   profileOpen
                     ? "rotate-180"
                     : "",
@@ -943,24 +908,27 @@ export default function Topbar() {
               />
             </button>
 
-            {/* PROFILE MENU */}
+            {/* ==================================================
+                PROFILE MENU
+            ================================================== */}
 
             {profileOpen && (
               <div
                 className="
                   absolute
                   right-0
-                  top-[54px]
-                  w-[285px]
+                  top-[56px]
+                  w-[270px]
                   overflow-hidden
-                  rounded-[18px]
+                  rounded-[17px]
                   border
                   border-white/[0.075]
-                  bg-[#0A0A0A]
-                  shadow-[0_30px_90px_rgba(0,0,0,.60)]
+                  bg-[#0a0a0a]/96
+                  shadow-[0_30px_90px_rgba(0,0,0,.65)]
+                  backdrop-blur-2xl
                 "
               >
-                {/* IDENTITY */}
+                {/* Identity */}
 
                 <div className="p-3">
                   <div
@@ -968,7 +936,7 @@ export default function Topbar() {
                       flex
                       items-center
                       gap-3
-                      rounded-[13px]
+                      rounded-[12px]
                       bg-white/[0.025]
                       p-3
                     "
@@ -977,8 +945,8 @@ export default function Topbar() {
                       <div
                         className="
                           relative
-                          h-[44px]
-                          w-[44px]
+                          h-[42px]
+                          w-[42px]
                           overflow-hidden
                           rounded-full
                           border
@@ -986,23 +954,19 @@ export default function Topbar() {
                           bg-[#111]
                         "
                       >
-                        <Image
-                          src={
-                            shopPhoto ||
-                            "/brand/barberos-mark.png"
-                          }
-                          alt="Manuel Cladera"
-                          fill
-                          sizes="44px"
-                          unoptimized={Boolean(
-                            shopPhoto
-                          )}
-                          className={
-                            shopPhoto
-                              ? "object-cover"
-                              : "object-contain p-[6px]"
-                          }
-                        />
+                        {shopPhoto ? (
+                          <img
+                            src={shopPhoto}
+                            alt={`Logo de ${shopName}`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <img
+                            src="/brand/barberos-mark.png"
+                            alt="barberOS"
+                            className="h-full w-full object-contain p-[6px]"
+                          />
+                        )}
                       </div>
 
                       <span
@@ -1015,46 +979,24 @@ export default function Topbar() {
                           rounded-full
                           border-2
                           border-[#111]
-                          bg-[#20D68A]
+                          bg-[#20d68a]
                         "
                       />
                     </div>
 
                     <div className="min-w-0">
-                      <p
-                        className="
-                          truncate
-                          text-[13px]
-                          font-semibold
-                          tracking-[-0.015em]
-                          text-white/90
-                        "
-                      >
-                        Manuel Cladera
+                      <p className="truncate font-[family:var(--font-barberos-ui)] text-[13px] font-semibold text-white/92">
+                        Hola, {firstName}
                       </p>
 
-                      <p
-                        className="
-                          mt-1
-                          truncate
-                          text-[9px]
-                          text-white/30
-                        "
-                      >
-                        Administrador ·{" "}
-                        {shopName}
+                      <p className="mt-1 truncate font-[family:var(--font-barberos-ui)] text-[9px] text-white/35">
+                        {adminName}
                       </p>
 
                       <div className="mt-1.5 flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#20D68A]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#20d68a]" />
 
-                        <span
-                          className="
-                            text-[9px]
-                            font-medium
-                            text-[#20D68A]/75
-                          "
-                        >
+                        <span className="font-[family:var(--font-barberos-ui)] text-[9px] text-[#20d68a]/80">
                           En línea
                         </span>
                       </div>
@@ -1062,15 +1004,11 @@ export default function Topbar() {
                   </div>
                 </div>
 
-                {/* MENU */}
-
-                <div className="px-2 pb-2">
+                <div className="p-2">
                   <Link
                     href="/admin/configuracion"
                     onClick={() =>
-                      setProfileOpen(
-                        false
-                      )
+                      setProfileOpen(false)
                     }
                     className="
                       flex
@@ -1079,12 +1017,13 @@ export default function Topbar() {
                       rounded-[11px]
                       px-3
                       py-2.5
+                      font-[family:var(--font-barberos-ui)]
                       text-[11px]
                       font-medium
-                      text-white/50
+                      text-white/55
                       transition
                       hover:bg-white/[0.035]
-                      hover:text-white/85
+                      hover:text-white/90
                     "
                   >
                     <Settings2
@@ -1098,9 +1037,7 @@ export default function Topbar() {
                   <Link
                     href="/admin/configuracion#cuenta"
                     onClick={() =>
-                      setProfileOpen(
-                        false
-                      )
+                      setProfileOpen(false)
                     }
                     className="
                       flex
@@ -1109,12 +1046,13 @@ export default function Topbar() {
                       rounded-[11px]
                       px-3
                       py-2.5
+                      font-[family:var(--font-barberos-ui)]
                       text-[11px]
                       font-medium
-                      text-white/50
+                      text-white/55
                       transition
                       hover:bg-white/[0.035]
-                      hover:text-white/85
+                      hover:text-white/90
                     "
                   >
                     <UserRound
@@ -1126,11 +1064,9 @@ export default function Topbar() {
                   </Link>
 
                   <Link
-                    href="/admin/analytics"
+                    href="/admin/turnos"
                     onClick={() =>
-                      setProfileOpen(
-                        false
-                      )
+                      setProfileOpen(false)
                     }
                     className="
                       flex
@@ -1139,57 +1075,22 @@ export default function Topbar() {
                       rounded-[11px]
                       px-3
                       py-2.5
+                      font-[family:var(--font-barberos-ui)]
                       text-[11px]
                       font-medium
-                      text-white/50
+                      text-white/55
                       transition
                       hover:bg-white/[0.035]
-                      hover:text-white/85
+                      hover:text-white/90
                     "
                   >
-                    <Sparkles
+                    <CalendarDays
                       size={15}
                       strokeWidth={1.5}
                     />
 
-                    Analytics
+                    Agenda
                   </Link>
-                </div>
-
-                {/* SESSION */}
-
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    bg-white/[0.018]
-                    px-4
-                    py-3
-                  "
-                >
-                  <span
-                    className="
-                      text-[9px]
-                      font-medium
-                      text-white/25
-                    "
-                  >
-                    Sesión activa
-                  </span>
-
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#20D68A]" />
-
-                    <span
-                      className="
-                        text-[9px]
-                        text-white/25
-                      "
-                    >
-                      Segura
-                    </span>
-                  </span>
                 </div>
               </div>
             )}

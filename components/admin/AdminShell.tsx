@@ -2,41 +2,43 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Manrope,
-  Plus_Jakarta_Sans,
-  Sora,
-} from "next/font/google";
-
+import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
-import {
-  AdminShellProvider,
-  useAdminShell,
-} from "./AdminShellContext";
+import { AdminShellProvider, useAdminShell } from "./AdminShellContext";
 
-const manrope = Manrope({
+/*
+ * Tipografía del Admin
+ *
+ * Plus Jakarta Sans:
+ * - interfaz
+ * - navegación
+ * - topbar
+ * - textos secundarios
+ *
+ * Space Grotesk:
+ * - títulos
+ * - números
+ * - elementos destacados
+ *
+ * La idea es que el Admin tenga una identidad propia,
+ * moderna y mucho más limpia que Manrope + Sora.
+ */
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-barberos-ui",
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-nav",
-  weight: ["400", "500", "600", "700"],
-});
-
-const sora = Sora({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-barberos-display",
 });
 
-const NOISE_URL =
-  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMjAnIGhlaWdodD0nMTIwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC44NScgbnVtT2N0YXZlcz0nMicgc3RpdGNoVGlsZXM9J3N0aXRjaCcvPjxmZUNvbG9yTWF0cml4IHR5cGU9J3NhdHVyYXRlJyB2YWx1ZXM9JzAnLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWx0ZXI9J3VybCglMjNuKScvPjwvc3ZnPg==";
-
+/*
+ * Rutas que no utilizan el chrome del Admin.
+ */
 const CHROMELESS_ROUTES = ["/admin/login"];
 
 function AdminShellInner({
@@ -51,107 +53,145 @@ function AdminShellInner({
     return <>{children}</>;
   }
 
+  const sidebarWidth = collapsed ? "72px" : "230px";
+
   return (
     <div
       className={[
-        manrope.variable,
-        plusJakarta.variable,
-        sora.variable,
-        "min-h-screen overflow-x-hidden bg-[#050505] text-white",
+        jakarta.variable,
+        spaceGrotesk.variable,
+        "admin-shell",
+        "relative min-h-screen overflow-x-hidden",
+        "bg-[#050505] text-white",
+        "font-[family:var(--font-barberos-ui)]",
       ].join(" ")}
+      style={
+        {
+          "--admin-sidebar-width": sidebarWidth,
+        } as React.CSSProperties
+      }
     >
-      {/* ===================================================== */}
-      {/* GLOBAL BACKGROUND                                    */}
-      {/* ===================================================== */}
-
+      {/* ========================================================= */}
+      {/* GLOBAL BACKGROUND                                        */}
+      {/* ========================================================= */}
+      {/*
+       * Importante:
+       *
+       * Acá eliminamos:
+       * - blur
+       * - noise
+       * - enormes círculos desenfocados
+       * - filtros
+       *
+       * El fondo ahora se construye únicamente con gradients CSS.
+       * Esto evita el aspecto "pixelado / borroso" y mantiene
+       * los bordes visuales mucho más limpios.
+       */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
       >
+        {/* Base */}
         <div className="absolute inset-0 bg-[#050505]" />
 
+        {/* Luz naranja principal */}
         <div
           className="
             absolute
-            -right-[10vw]
-            -top-[18vh]
-            h-[90vh]
-            w-[90vh]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,94,0,0.14)_0%,rgba(255,94,0,0.08)_22%,rgba(255,90,0,0.035)_44%,rgba(255,90,0,0.012)_62%,transparent_78%)]
+            right-[-10vw]
+            top-[-22vh]
+            h-[72vh]
+            w-[72vw]
+            max-w-[1100px]
+            min-w-[620px]
+            bg-[radial-gradient(ellipse_at_center,rgba(255,92,0,0.105)_0%,rgba(255,92,0,0.052)_28%,rgba(255,92,0,0.018)_48%,transparent_72%)]
           "
         />
 
+        {/* Luz secundaria muy tenue */}
         <div
           className="
             absolute
-            -left-[16vw]
-            top-[16vh]
-            h-[64vh]
-            w-[64vh]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,90,0,0.045)_0%,rgba(255,90,0,0.022)_32%,transparent_74%)]
+            left-[-20vw]
+            top-[22vh]
+            h-[58vh]
+            w-[58vw]
+            max-w-[850px]
+            min-w-[520px]
+            bg-[radial-gradient(ellipse_at_center,rgba(255,90,0,0.032)_0%,rgba(255,90,0,0.012)_38%,transparent_70%)]
           "
         />
 
+        {/* Luz inferior derecha */}
         <div
           className="
             absolute
-            -bottom-[26vh]
-            -left-[12vw]
-            h-[66vh]
-            w-[66vh]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,90,0,0.035)_0%,rgba(255,90,0,0.015)_38%,transparent_75%)]
+            bottom-[-28vh]
+            right-[-12vw]
+            h-[62vh]
+            w-[62vw]
+            max-w-[900px]
+            min-w-[520px]
+            bg-[radial-gradient(ellipse_at_center,rgba(255,90,0,0.038)_0%,rgba(255,90,0,0.012)_42%,transparent_72%)]
           "
         />
 
+        {/* Micro glow superior central */}
         <div
           className="
             absolute
-            -bottom-[28vh]
-            -right-[10vw]
-            h-[70vh]
-            w-[70vh]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,90,0,0.06)_0%,rgba(255,90,0,0.028)_30%,rgba(255,90,0,0.01)_52%,transparent_74%)]
+            left-[42%]
+            top-0
+            h-[420px]
+            w-[620px]
+            -translate-x-1/2
+            bg-[radial-gradient(ellipse_at_top,rgba(255,90,0,0.025)_0%,transparent_70%)]
           "
         />
 
+        {/* Vignette limpia, sin blur */}
         <div
           className="
             absolute
             inset-0
-            bg-[radial-gradient(ellipse_at_center,transparent_38%,rgba(0,0,0,0.34)_100%)]
+            bg-[radial-gradient(ellipse_at_center,transparent_28%,rgba(0,0,0,0.34)_100%)]
           "
         />
 
+        {/* Línea de luz extremadamente sutil */}
         <div
-          className="absolute inset-0 opacity-[0.028] mix-blend-overlay"
-          style={{
-            backgroundImage: `url("${NOISE_URL}")`,
-            backgroundSize: "120px 120px",
-          }}
+          className="
+            absolute
+            left-[var(--admin-sidebar-width)]
+            right-0
+            top-0
+            h-px
+            bg-gradient-to-r
+            from-transparent
+            via-white/[0.025]
+            to-transparent
+          "
         />
       </div>
 
-      {/* ===================================================== */}
-      {/* APP CHROME                                            */}
-      {/* ===================================================== */}
+      {/* ========================================================= */}
+      {/* APPLICATION                                              */}
+      {/* ========================================================= */}
 
       <Sidebar />
       <Topbar />
 
       <main
         className={[
-          "relative z-10 min-h-screen pl-0 pt-[72px]",
+          "relative z-10 min-h-screen pt-[76px]",
+          "pl-0",
           "transition-[padding-left] duration-300 ease-out",
           collapsed
             ? "lg:pl-[72px]"
             : "lg:pl-[230px]",
         ].join(" ")}
       >
-        <div className="relative min-h-[calc(100vh-72px)]">
+        <div className="relative min-h-[calc(100vh-76px)] w-full">
           {children}
         </div>
       </main>
