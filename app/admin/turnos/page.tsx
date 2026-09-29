@@ -305,63 +305,73 @@ export default function TurnosPage() {
   }
 
   async function updateStatus(appointment: Appointment, status: string) {
-    setActionLoading(`${appointment.id}:${status}`);
-    setError("");
+  setActionLoading(`${appointment.id}:${status}`);
+  setError("");
 
-    try {
-      const { error: updateError } = await supabase
-        .from("appointments")
-        .update({ status })
-        .eq("id", appointment.id);
+  try {
+    console.log("=== BARBEROS · ACTUALIZANDO TURNO ===");
+    console.log("appointment_id:", appointment.id);
+    console.log("nuevo status:", status);
 
-      if (updateError) {
-        const details = [
-          updateError.message,
-          updateError.details,
-          updateError.hint,
-          updateError.code ? `Código ${updateError.code}` : "",
-        ]
-          .filter(Boolean)
-          .join(" · ");
+    const { error: updateError } = await supabase
+      .from("appointments")
+      .update({ status })
+      .eq("id", appointment.id);
 
-        console.error("=== BARBEROS · ERROR AL ACTUALIZAR TURNO ===");
-        console.error("appointment_id:", appointment.id);
-        console.error("requested_status:", status);
-        console.error("message:", updateError.message);
-        console.error("details:", updateError.details);
-        console.error("hint:", updateError.hint);
-        console.error("code:", updateError.code);
-        console.error("============================================");
+    if (updateError) {
+      console.error("=== BARBEROS · ERROR REAL DE SUPABASE ===");
+      console.error("appointment_id:", appointment.id);
+      console.error("requested_status:", status);
+      console.error("message:", updateError.message);
+      console.error("details:", updateError.details);
+      console.error("hint:", updateError.hint);
+      console.error("code:", updateError.code);
+      console.error("========================================");
 
-        setError(
-          details ||
-            "Supabase rechazó la actualización del estado del turno."
-        );
-        return;
-      }
-
-      setAppointments((current) =>
-        current.map((item) =>
-          item.id === appointment.id ? { ...item, status } : item
-        )
-      );
-
-      setSelectedAppointment((current) =>
-        current?.id === appointment.id
-          ? { ...current, status }
-          : current
-      );
-    } catch (unexpectedError) {
-      console.error("Unexpected appointment update error:", unexpectedError);
       setError(
-        unexpectedError instanceof Error
-          ? unexpectedError.message
-          : "Ocurrió un error inesperado al actualizar el turno."
+        updateError.message ||
+          "Supabase rechazó la actualización del estado del turno."
       );
-    } finally {
-      setActionLoading("");
+
+      return;
     }
+
+    console.log("=== BARBEROS · UPDATE ENVIADO CORRECTAMENTE ===");
+
+    // Actualizamos la interfaz inmediatamente
+    setAppointments((current) =>
+      current.map((item) =>
+        item.id === appointment.id
+          ? { ...item, status }
+          : item
+      )
+    );
+
+    setSelectedAppointment((current) =>
+      current?.id === appointment.id
+        ? { ...current, status }
+        : current
+    );
+
+    // Volvemos a consultar Supabase para comprobar que realmente quedó guardado.
+    await loadAppointments(true);
+
+    console.log("=== BARBEROS · AGENDA RECARGADA DESDE SUPABASE ===");
+  } catch (unexpectedError) {
+    console.error(
+      "=== BARBEROS · ERROR INESPERADO ===",
+      unexpectedError
+    );
+
+    setError(
+      unexpectedError instanceof Error
+        ? unexpectedError.message
+        : "Ocurrió un error inesperado al actualizar el turno."
+    );
+  } finally {
+    setActionLoading("");
   }
+}
 
   function openNewAppointment() {
     const base = new Date(selectedDate);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import {
   Bell,
   ChevronDown,
@@ -15,6 +16,13 @@ import {
 import { useEffect, useState } from "react";
 import { useAdminShell } from "./AdminShellContext";
 import { createClient } from "@/lib/supabase/client";
+
+// Fuente redondeada, misma que usamos en el sidebar.
+const navFont = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  display: "swap",
+});
 
 const pageMeta: Record<
   string,
@@ -555,14 +563,10 @@ export default function Topbar() {
           </div>
 
           <p
-            className="
-              mt-1
-              font-[family:var(--font-barberos-ui)]
-              text-[13px]
-              font-medium
-              tracking-[-0.015em]
-              text-white/82
-            "
+            className={[
+              navFont.className,
+              "mt-1 text-[13px] font-medium tracking-[-0.006em] text-white/82",
+            ].join(" ")}
           >
             Hola, {adminName} · bienvenido
           </p>
@@ -872,25 +876,19 @@ export default function Topbar() {
 
               <div className="hidden text-left sm:block">
                 <p
-                  className="
-                    font-[family:var(--font-barberos-ui)]
-                    text-[11px]
-                    font-semibold
-                    tracking-[-0.01em]
-                    text-white/88
-                  "
+                  className={[
+                    navFont.className,
+                    "text-[11px] font-semibold tracking-[-0.006em] text-white/88",
+                  ].join(" ")}
                 >
                   {adminName}
                 </p>
 
                 <p
-                  className="
-                    mt-0.5
-                    font-[family:var(--font-barberos-ui)]
-                    text-[8px]
-                    font-medium
-                    text-white/30
-                  "
+                  className={[
+                    navFont.className,
+                    "mt-0.5 text-[10px] font-medium text-white/48",
+                  ].join(" ")}
                 >
                   Administrador
                 </p>

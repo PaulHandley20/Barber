@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -16,6 +17,13 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { useAdminShell } from "./AdminShellContext";
+
+// Fuente redondeada solo para los labels de navegación.
+const navFont = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  display: "swap",
+});
 
 const navigation = [
   {
@@ -167,16 +175,10 @@ export default function Sidebar() {
 
         <div
           className={[
-            "flex-1",
+            "flex-1 pt-4",
             collapsed ? "px-2" : "px-3",
           ].join(" ")}
         >
-          {!collapsed && (
-            <div className="mb-3 px-3 text-[9px] font-semibold uppercase tracking-[0.24em] text-white/25">
-              Navegación
-            </div>
-          )}
-
           <nav className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -236,13 +238,16 @@ export default function Sidebar() {
                     />
                   </span>
 
-                  {!collapsed && (
+                  
+                   {!collapsed && (
                     <span
                       className={[
-                        "font-[family:var(--font-barberos-ui)] text-[13px] tracking-[-0.01em]",
+                        navFont.className,
+                        "text-[13px] font-semibold tracking-[-0.008em]",
+                        "transition-colors duration-200",
                         isActive
-                          ? "font-semibold text-white"
-                          : "font-medium text-white/58 group-hover:text-white/90",
+                          ? "text-white"
+                          : "text-white/60 group-hover:text-white/90",
                       ].join(" ")}
                     >
                       {item.label}
@@ -317,7 +322,7 @@ export default function Sidebar() {
 
             {!collapsed && (
               <span className="font-[family:var(--font-barberos-ui)] text-[11px] font-medium text-white/38 group-hover:text-white/65">
-                Colapsar sidebar
+                Ocultar
               </span>
             )}
           </button>
