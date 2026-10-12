@@ -772,48 +772,53 @@ export default function ConfiguracionPage() {
   }
 
   async function changeEmail() {
-    setEmailError("");
-    setEmailMessage("");
+  setEmailError("");
+  setEmailMessage("");
 
-    const normalizedEmail = newEmail.trim().toLowerCase();
+  const normalizedEmail = newEmail.trim().toLowerCase();
 
-    if (!normalizedEmail) {
-      setEmailError("Ingresá un email nuevo.");
-      return;
-    }
+  console.log("EMAIL QUE SE INTENTA CAMBIAR:", normalizedEmail);
 
-    if (!/^\\S+@\\S+\\.\\S+$/.test(normalizedEmail)) {
-      setEmailError("Ingresá un email válido.");
-      return;
-    }
-
-    if (normalizedEmail === (accountEmail || "").trim().toLowerCase()) {
-      setEmailError("El nuevo email debe ser diferente al actual.");
-      return;
-    }
-
-    setEmailSaving(true);
-
-    const { data, error: emailUpdateError } = await supabase.auth.updateUser({
-      email: normalizedEmail,
-    });
-
-    setEmailSaving(false);
-
-    if (emailUpdateError) {
-      console.error("Email update error:", emailUpdateError);
-      setEmailError(emailUpdateError.message || "No se pudo actualizar el email.");
-      return;
-    }
-
-    setEmailMessage(
-      "Solicitud enviada. Revisá tu correo para confirmar el cambio de email."
-    );
-
-    if (data.user?.email) {
-      setAccountEmail(data.user.email);
-    }
+  if (!normalizedEmail) {
+    setEmailError("Ingresá un email nuevo.");
+    return;
   }
+
+  if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+    setEmailError("Ingresá un email válido.");
+    return;
+  }
+
+  if (normalizedEmail === (accountEmail || "").trim().toLowerCase()) {
+    setEmailError("El nuevo email debe ser diferente al actual.");
+    return;
+  }
+
+  setEmailSaving(true);
+
+  const { data, error: emailUpdateError } = await supabase.auth.updateUser(
+  { email: normalizedEmail,},
+  {emailRedirectTo: `${window.location.origin}/admin/login`,}
+);
+
+  setEmailSaving(false);
+
+  if (emailUpdateError) {
+    console.error("Email update error:", emailUpdateError);
+    setEmailError(
+      emailUpdateError.message || "No se pudo actualizar el email."
+    );
+    return;
+  }
+
+  setEmailMessage(
+    "Solicitud enviada. Revisá tu correo para confirmar el cambio de email."
+  );
+
+  if (data.user?.email) {
+    setAccountEmail(data.user.email);
+  }
+}
 
   async function changePassword() {
     setPasswordError("");
@@ -852,7 +857,7 @@ export default function ConfiguracionPage() {
       setError("No se pudo cerrar la sesión.");
       return;
     }
-    window.location.href = "/login";
+    window.location.href = "/admin/login";
   }
 
   function discardChanges() {
