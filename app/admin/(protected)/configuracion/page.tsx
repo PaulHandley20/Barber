@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
   Bell,
   ImagePlus,
@@ -861,7 +861,7 @@ export default function ConfiguracionPage() {
 
   if (loading) {
     return (
-      <main className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen text-white`}>
+      <main className={`${manrope.variable} ${sora.variable} ${dataFont.variable} min-h-screen text-white`}>
         <div className="flex min-h-screen items-center justify-center">
           <div className="panel-surface flex items-center gap-3 rounded-[14px] px-5 py-4">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-[#FF5A00]" />
@@ -876,7 +876,7 @@ export default function ConfiguracionPage() {
 
   if (!settings) {
     return (
-      <main className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen p-6 text-white`}>
+      <main className={`${manrope.variable} ${sora.variable} ${dataFont.variable} min-h-screen p-6 text-white`}>
         <div className="mx-auto max-w-[1680px] rounded-[16px] border border-red-500/20 bg-red-500/[0.05] p-6">
           <div className="display text-[18px] font-semibold">
             Configuración no disponible
@@ -891,7 +891,7 @@ export default function ConfiguracionPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-config min-h-screen text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-config min-h-screen text-white`}
     >
       <style jsx global>{`
         .barberos-config {
@@ -915,7 +915,7 @@ export default function ConfiguracionPage() {
           font-family: var(--font-barberos-display), Sora, sans-serif;
         }
         .barberos-config .data {
-          font-family: var(--font-barberos-data), "DM Mono", monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
         }
         .barberos-config .panel-surface {
           position: relative;

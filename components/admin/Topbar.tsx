@@ -486,31 +486,10 @@ export default function Topbar() {
           ? "lg:left-[76px]"
           : "lg:left-[240px]",
         scrolled
-          ? "bg-[#050505]/65 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,.28)]"
+          ? "bg-[#08090a]/70 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,.28)]"
           : "bg-transparent",
       ].join(" ")}
     >
-      {/* ========================================================
-          SUBTLE ORANGE ATMOSPHERE
-      ======================================================== */}
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div
-          className="
-            absolute
-            right-[8%]
-            top-[-260px]
-            h-[420px]
-            w-[600px]
-            rounded-full
-            bg-[radial-gradient(ellipse,rgba(255,90,0,0.065)_0%,rgba(255,90,0,0.025)_35%,transparent_72%)]
-          "
-        />
-      </div>
-
       {/* ========================================================
           CONTENT
       ======================================================== */}

@@ -167,3 +167,56 @@
     grid-column: span 2;
   }
 }
+
+/* ---------------------------------------------------------
+   Hover sobrio en tarjetas
+   ---------------------------------------------------------
+   Cada sección tenía su propio "spotlight" naranja que aparecía
+   al pasar el mouse por una tarjeta (y algunas un brillo fijo en
+   la esquina). Se quitan todos: las tarjetas son planas y al
+   pasar el mouse solo se aclara apenas el borde, igual en todo
+   el panel.
+   --------------------------------------------------------- */
+.admin-shell .panel::before,
+.admin-shell .panel::after,
+.admin-shell .panel-surface::before,
+.admin-shell .panel-surface::after,
+.admin-shell .metric-card::before,
+.admin-shell .metric-card::after {
+  content: none !important;
+}
+
+.admin-shell .panel:hover,
+.admin-shell .panel-surface:hover,
+.admin-shell .panel-hover:hover,
+.admin-shell .metric-card:hover,
+.admin-shell .appointment-card:hover {
+  border-color: rgba(255, 255, 255, 0.11) !important;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Filas: hover neutro, sin degradé naranja. */
+.admin-shell .interactive-row:hover,
+.admin-shell .customer-row:not(.customer-row-selected):hover,
+.admin-shell .service-row:hover,
+.admin-shell .flow-row:hover {
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+/* ---------------------------------------------------------
+   Fondo único (AdminBackdrop). Las secciones ya no pintan su
+   propio brillo ni grilla: todas se ven sobre el mismo fondo.
+   --------------------------------------------------------- */
+.admin-shell .barberos-dashboard,
+.admin-shell .barberos-services,
+.admin-shell .barberos-config,
+.admin-shell .barberos-page,
+.admin-shell .clientes-shell {
+  background: transparent !important;
+}
+
+.admin-shell .dashboard-grid-bg {
+  display: none;
+}

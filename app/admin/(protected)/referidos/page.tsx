@@ -10,14 +10,14 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import type { ReactNode } from "react";
 
 
 export default function ReferidosPage() {
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-white`}
     >
       <style jsx global>{`
         .barberos-dashboard {
@@ -189,7 +189,7 @@ export default function ReferidosPage() {
 
         .accent-number {
           color: #ff6a18;
-          font-family: var(--font-barberos-data), monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-size: 9px;
           letter-spacing: .08em;
         }

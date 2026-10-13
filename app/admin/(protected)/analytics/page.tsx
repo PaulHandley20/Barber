@@ -894,7 +894,7 @@ export default function AnalyticsPage() {
           --quiet:rgba(255,255,255,.30);
           --orange:#ff5a00;
           --orange-bright:#ff7a22;
-          font-family:Manrope,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+          font-family:var(--font-barberos-ui),ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
           font-feature-settings:"kern" 1,"liga" 1,"calt" 1;
           text-rendering:optimizeLegibility;
           -webkit-font-smoothing:antialiased;
@@ -910,17 +910,17 @@ export default function AnalyticsPage() {
         .barberos-dashboard h2,
         .barberos-dashboard h3,
         .barberos-dashboard h4 {
-          font-family:Sora,Manrope,ui-sans-serif,system-ui,sans-serif;
+          font-family:var(--font-barberos-display),ui-sans-serif,system-ui,sans-serif;
           font-feature-settings:"kern" 1,"liga" 1;
         }
 
         .barberos-dashboard .data {
-          font-family:"DM Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+          font-family:var(--font-barberos-data),Sora,sans-serif;
           font-variant-numeric:tabular-nums;
         }
 
         .barberos-dashboard .display {
-          font-family:Sora,Manrope,ui-sans-serif,system-ui,sans-serif;
+          font-family:var(--font-barberos-display),ui-sans-serif,system-ui,sans-serif;
         }
 
         .barberos-dashboard .panel-surface {

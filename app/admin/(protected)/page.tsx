@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
   ArrowLeft,
   ArrowRight,
@@ -1071,7 +1071,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <main
-        className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-white`}
+        className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-white`}
       >
         <div className="flex min-h-screen items-center justify-center">
           <div className="panel-surface flex items-center gap-3 rounded-2xl px-6 py-4 text-[13px] text-white/70">
@@ -1085,7 +1085,7 @@ export default function AdminDashboardPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
     >
       <style jsx global>{`
         .barberos-dashboard {
@@ -1121,7 +1121,7 @@ export default function AdminDashboardPage() {
         }
 
         .barberos-dashboard .data {
-          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-variant-numeric: tabular-nums lining-nums;
         }
 

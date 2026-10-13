@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 
 
 
@@ -471,7 +471,7 @@ export default function FidelizacionPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
     >
       <style jsx global>{`
         .barberos-dashboard {
@@ -501,7 +501,7 @@ export default function FidelizacionPage() {
           text-wrap:balance;
         }
         .barberos-dashboard .data{
-          font-family:var(--font-barberos-data),DM Mono,monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-variant-numeric:tabular-nums lining-nums;
         }
         .barberos-dashboard .page-display{

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -27,7 +28,7 @@ import {
   ShieldCheck,
   Pencil,
 } from "lucide-react";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import { createClient } from "@/lib/supabase/client";
 
 
@@ -694,7 +695,7 @@ export default function ClientesPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} clientes-shell barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
+    <div className={`${manrope.variable} ${sora.variable} ${dataFont.variable} clientes-shell barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
       <style jsx global>{`
         .barberos-dashboard{
           --ink:#070707;
@@ -1067,23 +1068,16 @@ export default function ClientesPage() {
                 key={item.label}
                 className="metric-card panel-surface clientes-panel clientes-kpi group rounded-[16px] border p-5 transition"
               >
-                <div className="flex items-center justify-between">
-                  <span className="meta-label text-white/82">
-                    {item.label}
-                  </span>
-                  <Icon
-                    size={15}
-                    className="text-[#A9A9A5] transition group-hover:text-[#FF6A18]"
-                  />
+                <div className="flex items-center gap-2">
+                  <Icon size={15} strokeWidth={1.7} className="text-white/42" />
+                  <span className="meta-label text-white/68">{item.label}</span>
                 </div>
 
-                <div className="mt-4 flex items-end justify-between">
-                  <span className="numeric-value kpi-value text-white">
-                    {item.value.toLocaleString("es-AR")}
-                  </span>
+                <div className="kpi-value mt-7 truncate text-[30px] font-semibold leading-none text-white">
+                  {item.value.toLocaleString("es-AR")}
                 </div>
 
-                <p className="mt-1.5 text-[11px] leading-4 text-white/58">{item.meta}</p>
+                <p className="mt-3 truncate text-[12px] leading-5 text-white/60">{item.meta}</p>
               </div>
             );
           })}
@@ -1092,40 +1086,43 @@ export default function ClientesPage() {
         {/* INSIGHT STRIP */}
         <section className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr]">
           <div className="panel-surface clientes-panel rounded-[16px] border p-5">
-            <div className="flex items-center gap-2 clientes-meta text-[10px] font-semibold uppercase tracking-[.16em] text-[#ff6a18]">
+            <div className="meta-label flex items-center gap-2 text-[#ff6a18]">
               <TrendingUp size={14} className="text-[#FF6A18]" />
               Valor medio
             </div>
-            <p className="mt-3 text-[23px] font-semibold tracking-[-0.025em] text-white">
-              ${Math.round(averageCustomerValue).toLocaleString("es-AR")}
+            <p className="kpi-value mt-5 text-[30px] font-semibold leading-none text-white">
+              {formatMoney(averageCustomerValue)}
             </p>
-            <p className="mt-1 text-[12px] text-[#D0D0CC]">
+            <p className="mt-3 text-[12px] leading-5 text-white/60">
               facturación histórica / clientes
             </p>
           </div>
 
           <div className="panel-surface clientes-panel rounded-[16px] border p-5">
-            <div className="flex items-center gap-2 clientes-meta text-[10px] font-semibold uppercase tracking-[.16em] text-[#ff6a18]">
+            <div className="meta-label flex items-center gap-2 text-[#ff6a18]">
               <History size={14} />
               Actividad
             </div>
-            <p className="mt-3 text-[23px] font-semibold tracking-[-0.025em] text-white">
+            <p className="kpi-value mt-5 text-[30px] font-semibold leading-none text-white">
               {totalVisits.toLocaleString("es-AR")}
             </p>
-            <p className="mt-1 text-[12px] text-[#D0D0CC]">
+            <p className="mt-3 text-[12px] leading-5 text-white/60">
               visitas no canceladas registradas
             </p>
           </div>
 
           <div className="panel-surface clientes-panel clientes-opportunity rounded-[16px] border border-orange-500/[.16] bg-orange-500/[.035] p-5">
-            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.13em] text-[#FF9A66]">
+            <div className="meta-label flex items-center gap-2 text-[#ff6a18]">
               <Sparkles size={14} />
-              Oportunidad GESTIÓN
+              Oportunidad
             </div>
-            <p className="mt-3 text-[15px] font-medium text-white">
-              {riskCustomers + inactiveCustomers} clientes requieren atención
+            <p className="kpi-value mt-5 text-[30px] font-semibold leading-none text-white">
+              {riskCustomers + inactiveCustomers}
             </p>
-            <p className="mt-1 text-[12px] text-[#D2B09B]">
+            <p className="mt-3 text-[12px] leading-5 text-white/60">
+              clientes requieren atención
+            </p>
+            <p className="text-[12px] leading-5 text-white/45">
               revisar recuperación y reactivación
             </p>
           </div>
@@ -1135,7 +1132,7 @@ export default function ClientesPage() {
         <section className="panel mb-5 rounded-[16px] p-3">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[11px] border border-white/[.07] bg-[#0b0b0b] px-4 py-2.5">
-              <Search size={17} className="shrink-0 text-[#BDBDB9]" />
+              <Search size={17} className="shrink-0 text-white/60" />
 
               <input
                 type="text"
@@ -1149,7 +1146,7 @@ export default function ClientesPage() {
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="text-[#C2C2BE] transition hover:text-white"
+                  className="text-white/60 transition hover:text-white"
                 >
                   <X size={15} />
                 </button>
@@ -1168,7 +1165,7 @@ export default function ClientesPage() {
                     className={`focus-ring whitespace-nowrap rounded-lg px-3 py-2 text-[12px] font-semibold transition ${
                       active
                         ? "segment-active"
-                        : "text-[#C8C8C4] hover:bg-white/[0.045] hover:text-white"
+                        : "text-white/60 hover:bg-white/[0.045] hover:text-white"
                     }`}
                   >
                     {item.label}
@@ -1188,12 +1185,12 @@ export default function ClientesPage() {
                 <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-white">
                   Cliente 360
                 </h2>
-                <p className="mt-1 text-[12px] text-[#D0D0CC]">
+                <p className="mt-3 text-[12px] leading-5 text-white/60">
                   {filteredCustomers.length} de {totalCustomers} clientes
                 </p>
               </div>
 
-              <div className="rounded-lg border border-white/[0.075] bg-white/[0.025] px-3 py-1.5 text-[12px] text-[#D8D8D4]">
+              <div className="rounded-lg border border-white/[0.075] bg-white/[0.025] px-3 py-1.5 text-[12px] text-white/72">
                 {SEGMENTS.find((item) => item.id === segment)?.description}
               </div>
             </div>
@@ -1221,18 +1218,18 @@ export default function ClientesPage() {
             ) : filteredCustomers.length === 0 ? (
               <div className="flex min-h-[520px] flex-col items-center justify-center px-6 text-center">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.075] bg-[#0B0B0B]">
-                  <Search size={19} className="text-[#C2C2BE]" />
+                  <Search size={19} className="text-white/60" />
                 </div>
                 <h3 className="text-sm font-medium text-white">
                   No encontramos clientes
                 </h3>
-                <p className="mt-1 max-w-sm text-xs leading-5 text-[#D0D0CC]">
+                <p className="mt-1 max-w-sm text-xs leading-5 text-white/72">
                   Probá con otro término de búsqueda o cambiá el segmento.
                 </p>
               </div>
             ) : (
               <>
-                <div className="hidden grid-cols-[minmax(190px,1.5fr)_72px_104px_112px_92px_18px] gap-3 border-b border-white/[0.05] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC] lg:grid">
+                <div className="hidden grid-cols-[minmax(190px,1.5fr)_72px_104px_112px_92px_18px] gap-3 border-b border-white/[0.05] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72 lg:grid">
                   <span>Cliente</span>
                   <span>Visitas</span>
                   <span>Valor</span>
@@ -1262,7 +1259,7 @@ export default function ClientesPage() {
                         }`}
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="customer-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#0B0B0B] text-[13px] font-semibold text-[#F0F0ED] transition">
+                          <div className="customer-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#0B0B0B] text-[13px] font-semibold text-white/88 transition">
                             {getInitials(customer.full_name)}
                           </div>
 
@@ -1270,7 +1267,7 @@ export default function ClientesPage() {
                             <div className="truncate text-[14px] font-semibold text-white">
                               {customer.full_name}
                             </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[#D0D0CC]">
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-white/72">
                               <Phone size={10} />
                               <span>{customer.phone}</span>
                               {privacyById[customer.id]?.pending_email && (
@@ -1282,15 +1279,15 @@ export default function ClientesPage() {
                           </div>
                         </div>
 
-                        <div className="hidden items-center text-[14px] font-medium text-[#E4E4E1] tabular-nums lg:flex">
+                        <div className="hidden items-center text-[14px] font-medium text-white/88 tabular-nums lg:flex">
                           {customer.visits}
                         </div>
 
                         <div className="hidden items-center text-[14px] font-medium text-white tabular-nums lg:flex">
-                          ${customer.spent.toLocaleString("es-AR")}
+                          {formatMoney(customer.spent)}
                         </div>
 
-                        <div className="hidden items-center text-[12px] text-[#C0C0BC] lg:flex">
+                        <div className="hidden items-center text-[12px] text-white/60 lg:flex">
                           {formatDate(customer.lastVisit)}
                         </div>
 
@@ -1302,10 +1299,10 @@ export default function ClientesPage() {
                                 : customerSegment === "risk"
                                   ? "border-amber-400/20 bg-amber-400/[0.08] text-amber-300"
                                   : customerSegment === "inactive"
-                                    ? "border-white/10 bg-white/[0.04] text-[#B5B5B1]"
+                                    ? "border-white/10 bg-white/[0.04] text-white/60"
                                     : customerSegment === "new"
                                       ? "border-emerald-400/20 bg-emerald-400/[0.07] text-emerald-300"
-                                      : "border-white/10 bg-white/[0.04] text-[#D7D7D4]"
+                                      : "border-white/10 bg-white/[0.04] text-white/72"
                             }`}
                           >
                             {SEGMENTS.find((item) => item.id === customerSegment)
@@ -1316,7 +1313,7 @@ export default function ClientesPage() {
                         <div className="flex items-center justify-end">
                           <ChevronRight
                             size={16}
-                            className={`text-[#7F7F7B] transition ${
+                            className={`text-white/45 transition ${
                               isSelected
                                 ? "text-[#FF6A18]"
                                 : "group-hover:text-white"
@@ -1324,10 +1321,10 @@ export default function ClientesPage() {
                           />
                         </div>
 
-                        <div className="col-span-2 flex items-center gap-4 border-t border-white/[0.04] pt-3 text-[12px] text-[#D0D0CC] lg:hidden">
+                        <div className="col-span-2 flex items-center gap-4 border-t border-white/[0.04] pt-3 text-[12px] text-white/72 lg:hidden">
                           <span>{customer.visits} visitas</span>
                           <span>
-                            ${customer.spent.toLocaleString("es-AR")}
+                            {formatMoney(customer.spent)}
                           </span>
                           <span className="truncate">
                             {formatDate(customer.lastVisit)}
@@ -1351,12 +1348,12 @@ export default function ClientesPage() {
             {!selectedCustomer ? (
               <div className="flex min-h-[520px] flex-col items-center justify-center px-8 text-center">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0B0B0B]">
-                  <UserRound size={21} className="text-[#9E9E9A]" />
+                  <UserRound size={21} className="text-white/45" />
                 </div>
                 <h3 className="text-[14px] font-semibold text-white">
                   Cliente 360
                 </h3>
-                <p className="mt-2 max-w-[270px] text-[13px] leading-5 text-[#D8D8D4]">
+                <p className="mt-2 max-w-[270px] text-[13px] leading-5 text-white/72">
                   Seleccioná un cliente para consultar actividad, valor,
                   historial y oportunidades.
                 </p>
@@ -1375,7 +1372,7 @@ export default function ClientesPage() {
                         <h3 className="truncate text-[17px] font-semibold text-white">
                           {selectedCustomer.full_name}
                         </h3>
-                        <p className="mt-1 text-[12px] text-[#DADAD7]">
+                        <p className="mt-1 text-[12px] text-white/72">
                           Cliente desde{" "}
                           {formatMemberSince(selectedCustomer.created_at)}
                         </p>
@@ -1386,7 +1383,7 @@ export default function ClientesPage() {
                       <button
                         type="button"
                         onClick={() => setShowActions((value) => !value)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.075] text-[#C2C2BE] transition hover:bg-white/[0.05] hover:text-white"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.075] text-white/60 transition hover:bg-white/[0.05] hover:text-white"
                       >
                         <MoreHorizontal size={16} />
                       </button>
@@ -1396,7 +1393,7 @@ export default function ClientesPage() {
                           <button
                             type="button"
                             onClick={openEditCustomer}
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06] hover:text-white"
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
                           >
                             <Pencil size={13} />
                             Editar cliente
@@ -1404,7 +1401,7 @@ export default function ClientesPage() {
                           <button
                             type="button"
                             onClick={goToAppointment}
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-[#DADAD7] transition hover:bg-white/[0.06] hover:text-white"
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-white/72 transition hover:bg-white/[0.06] hover:text-white"
                           >
                             <CalendarDays size={13} />
                             Ver agenda
@@ -1432,7 +1429,7 @@ export default function ClientesPage() {
                     )}
 
                     {selectedCustomer.favoriteService && (
-                      <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 text-[11px] font-medium text-[#C9C9C6]">
+                      <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 text-[11px] font-medium text-white/60">
                         {selectedCustomer.favoriteService}
                       </span>
                     )}
@@ -1444,7 +1441,7 @@ export default function ClientesPage() {
                   <button
                     type="button"
                     onClick={() => callCustomer(selectedCustomer.phone)}
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-[#E4E4E1] transition hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-white"
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-white/88 transition hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-white"
                   >
                     <Phone size={14} />
                     Llamar
@@ -1453,7 +1450,7 @@ export default function ClientesPage() {
                   <button
                     type="button"
                     onClick={() => whatsappCustomer(selectedCustomer.phone)}
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-[#E4E4E1] transition hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-white"
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-white/88 transition hover:border-white/[0.14] hover:bg-white/[0.035] hover:text-white"
                   >
                     <MessageCircle size={14} />
                     WhatsApp
@@ -1462,7 +1459,7 @@ export default function ClientesPage() {
                   <button
                     type="button"
                     onClick={goToAppointment}
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-[#E4E4E1] transition hover:border-[#FF5A00]/25 hover:bg-[#FF5A00]/[0.035] hover:text-white"
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.075] bg-[#0B0B0B] px-2 py-3 text-[11px] font-medium text-white/88 transition hover:border-[#FF5A00]/25 hover:bg-[#FF5A00]/[0.035] hover:text-white"
                   >
                     <CalendarDays size={14} />
                     Turno
@@ -1471,22 +1468,22 @@ export default function ClientesPage() {
 
                 {/* CONTACT */}
                 <div className="border-b border-white/[0.075] p-6">
-                  <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
+                  <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/88">
                     Contacto
                   </p>
 
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <Phone size={14} className="text-[#8F8F8B]" />
-                      <span className="text-[13px] text-[#E1E1DE]">
+                      <Phone size={14} className="text-white/45" />
+                      <span className="text-[13px] text-white/88">
                         {selectedCustomer.phone}
                       </span>
                     </div>
 
                     {selectedCustomer.email && (
                       <div className="flex items-center gap-3">
-                        <Mail size={14} className="text-[#8F8F8B]" />
-                        <span className="truncate text-[13px] text-[#E1E1DE]">
+                        <Mail size={14} className="text-white/45" />
+                        <span className="truncate text-[13px] text-white/88">
                           {selectedCustomer.email}
                         </span>
                       </div>
@@ -1503,15 +1500,15 @@ export default function ClientesPage() {
                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300">
                               Email pendiente de verificar
                             </p>
-                            <p className="mt-2 break-all text-[13px] text-[#F0F0ED]">
+                            <p className="mt-2 break-all text-[13px] text-white/88">
                               {privacy.pending_email}
                             </p>
                             {privacy.pending_full_name && (
-                              <p className="mt-1 text-[12px] text-[#C9C9C5]">
-                                Reservó como: <span className="text-[#F0F0ED]">{privacy.pending_full_name}</span>
+                              <p className="mt-1 text-[12px] text-white/60">
+                                Reservó como: <span className="text-white/88">{privacy.pending_full_name}</span>
                               </p>
                             )}
-                            <p className="mt-2 text-[11px] leading-5 text-[#C9C9C5]">
+                            <p className="mt-2 text-[11px] leading-5 text-white/60">
                               Alguien reservó por la web con el teléfono de este
                               cliente y un email nuevo. Confirmá que es la misma
                               persona (en el local o escribiéndole al teléfono
@@ -1531,7 +1528,7 @@ export default function ClientesPage() {
                                 type="button"
                                 disabled={privacySaving}
                                 onClick={() => resolvePendingEmail(selectedCustomer.id, false)}
-                                className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-[11px] font-semibold text-[#D8D8D4] transition hover:bg-white/[0.05] disabled:opacity-50"
+                                className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-[11px] font-semibold text-white/72 transition hover:bg-white/[0.05] disabled:opacity-50"
                               >
                                 Rechazar
                               </button>
@@ -1541,8 +1538,8 @@ export default function ClientesPage() {
 
                         <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-[#0B0B0B] px-4 py-3">
                           <div>
-                            <p className="text-[12px] text-[#D8D8D4]">Novedades y promociones</p>
-                            <p className="mt-0.5 text-[11px] text-[#9A9A96]">
+                            <p className="text-[12px] text-white/72">Novedades y promociones</p>
+                            <p className="mt-0.5 text-[11px] text-white/45">
                               {privacy?.marketing_opt_in ? "Acepta recibirlas" : "No acepta"}
                               {privacy?.privacy_accepted_at
                                 ? ` · Política aceptada ${formatDate(privacy.privacy_accepted_at)}`
@@ -1554,7 +1551,7 @@ export default function ClientesPage() {
                               type="button"
                               disabled={privacySaving}
                               onClick={() => toggleMarketing(selectedCustomer.id, false)}
-                              className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-[#D8D8D4] transition hover:bg-white/[0.05] disabled:opacity-50"
+                              className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/72 transition hover:bg-white/[0.05] disabled:opacity-50"
                             >
                               Dar de baja
                             </button>
@@ -1568,7 +1565,7 @@ export default function ClientesPage() {
                 {/* VALUE */}
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/88">
                       Valor del cliente
                     </p>
                     <TrendingUp size={14} className="text-[#FF6A18]" />
@@ -1576,34 +1573,33 @@ export default function ClientesPage() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
-                      <p className="text-[12px] text-[#D8D8D4]">Visitas</p>
+                      <p className="text-[12px] text-white/72">Visitas</p>
                       <p className="mt-2 text-[24px] font-semibold text-white tabular-nums">
                         {selectedCustomer.visits}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
-                      <p className="text-[12px] text-[#D8D8D4]">Gasto</p>
+                      <p className="text-[12px] text-white/72">Gasto</p>
                       <p className="mt-2 truncate text-[18px] font-semibold text-white tabular-nums">
-                        ${selectedCustomer.spent.toLocaleString("es-AR")}
+                        {formatMoney(selectedCustomer.spent)}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-2 rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-[12px] text-[#D8D8D4]">
+                      <p className="text-[12px] text-white/72">
                         Ticket promedio
                       </p>
                       <span className="text-[10px] font-semibold text-[#FF9A66]">LTV</span>
                     </div>
                     <p className="mt-2 text-[19px] font-semibold text-white tabular-nums">
-                      $
-                      {Math.round(
+                      {formatMoney(
                         selectedCustomer.visits
                           ? selectedCustomer.spent / selectedCustomer.visits
                           : 0
-                      ).toLocaleString("es-AR")}
+                      )}
                     </p>
                   </div>
                 </div>
@@ -1611,16 +1607,16 @@ export default function ClientesPage() {
                 {/* ACTIVITY */}
                 <div className="border-b border-white/[0.075] p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/88">
                       Actividad reciente
                     </p>
-                    <span className="text-[12px] text-[#D8D8D4]">
+                    <span className="text-[12px] text-white/72">
                       {selectedCustomerAppointments.length} turnos
                     </span>
                   </div>
 
                   {selectedCustomerAppointments.length === 0 ? (
-                    <p className="text-[13px] leading-5 text-[#D8D8D4]">
+                    <p className="text-[13px] leading-5 text-white/72">
                       Todavía no hay visitas registradas.
                     </p>
                   ) : (
@@ -1632,25 +1628,22 @@ export default function ClientesPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-[13px] font-semibold text-[#F0F0ED]">
+                              <p className="truncate text-[13px] font-semibold text-white/88">
                                 {appointment.service?.name ?? "Servicio"}
                               </p>
-                              <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[#D8D8D4]">
+                              <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-white/72">
                                 <Clock3 size={10} />
                                 {formatDateTime(appointment.start_at)}
                               </div>
                             </div>
 
                             <span className="shrink-0 text-[12px] font-semibold text-white tabular-nums">
-                              $
-                              {Number(
-                                appointment.service?.price ?? 0
-                              ).toLocaleString("es-AR")}
+                              {formatMoney(Number(appointment.service?.price ?? 0))}
                             </span>
                           </div>
 
                           {appointment.notes && (
-                            <p className="mt-3 border-t border-white/[0.05] pt-3 text-[12px] leading-5 text-[#D8D8D4]">
+                            <p className="mt-3 border-t border-white/[0.05] pt-3 text-[12px] leading-5 text-white/72">
                               {appointment.notes}
                             </p>
                           )}
@@ -1663,10 +1656,10 @@ export default function ClientesPage() {
                 {/* NOTES */}
                 {selectedCustomer.notes && (
                   <div className="border-b border-white/[0.075] p-6">
-                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E0E0DC]">
+                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/88">
                       Observaciones
                     </p>
-                    <p className="rounded-xl border border-white/[0.065] bg-[#0B0B0B] p-4 text-[12px] leading-5 text-[#D8D8D4]">
+                    <p className="rounded-xl border border-white/[0.065] bg-[#0B0B0B] p-4 text-[12px] leading-5 text-white/72">
                       {selectedCustomer.notes}
                     </p>
                   </div>
@@ -1677,7 +1670,7 @@ export default function ClientesPage() {
                   <button
                     type="button"
                     onClick={openDeleteCustomer}
-                    className="flex items-center gap-1.5 text-[12px] font-medium text-[#D0D0CC] transition hover:text-red-300"
+                    className="flex items-center gap-1.5 text-[12px] font-medium text-white/72 transition hover:text-red-300"
                   >
                     <Trash2 size={13} />
                     Eliminar perfil
@@ -1712,7 +1705,7 @@ export default function ClientesPage() {
                 <h2 className="mt-1 text-[19px] font-semibold text-white">
                   Nuevo cliente
                 </h2>
-                <p className="mt-1 text-[12px] text-[#D0D0CC]">
+                <p className="mt-3 text-[12px] leading-5 text-white/60">
                   Crear un perfil dentro de la base de clientes.
                 </p>
               </div>
@@ -1720,7 +1713,7 @@ export default function ClientesPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="text-[#D0D0CC] transition hover:text-white"
+                className="text-white/72 transition hover:text-white"
               >
                 <X size={18} />
               </button>
@@ -1748,7 +1741,7 @@ export default function ClientesPage() {
                 },
               ].map((field) => (
                 <label key={field.key} className="block">
-                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC]">
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72">
                     {field.label} {field.required && "*"}
                   </span>
                   <input
@@ -1760,13 +1753,13 @@ export default function ClientesPage() {
                       }))
                     }
                     placeholder={field.placeholder}
-                    className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[13px] text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
+                    className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[13px] text-white outline-none transition placeholder:text-white/45 focus:border-[#FF5A00]/45"
                   />
                 </label>
               ))}
 
               <label className="block">
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC]">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72">
                   Observaciones
                 </span>
                 <textarea
@@ -1779,7 +1772,7 @@ export default function ClientesPage() {
                   }
                   rows={4}
                   placeholder="Preferencias, información relevante..."
-                  className="w-full resize-none rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[13px] leading-5 text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
+                  className="w-full resize-none rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[13px] leading-5 text-white outline-none transition placeholder:text-white/45 focus:border-[#FF5A00]/45"
                 />
               </label>
 
@@ -1794,7 +1787,7 @@ export default function ClientesPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-[#C9C9C6] transition hover:bg-white/[0.04]"
+                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-white/60 transition hover:bg-white/[0.04]"
               >
                 Cancelar
               </button>
@@ -1832,7 +1825,7 @@ export default function ClientesPage() {
                 <h2 className="mt-1 text-[20px] font-semibold text-white">
                   Editar cliente
                 </h2>
-                <p className="mt-1 text-[13px] text-[#D0D0CC]">
+                <p className="mt-1 text-[13px] text-white/72">
                   Actualizá la información del perfil.
                 </p>
               </div>
@@ -1843,7 +1836,7 @@ export default function ClientesPage() {
                   setShowEdit(false);
                   setEditingCustomer(null);
                 }}
-                className="text-[#D0D0CC] transition hover:text-white disabled:opacity-50"
+                className="text-white/72 transition hover:text-white disabled:opacity-50"
               >
                 <X size={18} />
               </button>
@@ -1851,7 +1844,7 @@ export default function ClientesPage() {
 
             <div className="space-y-4 p-6">
               <label className="block">
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72">
                   Nombre completo *
                 </span>
                 <input
@@ -1863,12 +1856,12 @@ export default function ClientesPage() {
                         : current
                     )
                   }
-                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition placeholder:text-[#888884] focus:border-[#FF5A00]/45"
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition placeholder:text-white/45 focus:border-[#FF5A00]/45"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72">
                   Teléfono *
                 </span>
                 <input
@@ -1885,7 +1878,7 @@ export default function ClientesPage() {
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72">
                   Email
                 </span>
                 <input
@@ -1903,7 +1896,7 @@ export default function ClientesPage() {
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72">
                   Observaciones
                 </span>
                 <textarea
@@ -1935,7 +1928,7 @@ export default function ClientesPage() {
                   setShowEdit(false);
                   setEditingCustomer(null);
                 }}
-                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-[#D0D0CC] transition hover:bg-white/[0.04] disabled:opacity-50"
+                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-white/72 transition hover:bg-white/[0.04] disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -1978,7 +1971,7 @@ export default function ClientesPage() {
                 Eliminar perfil
               </h2>
 
-              <p className="mt-2 text-[13px] leading-5 text-[#D0D0CC]">
+              <p className="mt-2 text-[13px] leading-5 text-white/72">
                 Vas a quitar de la base activa el perfil de{" "}
                 <span className="font-semibold text-white">
                   {selectedCustomer.full_name}
@@ -1995,7 +1988,7 @@ export default function ClientesPage() {
 
             <div className="space-y-4 p-6">
               <label className="block">
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D8D8D4]">
+                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/72">
                   Contraseña del administrador
                 </span>
                 <input
@@ -2012,7 +2005,7 @@ export default function ClientesPage() {
                     }
                   }}
                   placeholder="Ingresá tu contraseña"
-                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition placeholder:text-[#777773] focus:border-red-400/40 focus:ring-2 focus:ring-red-400/[0.07]"
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#0B0B0B] px-4 py-3 text-[14px] text-white outline-none transition placeholder:text-white/45 focus:border-red-400/40 focus:ring-2 focus:ring-red-400/[0.07]"
                 />
               </label>
 
@@ -2032,7 +2025,7 @@ export default function ClientesPage() {
                   setDeletePassword("");
                   setDeleteError("");
                 }}
-                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-[#D0D0CC] transition hover:bg-white/[0.04] disabled:opacity-50"
+                className="rounded-xl border border-white/[0.09] px-4 py-2.5 text-[12px] font-semibold text-white/72 transition hover:bg-white/[0.04] disabled:opacity-50"
               >
                 Cancelar
               </button>

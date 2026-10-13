@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -22,7 +23,7 @@ import {
   Sparkles,
   Pencil,
 } from "lucide-react";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import { createClient } from "@/lib/supabase/client";
 import DateTimeField from "@/components/admin/ui/DateTimeField";
 
@@ -525,7 +526,7 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
+    <div className={`${manrope.variable} ${sora.variable} ${dataFont.variable} min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
       <style jsx global>{`
         .agenda-shell {
           --ink: #070707; --surface: #0b0b0b; --surface-2: #0f0f0f;
@@ -535,7 +536,7 @@ export default function TurnosPage() {
           background: radial-gradient(720px 360px at 88% -8%, rgba(255,90,0,.045), transparent 70%), radial-gradient(520px 320px at 8% 14%, rgba(255,255,255,.010), transparent 74%), transparent;
         }
         .agenda-display { font-family: var(--font-barberos-display), Sora, sans-serif; }
-        .agenda-data { font-family: var(--font-barberos-data), DM Mono, monospace; font-variant-numeric: tabular-nums; }
+        .agenda-data { font-family: var(--font-barberos-data), Sora, sans-serif; font-variant-numeric: tabular-nums; }
         .panel {
           position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 16px;
           background: linear-gradient(180deg, rgba(255,255,255,.018), transparent 30%), rgba(11,11,11,.88);
@@ -619,7 +620,7 @@ export default function TurnosPage() {
             <Metric label="Turnos" value={stats.total.toString()} detail={viewMode === "day" ? "en el día" : "en la semana"} icon={<CalendarDays size={15} />} />
             <Metric label="Confirmados" value={stats.confirmed.toString()} detail={`${stats.pending} pendientes`} icon={<CircleCheck size={15} />} accent />
             <Metric label="Completados" value={stats.completed.toString()} detail="atendidos" icon={<Check size={15} />} />
-            <Metric label="Ingresos estimados" value={`$${stats.revenue.toLocaleString("es-AR")}`} detail={`$${stats.completedRevenue.toLocaleString("es-AR")} realizados`} icon={<Scissors size={15} />} />
+            <Metric label="Ingresos estimados" value={formatMoney(stats.revenue)} detail={`${formatMoney(stats.completedRevenue)} realizados`} icon={<Scissors size={15} />} />
             <Metric label="Estado operativo" value={loading ? "—" : stats.total > 0 ? "Activo" : "Libre"} detail={stats.total > 0 ? "hay actividad" : "sin reservas"} icon={<Sparkles size={15} />} accent className="col-span-2 xl:col-span-1" />
           </section>
 
@@ -877,7 +878,7 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
           <Info label="Horario" value={`${formatTime(appointment.start_at)} — ${formatTime(appointment.end_at)}`} icon={<Clock3 size={12} />} />
           <Info label="Servicio" value={appointment.service?.name ?? "Servicio"} icon={<Scissors size={12} />} />
           <Info label="Barbero" value={appointment.barber?.name ?? "Sin asignar"} icon={<UserRound size={12} />} />
-          <Info label="Importe" value={`$${Number(appointment.service?.price ?? 0).toLocaleString("es-AR")}`} icon={<span className="text-[13px]">$</span>} />
+          <Info label="Importe" value={formatMoney(Number(appointment.service?.price ?? 0))} icon={<span className="text-[13px]">$</span>} />
         </div>
 
         {appointment.notes && <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Observaciones</p><p className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.018] p-3 text-xs leading-5 text-white/64">{appointment.notes}</p></div>}
@@ -917,7 +918,7 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
         <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
           <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><DateTimeField mode="datetime" value={startAt} onChange={(value) => { setStartAt(value); if (value && new Date(value).getTime() < Date.now()) setAttended(true); }} /></Field>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.075] bg-white/[0.015] px-3 py-3">
             <input type="checkbox" checked={attended} onChange={(e) => setAttended(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#ff5a00]" />
@@ -1026,7 +1027,7 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
             <Field label="Servicio" icon={<Scissors size={12} />}>
               <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field">
                 <option value="">Seleccionar servicio...</option>
-                {services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}
+                {services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}
               </select>
             </Field>
             <Field label="Barbero" icon={<UserRound size={12} />}>

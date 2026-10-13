@@ -1,14 +1,15 @@
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { Manrope, Sora } from "next/font/google";
 
 /*
   Tipografía única del panel (BarberOS).
   Antes cada sección cargaba su propia combinación (Manrope, Sora,
   Plus Jakarta, Space Grotesk…) y el panel se veía distinto según la
-  página. Ahora todo usa estas tres:
+  página. Ahora todo usa estas dos:
 
-  - Manrope → interfaz y textos         (--font-barberos-ui)
-  - Sora    → títulos y números grandes (--font-barberos-display)
-  - DM Mono → códigos y datos tabulares (--font-barberos-data)
+  - Manrope → interfaz y textos (--font-barberos-ui)
+  - Sora    → títulos y TODOS los números (--font-barberos-display y
+              --font-barberos-data). Horarios, precios, contadores y
+              métricas usan la misma letra que las tarjetas KPI.
 */
 export const manrope = Manrope({
   subsets: ["latin"],
@@ -22,11 +23,11 @@ export const sora = Sora({
   variable: "--font-barberos-display",
 });
 
-export const dmMono = DM_Mono({
+/* Mismo archivo que `sora`, expuesto con el nombre que usan los datos. */
+export const dataFont = Sora({
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500"],
   variable: "--font-barberos-data",
 });
 
-export const adminFontVariables = `${manrope.variable} ${sora.variable} ${dmMono.variable}`;
+export const adminFontVariables = `${manrope.variable} ${sora.variable} ${dataFont.variable}`;

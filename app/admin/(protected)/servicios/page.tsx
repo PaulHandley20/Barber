@@ -1,7 +1,8 @@
 "use client";
 
+import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
   Search,
   Plus,
@@ -60,7 +61,7 @@ function formatPrice(price: number, currency = "ARS") {
     })}`;
   }
 
-  return `$${Math.round(price).toLocaleString("es-AR")}`;
+  return formatMoney(price);
 }
 
 function formatCompactPrice(price: number, currency = "ARS") {
@@ -68,7 +69,7 @@ function formatCompactPrice(price: number, currency = "ARS") {
     return `US$ ${Math.round(price).toLocaleString("en-US")}`;
   }
 
-  return `$${Math.round(price).toLocaleString("es-AR")}`;
+  return formatMoney(price);
 }
 
 function formatDuration(minutes: number) {
@@ -172,7 +173,7 @@ function MiniRevenueChart({
       <BarChart
         height={180}
         seriesLabel="Ingresos"
-        formatValue={(value) => `$${value.toLocaleString("es-AR")}`}
+        formatValue={formatMoney}
         formatAxis={(value) => `$${compactNumber(value)}`}
         ariaLabel="Ingresos diarios del catálogo"
         data={values.map((value, index) => ({
@@ -799,7 +800,7 @@ export default function ServiciosPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-services min-h-screen text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-services min-h-screen text-white`}
     >
       <style jsx global>{`
         .barberos-services {
@@ -848,7 +849,7 @@ export default function ServiciosPage() {
         }
 
         .barberos-services .data {
-          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-variant-numeric: tabular-nums;
         }
 

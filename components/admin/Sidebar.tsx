@@ -118,7 +118,7 @@ export default function Sidebar() {
     <aside
       aria-label="Menú del panel"
       className={[
-        "fixed left-0 top-0 z-50 h-[100dvh] border-r border-white/[0.06] lg:z-40 lg:border-r-0",
+        "fixed left-0 top-0 z-50 h-[100dvh] border-r border-white/[0.06] lg:z-40",
         "transition-[width,transform] duration-300 ease-out",
         collapsed ? "w-[76px]" : "w-[264px] lg:w-[240px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
@@ -132,33 +132,9 @@ export default function Sidebar() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
       >
-        {/* Base */}
-        <div className="absolute inset-0 bg-[#050505]" />
-
-        {/* Orange atmospheric glow */}
-        <div
-          className="
-            absolute
-            -left-[170px]
-            top-[30%]
-            h-[520px]
-            w-[520px]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,90,0,0.055)_0%,rgba(255,90,0,0.018)_35%,transparent_70%)]
-          "
-        />
-
-        <div
-          className="
-            absolute
-            -bottom-[180px]
-            left-[15%]
-            h-[420px]
-            w-[420px]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,90,0,0.035)_0%,transparent_70%)]
-          "
-        />
+        {/* Semitransparente: deja ver los rayos del fondo del panel.
+            En celular (menú desplegable) es casi opaco para leerse bien. */}
+        <div className="absolute inset-0 bg-[#0a0b0d]/95 backdrop-blur-xl lg:bg-[#0a0b0d]/45 lg:backdrop-blur-none" />
       </div>
 
       {/* =========================================================

@@ -1,9 +1,10 @@
 // app/admin/equipo/page.tsx
 "use client";
 
+import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { manrope, sora, dmMono } from "@/components/admin/fonts";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -60,7 +61,7 @@ type BarberStats = Barber & {
 type Filter = "all" | "active" | "inactive";
 
 function money(value: number) {
-  return `$${Math.round(value).toLocaleString("es-AR")}`;
+  return formatMoney(value);
 }
 
 function initials(name: string) {
@@ -297,7 +298,7 @@ export default function EquipoPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-page min-h-screen text-[#f5f5f4]`}>
+    <div className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-page min-h-screen text-[#f5f5f4]`}>
       <style jsx global>{`
         .barberos-page {
           --line: rgba(255,255,255,.075);
@@ -312,7 +313,7 @@ export default function EquipoPage() {
         }
         .display { font-family: var(--font-barberos-display), Sora, sans-serif; }
         .data {
-          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-variant-numeric: tabular-nums lining-nums;
         }
         .panel {
