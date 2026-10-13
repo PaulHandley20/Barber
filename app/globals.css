@@ -134,3 +134,52 @@
    (una sola fuente de verdad). Las páginas dentro de /admin
    deben ser transparentes para dejarlo ver.
    ========================================================= */
+/* =========================================================
+   INTERACCIÓN GLOBAL
+   Tailwind v4 dejó de poner cursor: pointer en los botones.
+   Todo lo que ejecuta una acción muestra la "manito", y lo
+   deshabilitado muestra not-allowed. Aplica a toda la app
+   (web pública y panel de administración).
+   ========================================================= */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="option"],
+  summary,
+  label[for],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="date"]:not(:disabled),
+  input[type="time"]:not(:disabled),
+  input[type="datetime-local"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  select:disabled,
+  input:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid #b08a5a;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}

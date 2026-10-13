@@ -712,7 +712,7 @@ export default function ConfiguracionPage() {
         return;
       }
 
-      if (hour.is_open && hour.open_time >= hour.close_time!) {
+      if (hour.is_open && hour.open_time! >= hour.close_time!) {
         setHoursSaving(false);
         setError(`El horario de ${WEEK_DAYS.find((d) => d.day === hour.day_of_week)?.label ?? "ese día"} no es válido.`);
         return;
@@ -1647,7 +1647,7 @@ export default function ConfiguracionPage() {
 
                           <div className={`grid grid-cols-2 gap-3 ${hour.is_open ? "" : "opacity-35 pointer-events-none"}`}>
                             <label className="block">
-                              <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Apertura</span>
+                              <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Primer turno</span>
                               <input
                                 type="time"
                                 value={hour.open_time ?? ""}
@@ -1656,7 +1656,7 @@ export default function ConfiguracionPage() {
                               />
                             </label>
                             <label className="block">
-                              <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Cierre</span>
+                              <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Último turno</span>
                               <input
                                 type="time"
                                 value={hour.close_time ?? ""}

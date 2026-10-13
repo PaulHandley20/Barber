@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const timeline = [
@@ -114,6 +114,8 @@ export default function TimelineV3() {
         src="/images/timeline.jpg"
         className="absolute inset-0 h-full w-full object-cover"
         alt=""
+        aria-hidden="true"
+        loading="lazy"
       />
 
       <div className="absolute inset-0 bg-black/65" />
@@ -122,7 +124,13 @@ export default function TimelineV3() {
       {/* CONTENEDOR */}
       {/* ====================================================== */}
 
-      <div className="relative mx-auto min-h-[1100px] max-w-[1800px]">
+      <MobileTimeline
+        active={active}
+        setActive={setActive}
+        photoIndexes={photoIndexes}
+      />
+
+      <div className="relative mx-auto hidden min-h-[1100px] max-w-[1800px] xl:block">
 
         {/* ====================================================== */}
         {/* HEADER */}
@@ -202,8 +210,9 @@ export default function TimelineV3() {
               }}
               className="
                 relative
-                w-[270px]
+                w-[230px]
                 bg-[#F1ECE3]
+                2xl:w-[270px]
                 p-[10px]
                 shadow-[0_25px_40px_rgba(0,0,0,.45)]
               "
@@ -229,12 +238,12 @@ export default function TimelineV3() {
 
               {/* FOTO */}
 
-              <div className="relative h-[235px] w-full overflow-hidden">
+              <div className="relative h-[200px] w-full overflow-hidden 2xl:h-[235px]">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={photoIndexes[index]}
                     src={item.images[photoIndexes[index]]}
-                    alt=""
+                    alt={`${item.title} · ${item.location}`}
                     initial={{
                       opacity: 0,
                       scale: 1.03,
@@ -382,5 +391,113 @@ export default function TimelineV3() {
         </AnimatePresence>
       </div>
     </section>
+  );
+}
+/*
+  Versión mobile/tablet: las polaroids se deslizan en una fila
+  horizontal y el texto de la etapa elegida aparece debajo.
+*/
+function MobileTimeline({
+  active,
+  setActive,
+  photoIndexes,
+}: {
+  active: number;
+  setActive: Dispatch<SetStateAction<number>>;
+  photoIndexes: number[];
+}) {
+  return (
+    <div className="relative px-5 py-20 sm:px-8 xl:hidden">
+      <div className="text-center">
+        <p className="text-base uppercase tracking-[0.35em] text-[#C7A467] sm:text-xl">
+          El camino de Manu
+        </p>
+
+        <div className="mx-auto mt-3 flex w-[240px] items-center">
+          <div className="h-px flex-1 bg-[#6C5638]" />
+          <div className="mx-4 h-[6px] w-[6px] rotate-45 border border-[#C7A467]" />
+          <div className="h-px flex-1 bg-[#6C5638]" />
+        </div>
+      </div>
+
+      <div className="-mx-5 mt-10 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-6 pt-4 [scrollbar-width:none] sm:-mx-8 sm:px-8">
+        {timeline.map((item, index) => (
+          <button
+            key={item.year}
+            type="button"
+            onClick={() => setActive(index)}
+            aria-pressed={active === index}
+            className={`relative w-[200px] shrink-0 snap-center bg-[#F1ECE3] p-2 text-left shadow-[0_20px_35px_rgba(0,0,0,.45)] transition-transform duration-300 sm:w-[230px] ${
+              active === index ? "-translate-y-2 ring-2 ring-[#C7A467]" : ""
+            }`}
+            style={{ rotate: `${positions[index].rotate / 2}deg` }}
+          >
+            <div className="relative h-[180px] w-full overflow-hidden sm:h-[210px]">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={photoIndexes[index]}
+                  src={item.images[photoIndexes[index]]}
+                  alt={`${item.title} · ${item.location}`}
+                  loading="lazy"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </AnimatePresence>
+            </div>
+
+            <div className="pb-1 pt-3 text-center">
+              <p className="font-serif text-2xl leading-none text-[#3B4332]">
+                {item.year}
+              </p>
+              <p className="mt-2 text-[9px] font-medium uppercase tracking-[0.3em] text-[#3F4A33]">
+                {item.location}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+          className="mx-auto mt-8 max-w-xl text-center"
+        >
+          <p className="text-[10px] uppercase tracking-[0.4em] text-[#B89259]">
+            {timeline[active].location}
+          </p>
+
+          <h3 className="mt-2 font-serif text-4xl leading-none text-[#EFE7DB]">
+            {timeline[active].title}
+          </h3>
+
+          <p className="mt-6 text-base leading-8 text-[#DDD5CA]">
+            {timeline[active].text}
+          </p>
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="mt-8 flex justify-center gap-3">
+        {timeline.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setActive(i)}
+            aria-label={`Ver etapa ${i + 1}`}
+            className={`rounded-full transition-all ${
+              active === i
+                ? "h-[8px] w-8 bg-[#C7A467]"
+                : "h-[8px] w-[8px] bg-[#666055]"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

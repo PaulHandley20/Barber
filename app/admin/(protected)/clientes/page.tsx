@@ -57,6 +57,19 @@ type Appointment = {
   } | null;
 };
 
+/* Columnas agregadas por supabase/migrations (privacidad y verificación
+   de email). Se cargan aparte para que la página siga funcionando aunque
+   las migraciones todavía no estén aplicadas. */
+type CustomerPrivacy = {
+  id: string;
+  pending_email: string | null;
+  pending_full_name: string | null;
+  pending_email_requested_at: string | null;
+  email_verified_at: string | null;
+  marketing_opt_in: boolean | null;
+  privacy_accepted_at: string | null;
+};
+
 type CustomerWithStats = Customer & {
   visits: number;
   spent: number;
@@ -169,6 +182,9 @@ export default function ClientesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [privacyById, setPrivacyById] = useState<Record<string, CustomerPrivacy>>({});
+  const [privacyAvailable, setPrivacyAvailable] = useState(false);
+  const [privacySaving, setPrivacySaving] = useState(false);
 
   const [showEdit, setShowEdit] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerWithStats | null>(null);
@@ -242,6 +258,93 @@ export default function ClientesPage() {
       (appointmentsResponse.data ?? []) as unknown as Appointment[]
     );
     setLoading(false);
+
+    loadPrivacy();
+  }
+
+  async function loadPrivacy() {
+    const { data, error: privacyError } = await supabase
+      .from("customers")
+      .select(
+        "id, pending_email, pending_full_name, pending_email_requested_at, email_verified_at, marketing_opt_in, privacy_accepted_at"
+      );
+
+    if (privacyError) {
+      // Migraciones de privacidad todavía no aplicadas: no mostramos nada.
+      setPrivacyAvailable(false);
+      return;
+    }
+
+    setPrivacyAvailable(true);
+    setPrivacyById(
+      Object.fromEntries(
+        ((data ?? []) as CustomerPrivacy[]).map((row) => [row.id, row])
+      )
+    );
+  }
+
+  async function resolvePendingEmail(customerId: string, approve: boolean) {
+    setPrivacySaving(true);
+    setError("");
+
+    const { error: rpcError } = await supabase.rpc("resolve_pending_email", {
+      p_customer_id: customerId,
+      p_approve: approve,
+    });
+
+    setPrivacySaving(false);
+
+    if (rpcError) {
+      console.error("BARBEROS · ERROR AL RESOLVER EMAIL:", rpcError);
+      setError(
+        rpcError.code === "23505"
+          ? "Ese email ya pertenece a otro cliente."
+          : "No se pudo actualizar el email. Probá de nuevo."
+      );
+      return;
+    }
+
+    const pending = privacyById[customerId]?.pending_email ?? null;
+
+    if (approve && pending) {
+      setCustomers((current) =>
+        current.map((customer) =>
+          customer.id === customerId ? { ...customer, email: pending } : customer
+        )
+      );
+      setSelectedCustomer((current) =>
+        current && current.id === customerId ? { ...current, email: pending } : current
+      );
+    }
+
+    await loadPrivacy();
+    if (!approve) await loadData();
+    setNotice(
+      approve
+        ? "Email verificado y guardado."
+        : "Listo: la reserva quedó en un cliente nuevo."
+    );
+  }
+
+  async function toggleMarketing(customerId: string, optIn: boolean) {
+    setPrivacySaving(true);
+    setError("");
+
+    const { error: rpcError } = await supabase.rpc("set_marketing_opt_in", {
+      p_customer_id: customerId,
+      p_opt_in: optIn,
+    });
+
+    setPrivacySaving(false);
+
+    if (rpcError) {
+      console.error("BARBEROS · ERROR AL CAMBIAR MARKETING:", rpcError);
+      setError("No se pudo actualizar la preferencia de comunicaciones.");
+      return;
+    }
+
+    await loadPrivacy();
+    setNotice(optIn ? "El cliente acepta recibir novedades." : "Baja de novedades registrada.");
   }
 
   useEffect(() => {
@@ -1164,9 +1267,14 @@ export default function ClientesPage() {
                             <div className="truncate text-[14px] font-semibold text-white">
                               {customer.full_name}
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[12px] text-[#D0D0CC]">
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[#D0D0CC]">
                               <Phone size={10} />
                               <span>{customer.phone}</span>
+                              {privacyById[customer.id]?.pending_email && (
+                                <span className="rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-300">
+                                  Email por verificar
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1376,6 +1484,77 @@ export default function ClientesPage() {
                       </div>
                     )}
                   </div>
+
+                  {privacyAvailable && (() => {
+                    const privacy = privacyById[selectedCustomer.id];
+
+                    return (
+                      <div className="mt-5 space-y-3">
+                        {privacy?.pending_email && (
+                          <div className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300">
+                              Email pendiente de verificar
+                            </p>
+                            <p className="mt-2 break-all text-[13px] text-[#F0F0ED]">
+                              {privacy.pending_email}
+                            </p>
+                            {privacy.pending_full_name && (
+                              <p className="mt-1 text-[12px] text-[#C9C9C5]">
+                                Reservó como: <span className="text-[#F0F0ED]">{privacy.pending_full_name}</span>
+                              </p>
+                            )}
+                            <p className="mt-2 text-[11px] leading-5 text-[#C9C9C5]">
+                              Alguien reservó por la web con el teléfono de este
+                              cliente y un email nuevo. Confirmá que es la misma
+                              persona (en el local o escribiéndole al teléfono
+                              registrado). Aprobar guarda el email; Rechazar pasa
+                              esa reserva a un cliente nuevo.
+                            </p>
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                type="button"
+                                disabled={privacySaving}
+                                onClick={() => resolvePendingEmail(selectedCustomer.id, true)}
+                                className="flex-1 rounded-lg bg-emerald-500/15 px-3 py-2 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
+                              >
+                                Aprobar
+                              </button>
+                              <button
+                                type="button"
+                                disabled={privacySaving}
+                                onClick={() => resolvePendingEmail(selectedCustomer.id, false)}
+                                className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-[11px] font-semibold text-[#D8D8D4] transition hover:bg-white/[0.05] disabled:opacity-50"
+                              >
+                                Rechazar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-[#0B0B0B] px-4 py-3">
+                          <div>
+                            <p className="text-[12px] text-[#D8D8D4]">Novedades y promociones</p>
+                            <p className="mt-0.5 text-[11px] text-[#9A9A96]">
+                              {privacy?.marketing_opt_in ? "Acepta recibirlas" : "No acepta"}
+                              {privacy?.privacy_accepted_at
+                                ? ` · Política aceptada ${formatDate(privacy.privacy_accepted_at)}`
+                                : ""}
+                            </p>
+                          </div>
+                          {privacy?.marketing_opt_in && (
+                            <button
+                              type="button"
+                              disabled={privacySaving}
+                              onClick={() => toggleMarketing(selectedCustomer.id, false)}
+                              className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-[#D8D8D4] transition hover:bg-white/[0.05] disabled:opacity-50"
+                            >
+                              Dar de baja
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* VALUE */}

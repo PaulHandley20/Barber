@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Don Segundo · Web y sistema de reservas
 
-## Getting Started
+Web pública + reservas online + panel de administración (BarberOS) para
+**Don Segundo Barbería** (Mitre 866, Concepción del Uruguay, Entre Ríos).
 
-First, run the development server:
+- **Stack:** Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Supabase (Postgres + Auth) · Framer Motion.
+- **Hosting recomendado:** Vercel.
+
+## Rutas
+
+| Ruta | Qué es |
+| --- | --- |
+| `/` | Landing (nosotros, servicios, galería, historia, contacto) |
+| `/reservar` | Reserva en 5 pasos. Acepta `?servicio=<id>` para preseleccionar |
+| `/gestionar-reserva` | Consultar, reprogramar o cancelar (con código o con email + teléfono). Acepta `?codigo=DS-XXXX` |
+| `/privacidad`, `/terminos` | Textos legales (Ley 25.326) |
+| `/admin` | Panel de Manu (protegido por login + `ADMIN_EMAILS`) |
+
+## Desarrollo
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local   # completar valores
+npm install
+npm run dev                  # http://localhost:3000
+npm run build                # build de producción (incluye chequeo de tipos)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Dónde se cambia cada cosa
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Datos de contacto, dirección, Instagram, email:** `lib/barbershop.ts`.
+- **Horarios, servicios, precios, días de anticipación:** desde el panel (`/admin/horarios`, `/admin/servicios`, `/admin/configuracion`). La web pública los lee de Supabase.
+- **Versión de los textos legales:** `LEGAL_VERSION` en `lib/barbershop.ts` (cambiarla cada vez que se edita `/privacidad` o `/terminos`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Base de datos
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Las funciones nuevas están en `supabase/migrations/` y se aplican en
+Supabase → SQL Editor, en orden. Antes, correr `supabase/diagnostics.sql`.
+Todo el paso a paso está en [`docs/LANZAMIENTO.md`](docs/LANZAMIENTO.md).

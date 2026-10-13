@@ -7,43 +7,46 @@ export default function CTA() {
   return (
     <section
       id="cta"
-      className="relative min-h-[85vh] overflow-hidden"
+      className="relative min-h-[85svh] overflow-hidden"
     >
       {/* Fondo */}
 
       <img
         src="/images/cta.jpg"
-        alt="Don Segundo"
-        className="absolute inset-0 h-full w-full object-cover"
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover object-[30%_center] md:object-center"
       />
 
       {/* Overlay MUY suave */}
 
-      <div className="absolute inset-0 bg-black/45" />
+      <div className="absolute inset-0 bg-black/55 md:bg-black/45" />
 
       {/* Contenido */}
 
-      <div className="relative z-10 mx-auto flex min-h-[85vh] max-w-7xl items-center justify-end px-12">
+      <div className="relative z-10 mx-auto flex min-h-[85svh] max-w-7xl items-center justify-center px-6 py-20 sm:px-10 md:justify-end md:px-12">
 
         <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="max-w-[560px] text-right"
+          className="max-w-[560px] text-center md:text-right"
         >
 
-          <div className="ml-auto mb-8 h-px w-24 bg-[#C7A467]" />
+          <div className="mx-auto mb-8 h-px w-24 bg-[#C7A467] md:mr-0" />
 
-          <p className="uppercase tracking-[0.45em] text-[#C7A467]">
+          <p className="text-sm uppercase tracking-[0.35em] text-[#C7A467] md:text-base md:tracking-[0.45em]">
             Don Segundo
           </p>
 
           <h2
             className="
-              mt-8
+              mt-6
               font-serif
-              text-[clamp(3.8rem,6vw,5rem)]
+              text-[clamp(2.6rem,6vw,5rem)]
+              md:mt-8
               leading-[0.95]
               text-[#F4EFE8]
             "
@@ -53,15 +56,18 @@ export default function CTA() {
 
           <p
             className="
-              mt-10
-              text-[22px]
-              leading-10
+              mt-6
+              text-lg
+              leading-8
               text-[#E4DDD2]
+              md:mt-10
+              md:text-[22px]
+              md:leading-10
             "
           >
             Te esperamos
             <br />
-            Hecho con tiempo, Hecho para vos.
+            Hecho con tiempo, hecho para vos.
           </p>
 
           {/* Reservar turno */}
@@ -69,8 +75,9 @@ export default function CTA() {
           <Link
             href="/reservar"
             className="
-              mt-16
+              mt-10
               inline-flex
+              md:mt-16
               items-center
               gap-3
 
@@ -78,11 +85,16 @@ export default function CTA() {
               border
               border-[#C7A467]
 
-              px-12
-              py-5
+              px-8
+              py-4
+              text-sm
+              md:px-12
+              md:py-5
+              md:text-base
 
               uppercase
-              tracking-[0.30em]
+              tracking-[0.25em]
+              md:tracking-[0.30em]
               text-[#F4EFE8]
 
               transition-all

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import AdminShell from "@/components/admin/AdminShell";
+import { isAllowedAdmin } from "@/lib/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ProtectedAdminLayout({
@@ -15,6 +16,10 @@ export default async function ProtectedAdminLayout({
 
   if (!user) {
     redirect("/admin/login");
+  }
+
+  if (!isAllowedAdmin(user.email)) {
+    redirect("/admin/login?error=unauthorized");
   }
 
   return <AdminShell>{children}</AdminShell>;
