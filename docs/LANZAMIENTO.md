@@ -34,6 +34,10 @@ Revisar especialmente:
 
 ### 1.2 Migraciones
 
+> **Forma más fácil:** pegar `supabase/migrar_todo.sql` (las 8 juntas, en
+> una transacción) en SQL Editor → New query → Run. Si se edita alguna
+> migración, regenerar ese archivo.
+
 ☐ Ejecutar en el SQL Editor, **en este orden**, cada archivo de
 `supabase/migrations/` (son idempotentes: se pueden volver a correr):
 
