@@ -6,7 +6,7 @@ export default function About() {
   return (
     <section
       id="about"
-      className="relative overflow-hidden py-40"
+      className="relative scroll-mt-20 overflow-hidden py-24 md:py-32 lg:py-40"
      style={{
   background: `
     linear-gradient(
@@ -21,20 +21,20 @@ export default function About() {
   `,
 }}
     >
-      <div className="mx-auto grid max-w-7xl items-center gap-24 px-8 lg:grid-cols-[1fr_1.05fr]">
+      <div className="mx-auto grid max-w-7xl items-center gap-16 px-5 sm:px-8 lg:grid-cols-[1fr_1.05fr] lg:gap-24">
 
         {/* TEXTO */}
 
         <motion.div
-          initial={{ opacity: 0, x: -60 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: .8 }}
         >
 
-          <div className="mb-10 h-px w-28 bg-[#59624f]" />
+          <div className="mb-8 h-px w-28 bg-[#59624f] md:mb-10" />
 
-          <span className="text-lg uppercase tracking-[0.45em] text-[#59624f]">
+          <span className="text-sm uppercase tracking-[0.35em] text-[#59624f] md:text-lg md:tracking-[0.45em]">
 
             Nosotros
 
@@ -56,48 +56,51 @@ export default function About() {
 
           <p
             className="
-              mt-12
-              text-[22px]
-              leading-[2.1rem]
+              mt-8
+              text-[17px]
+              leading-8
               text-[#435046]
+              md:mt-12
+              md:text-[22px]
+              md:leading-[2.1rem]
             "
           >
 
-            "En Don Segundo creemos que una barbería sigue siendo uno
+            &ldquo;En Don Segundo creemos que una barbería sigue siendo uno
             de esos pocos lugares donde todavía existe el tiempo para
-            una buena conversación."
+            una buena conversación.&rdquo;
 
             <br />
             <br />
            
-            "Cada cliente llega con una historia distinta. Por eso nos
+            &ldquo;Cada cliente llega con una historia distinta. Por eso nos
             gusta escuchar, entender qué busca y dedicarle el tiempo
-            necesario para que cada detalle esté a la altura."
+            necesario para que cada detalle esté a la altura.&rdquo;
 
             <br />
             <br />
            
-            "Más que un servicio, buscamos que cada visita sea un momento
+            &ldquo;Más que un servicio, buscamos que cada visita sea un momento
             para desconectar de la rutina, compartir una charla y salir
-            sintiéndote renovado."
+            sintiéndote renovado.&rdquo;
 
           </p>
 
           {/* EXPERIENCIA */}
 
-          <div className="mt-20 border-t border-[#b6ab99] pt-12">
+          <div className="mt-12 border-t border-[#b6ab99] pt-10 md:mt-20 md:pt-12">
 
-            <div className="grid gap-10 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:gap-10">
 
               <div>
 
-                <h3 className="font-serif text-5xl text-[#55624F]">
+                <p className="font-serif text-4xl text-[#55624F] md:text-5xl">
 
                   +8
 
-                </h3>
+                </p>
 
-                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+                <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[#62625c] md:text-base md:tracking-[0.22em]">
 
                   Años perfeccionando el oficio
 
@@ -107,13 +110,13 @@ export default function About() {
 
               <div>
 
-                <h3 className="font-serif text-5xl text-[#55624F]">
+                <p className="font-serif text-4xl text-[#55624F] md:text-5xl">
 
                   +1000
 
-                </h3>
+                </p>
 
-                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+                <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[#62625c] md:text-base md:tracking-[0.22em]">
 
                   Clientes felices
 
@@ -123,13 +126,13 @@ export default function About() {
 
               <div>
 
-                <h3 className="font-serif text-5xl text-[#55624F]">
+                <p className="font-serif text-4xl text-[#55624F] md:text-5xl">
 
                   5
 
-                </h3>
+                </p>
 
-                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+                <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[#62625c] md:text-base md:tracking-[0.22em]">
 
                   Continentes recorridos
 
@@ -139,13 +142,13 @@ export default function About() {
 
               <div>
 
-                <h3 className="font-serif text-5xl text-[#55624F]">
+                <p className="font-serif text-4xl text-[#55624F] md:text-5xl">
 
                   ∞
 
-                </h3>
+                </p>
 
-                <p className="mt-3 uppercase tracking-[0.22em] text-[#62625c]">
+                <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[#62625c] md:text-base md:tracking-[0.22em]">
 
                   de Historias compartidas
 
@@ -162,18 +165,21 @@ export default function About() {
         {/* FOTO */}
 
         <motion.div
-          initial={{ opacity: 0, x: 60 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: .8 }}
-          className="relative"
+          className="relative mb-10 lg:mb-0"
         >
 
           <img
             src="/images/about.jpg"
-            alt="Don Segundo Barbería"
+            alt="Manu trabajando en Don Segundo Barbería"
+            loading="lazy"
             className="
-              h-[760px]
+              h-[440px]
+              sm:h-[600px]
+              lg:h-[760px]
               w-full
               object-cover
               brightness-90
@@ -188,12 +194,19 @@ export default function About() {
           <div
             className="
               absolute
-              -bottom-10
-              -left-10
-              max-w-sm
+              -bottom-8
+              left-4
+              right-4
               bg-[#2E372F]/95
-              px-10
-              py-9
+              px-7
+              py-6
+              sm:left-auto
+              sm:right-auto
+              sm:max-w-sm
+              lg:-bottom-10
+              lg:-left-10
+              lg:px-10
+              lg:py-9
               backdrop-blur-lg
             "
           >
@@ -204,13 +217,12 @@ export default function About() {
 
             </p>
 
-            <h4 className="mt-5 font-serif text-3xl leading-tight text-[#EFE8DD]">
-
-               " Mas que un corte.
+            <p className="mt-4 font-serif text-2xl leading-tight text-[#EFE8DD] lg:mt-5 lg:text-3xl">
+              &ldquo;Más que un corte.
               <br />
-              Una experiencia."
+              Una experiencia.&rdquo;
 
-            </h4>
+            </p>
 
           </div>
 

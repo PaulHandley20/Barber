@@ -8,12 +8,13 @@ export default function Hero() {
   return (
     <section 
       id="hero"
-      className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      className="relative flex min-h-[100svh] items-center justify-center overflow-hidden pb-24 pt-28">
 
       {/* Fondo */}
       <img
         src="/images/hero.jpg"
-        alt="Don Segundo Barbería"
+        alt=""
+        aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover"
       />
 
@@ -40,7 +41,7 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           style={{
-            width: "clamp(150px, 12vw, 250px)",
+            width: "clamp(120px, 12vw, 250px)",
             marginBottom: "clamp(18px, 2vw, 35px)",
           }}
         />
@@ -52,7 +53,7 @@ export default function Hero() {
           transition={{ duration: 0.8 }}
           className="font-serif uppercase text-white leading-none"
           style={{
-            fontSize: "clamp(3rem, 7vw, 6rem)",
+            fontSize: "clamp(2.6rem, 9vw, 6rem)",
             letterSpacing: ".08em",
           }}
         >
@@ -64,11 +65,10 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="uppercase text-[#C79A5A]"
+          className="uppercase text-[#C79A5A] tracking-[.25em] sm:tracking-[.45em]"
           style={{
             marginTop: "clamp(12px, 1vw, 18px)",
-            fontSize: "clamp(.75rem, .9vw, 1rem)",
-            letterSpacing: ".45em",
+            fontSize: "clamp(.7rem, .9vw, 1rem)",
           }}
         >
           Concepción del Uruguay, Entre Ríos
@@ -93,7 +93,7 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9 }}
-          className="flex flex-wrap justify-center gap-5"
+          className="flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-5"
           style={{
             marginTop: "clamp(25px, 2vw, 40px)",
           }}
@@ -102,7 +102,7 @@ export default function Hero() {
           {/* RESERVAR */}
           <Link
             href="/reservar"
-            className="group flex items-center gap-3 bg-[#C79A5A] px-10 py-4 uppercase tracking-[4px] text-black transition hover:bg-[#d8ab6d]"
+            className="group flex items-center justify-center gap-3 bg-[#C79A5A] px-10 py-4 uppercase tracking-[4px] text-black transition hover:bg-[#d8ab6d]"
           >
             Reservar
 
@@ -115,7 +115,7 @@ export default function Hero() {
           {/* CONOCER MÁS */}
           <a
             href="#timeline"
-            className="border border-white/40 px-10 py-4 uppercase tracking-[4px] text-white transition hover:bg-white hover:text-black"
+            className="border border-white/40 px-10 py-4 text-center uppercase tracking-[4px] text-white transition hover:bg-white hover:text-black"
           >
             Conocer más
           </a>
@@ -125,7 +125,7 @@ export default function Hero() {
       </div>
 
       {/* Scroll */}
-      <div className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-center">
+      <div className="absolute bottom-6 left-1/2 z-20 hidden -translate-x-1/2 text-center sm:block">
 
         <p className="mb-3 text-[11px] uppercase tracking-[6px] text-white/70">
           Scroll

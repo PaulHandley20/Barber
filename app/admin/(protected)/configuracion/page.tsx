@@ -712,7 +712,7 @@ export default function ConfiguracionPage() {
         return;
       }
 
-      if (hour.is_open && hour.open_time >= hour.close_time!) {
+      if (hour.is_open && hour.open_time! >= hour.close_time!) {
         setHoursSaving(false);
         setError(`El horario de ${WEEK_DAYS.find((d) => d.day === hour.day_of_week)?.label ?? "ese día"} no es válido.`);
         return;
