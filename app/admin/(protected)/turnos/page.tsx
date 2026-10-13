@@ -426,7 +426,7 @@ export default function TurnosPage() {
       );
       setCreateError(
         insertError?.code === "42501"
-          ? "Tu usuario no tiene permiso para crear turnos. Revisá que esté registrado como admin."
+          ? `La base rechazó el turno por permisos (${insertError.message}). Revisá que estén aplicadas las migraciones de Supabase.`
           : `No se pudo crear el turno: ${insertError?.message ?? "error desconocido"}`
       );
       setCreating(false);
