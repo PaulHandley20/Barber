@@ -83,7 +83,7 @@ export default function CTA() {
 
               rounded-full
               border
-              border-[#C7A467]
+              border-[#EADFCB]
 
               px-8
               py-4
@@ -100,7 +100,7 @@ export default function CTA() {
               transition-all
               duration-300
 
-              hover:bg-[#C7A467]
+              hover:bg-[#EADFCB]
               hover:text-[#181818]
               hover:scale-105
             "

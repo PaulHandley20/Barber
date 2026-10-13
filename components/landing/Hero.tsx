@@ -102,7 +102,7 @@ export default function Hero() {
           {/* RESERVAR */}
           <Link
             href="/reservar"
-            className="group flex items-center justify-center gap-3 bg-[#C79A5A] px-10 py-4 uppercase tracking-[4px] text-black transition hover:bg-[#d8ab6d]"
+            className="group flex items-center justify-center gap-3 rounded-full px-10 py-4 uppercase tracking-[4px] transition bg-[#EADFCB] text-[#1b1915] hover:bg-[#F4ECDD]"
           >
             Reservar
 
@@ -115,7 +115,7 @@ export default function Hero() {
           {/* CONOCER MÁS */}
           <a
             href="#timeline"
-            className="border border-white/40 px-10 py-4 text-center uppercase tracking-[4px] text-white transition hover:bg-white hover:text-black"
+            className="rounded-full border border-white/40 px-10 py-4 text-center uppercase tracking-[4px] text-white transition hover:bg-white hover:text-black"
           >
             Conocer más
           </a>

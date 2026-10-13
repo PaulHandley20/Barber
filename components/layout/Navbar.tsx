@@ -95,14 +95,14 @@ export default function Navbar() {
               varias veces en la landing y en el menú. */}
           <Link
             href="/gestionar-reserva"
-            className="border border-white/70 px-4 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition hover:bg-white hover:text-black sm:px-6 sm:py-3 sm:text-xs sm:tracking-[0.25em]"
+            className="rounded-full border border-white/60 px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition hover:border-[#EADFCB] hover:bg-[#EADFCB] hover:text-[#1b1915] sm:px-6 sm:py-3 sm:text-xs sm:tracking-[0.25em]"
           >
             Mi reserva
           </Link>
 
           <Link
             href="/reservar"
-            className="hidden border border-[#C79A5A] bg-[#C79A5A] px-6 py-3 text-xs uppercase tracking-[0.25em] text-black transition hover:bg-[#d8ab6d] md:inline-block"
+            className="hidden rounded-full px-6 py-3 text-xs uppercase tracking-[0.25em] transition bg-[#EADFCB] text-[#1b1915] hover:bg-[#F4ECDD] md:inline-block"
           >
             Reservar
           </Link>
@@ -113,7 +113,7 @@ export default function Navbar() {
             aria-expanded={open}
             aria-controls="mobile-menu"
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
-            className="flex h-11 w-11 items-center justify-center border border-white/30 text-white transition hover:border-white lg:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 text-white transition hover:border-white lg:hidden"
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -147,7 +147,7 @@ export default function Navbar() {
               <Link
                 href="/gestionar-reserva"
                 onClick={() => setOpen(false)}
-                className="mt-8 border border-white/60 px-6 py-4 text-center text-xs uppercase tracking-[0.25em] text-white"
+                className="mt-8 rounded-full border border-white/60 px-6 py-4 text-center text-xs uppercase tracking-[0.25em] text-white"
               >
                 Mi reserva
               </Link>
@@ -155,7 +155,7 @@ export default function Navbar() {
               <Link
                 href="/reservar"
                 onClick={() => setOpen(false)}
-                className="mt-3 bg-[#C79A5A] px-6 py-4 text-center text-xs uppercase tracking-[0.25em] text-black"
+                className="mt-3 rounded-full px-6 py-4 text-center text-xs uppercase tracking-[0.25em] bg-[#EADFCB] text-[#1b1915] hover:bg-[#F4ECDD]"
               >
                 Reservar turno
               </Link>

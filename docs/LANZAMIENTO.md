@@ -51,6 +51,7 @@ Revisar especialmente:
 | `…0600_horarios_lunes_a_viernes.sql` | Deja el horario en lunes a viernes, turnos de 08:00 a 18:00 inclusive; sábado y domingo cerrados |
 | `…0700_web_booking_functions.sql` | Reescribe `create_web_appointment`, `reschedule_reservation` y `cancel_reservation` para que usen la misma regla de disponibilidad (tablas del panel). Resuelve clientes históricos por teléfono con verificación. Cancelar/reprogramar respeta la anticipación de Configuración |
 | `…0800_security_hardening.sql` | Activa RLS en las tablas de backup (estaban expuestas), cambia las políticas a `is_admin()` y agrega el permiso que faltaba para crear turnos desde la Agenda |
+| `…0900_admin_fixes.sql` | "Crear turno" completa solo barbero y código si faltan; un horario por día (Configuración guarda por día) |
 
 #### Hallazgos del diagnóstico (13/10/2026)
 

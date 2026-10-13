@@ -254,17 +254,14 @@ export default function ReferidosPage() {
               </div>
 
               <p className="mt-2 max-w-xl text-[14px] leading-6 text-white/72">
-                Convertí clientes satisfechos en nuevos clientes y medí el impacto de las recomendaciones desde un solo lugar.
+                Convertí clientes satisfechos en nuevos clientes. Esta sección todavía no está activa: muestra cómo va a funcionar el programa.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <button type="button" className="control flex h-10 items-center justify-center rounded-[11px] px-4 text-[12px] font-semibold text-white/68">
-                Actualizar
-              </button>
-              <button type="button" className="primary-action flex h-10 items-center justify-center rounded-[11px] px-4 text-[12px] font-semibold text-white">
-                + Configurar programa
-              </button>
+              <span className="flex h-10 items-center justify-center rounded-[11px] border border-[#ff5a00]/25 bg-[#ff5a00]/[.07] px-4 text-[12px] font-semibold text-[#ff8a4a]">
+                Próximamente
+              </span>
             </div>
           </div>
         </header>
