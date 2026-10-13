@@ -91,16 +91,18 @@ export default function Navbar() {
 
         {/* Acciones */}
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {/* En el celular arriba va "Mi reserva": "Reservar" ya aparece
+              varias veces en la landing y en el menú. */}
           <Link
             href="/gestionar-reserva"
-            className="hidden border border-white/70 px-6 py-3 text-xs uppercase tracking-[0.25em] text-white transition hover:bg-white hover:text-black md:inline-block"
+            className="border border-white/70 px-4 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition hover:bg-white hover:text-black sm:px-6 sm:py-3 sm:text-xs sm:tracking-[0.25em]"
           >
             Mi reserva
           </Link>
 
           <Link
             href="/reservar"
-            className="border border-[#C79A5A] bg-[#C79A5A] px-4 py-2.5 text-[11px] uppercase tracking-[0.2em] text-black transition hover:bg-[#d8ab6d] sm:px-6 sm:py-3 sm:text-xs sm:tracking-[0.25em]"
+            className="hidden border border-[#C79A5A] bg-[#C79A5A] px-6 py-3 text-xs uppercase tracking-[0.25em] text-black transition hover:bg-[#d8ab6d] md:inline-block"
           >
             Reservar
           </Link>

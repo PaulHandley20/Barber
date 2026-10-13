@@ -1258,19 +1258,17 @@ export default function ClientesPage() {
                           </div>
 
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate text-[14px] font-semibold text-white">
-                                {customer.full_name}
-                              </span>
+                            <div className="truncate text-[14px] font-semibold text-white">
+                              {customer.full_name}
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-[#D0D0CC]">
+                              <Phone size={10} />
+                              <span>{customer.phone}</span>
                               {privacyById[customer.id]?.pending_email && (
-                                <span className="shrink-0 rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-300">
+                                <span className="rounded-full border border-amber-400/25 bg-amber-400/[0.08] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-300">
                                   Email por verificar
                                 </span>
                               )}
-                            </div>
-                            <div className="mt-1 flex items-center gap-2 text-[12px] text-[#D0D0CC]">
-                              <Phone size={10} />
-                              <span>{customer.phone}</span>
                             </div>
                           </div>
                         </div>

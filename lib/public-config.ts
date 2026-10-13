@@ -10,6 +10,8 @@ import {
 
 export type PublicBookingConfig = {
   hours: BusinessDay[];
+  /* Días completos bloqueados desde el panel (YYYY-MM-DD) */
+  blockedDates: string[];
   maxBookingDaysAhead: number;
   cancellationNoticeHours: number;
   onlineBookingEnabled: boolean;
@@ -19,6 +21,7 @@ export type PublicBookingConfig = {
 
 const FALLBACK_CONFIG: PublicBookingConfig = {
   hours: FALLBACK_HOURS,
+  blockedDates: [],
   maxBookingDaysAhead: DEFAULT_BOOKING_RULES.maxBookingDaysAhead,
   cancellationNoticeHours: DEFAULT_BOOKING_RULES.cancellationNoticeHours,
   onlineBookingEnabled: true,
@@ -27,6 +30,7 @@ const FALLBACK_CONFIG: PublicBookingConfig = {
 
 type RpcConfig = {
   hours?: BusinessDay[] | null;
+  blocked_dates?: string[] | null;
   max_booking_days_ahead?: number | null;
   cancellation_notice_hours?: number | null;
   online_booking_enabled?: boolean | null;
@@ -57,6 +61,9 @@ async function fetchConfig(): Promise<PublicBookingConfig> {
 
     return {
       hours,
+      blockedDates: Array.isArray(config.blocked_dates)
+        ? config.blocked_dates
+        : [],
       maxBookingDaysAhead: positiveOr(
         config.max_booking_days_ahead,
         FALLBACK_CONFIG.maxBookingDaysAhead
@@ -123,4 +130,8 @@ export function isOpenOnDay(config: PublicBookingConfig, dayOfWeek: number) {
   const day = config.hours.find((item) => item.day_of_week === dayOfWeek);
 
   return Boolean(day?.is_open);
+}
+
+export function isBlockedDate(config: PublicBookingConfig, dateKey: string) {
+  return config.blockedDates.includes(dateKey);
 }

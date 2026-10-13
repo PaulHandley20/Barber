@@ -27,7 +27,11 @@ import {
   getWhatsappUrl,
   summarizeHours,
 } from "@/lib/barbershop";
-import { isOpenOnDay, usePublicBookingConfig } from "@/lib/public-config";
+import {
+  isBlockedDate,
+  isOpenOnDay,
+  usePublicBookingConfig,
+} from "@/lib/public-config";
 
 type Service = {
   id: string;
@@ -617,6 +621,7 @@ export default function ReservarPage() {
 
   function isDateDisabled(date: Date) {
     if (!isOpenOnDay(config, date.getDay())) return true;
+    if (isBlockedDate(config, formatDateForSupabase(date))) return true;
     if (date < today) return true;
     if (date > maxDate) return true;
 

@@ -569,7 +569,7 @@ export default function HorariosPage() {
                       <div className="flex flex-wrap items-center gap-3">
                         <div>
                           <label className="mb-1.5 block text-[11px] uppercase tracking-wider text-white/30">
-                            Apertura
+                            Primer turno
                           </label>
 
                           <input
@@ -592,7 +592,7 @@ export default function HorariosPage() {
 
                         <div>
                           <label className="mb-1.5 block text-[11px] uppercase tracking-wider text-white/30">
-                            Cierre
+                            Último turno
                           </label>
 
                           <input

@@ -21,7 +21,11 @@ import {
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import { createClient } from "@/lib/supabase/client";
 import { BARBERSHOP, getWhatsappUrl } from "@/lib/barbershop";
-import { isOpenOnDay, usePublicBookingConfig } from "@/lib/public-config";
+import {
+  isBlockedDate,
+  isOpenOnDay,
+  usePublicBookingConfig,
+} from "@/lib/public-config";
 
 type Reservation = {
   id: string;
@@ -381,7 +385,8 @@ export default function GestionarReservaPage() {
     return (
       dateKey >= todayKey &&
       dateKey <= lastBookableKey &&
-      isOpenOnDay(config, date.getDay())
+      isOpenOnDay(config, date.getDay()) &&
+      !isBlockedDate(config, dateKey)
     );
   }
 

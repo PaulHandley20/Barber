@@ -43,6 +43,8 @@ Revisar especialmente:
 | `…0200_customer_identity_protection.sql` | La web pública ya no puede cambiar nombre/teléfono/email de un cliente existente; el email nuevo queda "pendiente de verificar" |
 | `…0300_privacy_consent.sql` | Consentimiento de privacidad y de marketing (por separado), historial `consent_events`, aprobación de emails pendientes |
 | `…0400_public_booking.sql` | Horarios/reglas públicas para el calendario y búsqueda de reservas con email + teléfono |
+| `…0500_availability.sql` | Nueva `get_available_slots`: respeta horarios (Primer turno / Último turno **inclusive**), pausa, **períodos bloqueados** del panel, turnos tomados, anticipación y días máximos. Un trigger impide que la web reserve en un horario no disponible. El panel (admin) no tiene esa restricción |
+| `…0600_horarios_lunes_a_viernes.sql` | Deja el horario en lunes a viernes, turnos de 08:00 a 18:00 inclusive; sábado y domingo cerrados |
 
 Las migraciones fueron probadas sobre PostgreSQL 16 con un esquema
 equivalente (ver punto 7). Si alguna falla por un nombre de columna
@@ -109,6 +111,27 @@ al cliente existente **solo por teléfono**, alguien que conozca ese teléfono
 podría ver el nombre y el email del cliente al consultar la reserva con su
 código. Si es así, mandame la definición de la función y la ajusto para que
 cree un cliente nuevo cuando el email no coincide.
+
+---
+
+## 2.b Horarios, bloqueos y turnos pasados
+
+✅ En Admin → Horarios y en Configuración, los campos ahora dicen
+**Primer turno** y **Último turno** (el último se puede reservar).
+
+✅ Lo que Manu bloquea en **Admin → Horarios → Períodos bloqueados**
+(vacaciones, feriados, una franja de un día) desaparece de la web:
+los días completos se muestran tachados en el calendario y las franjas
+parciales no ofrecen horarios.
+
+✅ **Turnos que ya pasaron:** en Admin → Agenda → Crear turno, elegir la
+fecha/hora real (por ejemplo hoy 11:00) y tildar **"Ya fue atendido"**
+(se tilda solo si la fecha ya pasó). El turno queda **completado** y pasa
+por el mismo camino que el botón "Completar", así que suma la visita y
+los puntos de fidelización.
+
+☐ Probar en producción: crear un turno pasado para un cliente y verificar
+en Fidelización que se le sumaron los puntos.
 
 ---
 
@@ -221,7 +244,18 @@ de Manu.
 
 ---
 
-## 7. Cómo se probó
+## 7. Próximo: emails desde el Gmail de la barbería
+
+Pendiente para el final (pedido de Paul): enviar un email al reservar con
+la confirmación del turno, los puntos acumulados y los premios
+disponibles. Opciones: Gmail con contraseña de aplicación (SMTP) para
+volúmenes chicos, o un servicio como Resend con el dominio propio (mejor
+entregabilidad). Se dispara desde una Supabase Edge Function o una ruta
+de Next.js.
+
+---
+
+## 8. Cómo se probó
 
 - `npm run build` sin errores (TypeScript incluido).
 - Migraciones aplicadas dos veces seguidas sobre PostgreSQL 16 con un

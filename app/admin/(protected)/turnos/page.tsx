@@ -172,6 +172,7 @@ export default function TurnosPage() {
   const [newBarberId, setNewBarberId] = useState("");
   const [newStartAt, setNewStartAt] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [newAttended, setNewAttended] = useState(false);
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -381,6 +382,7 @@ export default function TurnosPage() {
     setNewServiceId("");
     setNewBarberId("");
     setNewNotes("");
+    setNewAttended(false);
     setCreateError("");
     setShowNewAppointment(true);
   }
@@ -408,17 +410,43 @@ export default function TurnosPage() {
     };
     if (newBarberId) payload.barber_id = newBarberId;
 
-    const { error: insertError } = await supabase.from("appointments").insert(payload);
+    const { data: created, error: insertError } = await supabase
+      .from("appointments")
+      .insert(payload)
+      .select("id")
+      .single();
 
-    if (insertError) {
+    if (insertError || !created) {
       console.error("Error creating appointment:", insertError);
       setCreateError("No se pudo crear el turno. Revisá los datos e intentá nuevamente.");
       setCreating(false);
       return;
     }
 
+    /*
+      Turno que ya ocurrió (ej. el cliente vino sin reservar): se crea
+      confirmado y se marca como completado en un segundo paso, igual que
+      cuando Manu toca "Completar". Así se dispara la misma lógica de la
+      base que suma la visita y los puntos de fidelización.
+    */
+    if (newAttended) {
+      const { error: completeError } = await supabase
+        .from("appointments")
+        .update({ status: "completed" })
+        .eq("id", created.id);
+
+      if (completeError) {
+        console.error("Error completing appointment:", completeError);
+        setCreateError("El turno se creó, pero no se pudo marcar como atendido. Marcalo con \"Completar\" desde la agenda.");
+        setCreating(false);
+        await loadAppointments(true);
+        return;
+      }
+    }
+
     setCreating(false);
     setShowNewAppointment(false);
+    setSelectedDate(start);
     await loadAppointments(true);
   }
 
@@ -667,6 +695,8 @@ export default function TurnosPage() {
           barberId={newBarberId}
           startAt={newStartAt}
           notes={newNotes}
+          attended={newAttended}
+          setAttended={setNewAttended}
           error={createError}
           creating={creating}
           setCustomerId={setNewCustomerId}
@@ -775,21 +805,30 @@ function Info({ label, value, icon }: { label: string; value: string; icon: Reac
   return <div className="rounded-xl border border-white/[0.055] bg-white/[0.014] p-3"><p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[.12em] text-white/45">{icon}{label}</p><p className="mt-2 truncate text-xs font-medium text-white/82">{value}</p></div>;
 }
 
-function NewAppointmentModal({ customers, services, barbers, customerId, serviceId, barberId, startAt, notes, error, creating, setCustomerId, setServiceId, setBarberId, setStartAt, setNotes, onClose, onCreate }: {
-  customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; customerId: string; serviceId: string; barberId: string; startAt: string; notes: string; error: string; creating: boolean;
-  setCustomerId: (v: string) => void; setServiceId: (v: string) => void; setBarberId: (v: string) => void; setStartAt: (v: string) => void; setNotes: (v: string) => void; onClose: () => void; onCreate: () => void;
+function NewAppointmentModal({ customers, services, barbers, customerId, serviceId, barberId, startAt, notes, attended, error, creating, setCustomerId, setServiceId, setBarberId, setStartAt, setNotes, setAttended, onClose, onCreate }: {
+  customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; customerId: string; serviceId: string; barberId: string; startAt: string; notes: string; attended: boolean; error: string; creating: boolean;
+  setCustomerId: (v: string) => void; setServiceId: (v: string) => void; setBarberId: (v: string) => void; setStartAt: (v: string) => void; setNotes: (v: string) => void; setAttended: (v: boolean) => void; onClose: () => void; onCreate: () => void;
 }) {
   const selectedService = services.find((service) => service.id === serviceId);
+  const isPast = Boolean(startAt) && new Date(startAt).getTime() < Date.now();
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
-        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una nueva reserva a la agenda.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
+        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
-          <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="field" /></Field>
+          <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><input type="datetime-local" value={startAt} onChange={(e) => { setStartAt(e.target.value); if (e.target.value && new Date(e.target.value).getTime() < Date.now()) setAttended(true); }} className="field" /></Field>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.075] bg-white/[0.015] px-3 py-3">
+            <input type="checkbox" checked={attended} onChange={(e) => setAttended(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#ff5a00]" />
+            <span className="text-[12px] leading-5 text-white/70">
+              <span className="font-semibold text-white/85">Ya fue atendido</span>
+              <span className="block text-white/50">Para registrar un corte que ya se hizo (por ejemplo, alguien que vino sin reservar). Queda como completado y suma la visita y los puntos.</span>
+            </span>
+          </label>
+          {isPast && !attended && <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] text-amber-200">Este horario ya pasó. Si el cliente ya se atendió, marcá &quot;Ya fue atendido&quot;.</div>}
           <Field label="Observaciones" icon={<MoreHorizontal size={12} />}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notas para el equipo..." className="field resize-none" /></Field>
-          {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración estimada: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · Estado inicial: <span className="font-semibold text-emerald-200">Confirmado</span></div>}
+          {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración estimada: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · Estado: <span className="font-semibold text-emerald-200">{attended ? "Completado" : "Confirmado"}</span></div>}
           {error && <div className="flex items-center gap-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-[12px] text-red-200"><AlertCircle size={13} />{error}</div>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t hairline bg-white/[0.012] px-6 py-4"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs font-medium text-white/62 transition hover:text-white">Cancelar</button><button type="button" disabled={creating} onClick={onCreate} className="flex items-center gap-2 rounded-xl bg-[#ff5a00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6a18] disabled:cursor-not-allowed disabled:opacity-50">{creating ? <><RefreshCw size={13} className="animate-spin" />Creando...</> : <><Plus size={13} />Crear turno</>}</button></div>
