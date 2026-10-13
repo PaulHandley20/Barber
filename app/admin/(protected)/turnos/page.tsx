@@ -20,6 +20,7 @@ import {
   CircleX,
   UserPlus,
   Sparkles,
+  Pencil,
 } from "lucide-react";
 import { DM_Mono, Manrope, Sora } from "next/font/google";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +31,9 @@ const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "5
 
 type Appointment = {
   id: string;
+  customer_id: string | null;
+  service_id: string | null;
+  barber_id: string | null;
   start_at: string;
   end_at: string;
   status: string;
@@ -163,6 +167,7 @@ export default function TurnosPage() {
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState("");
   const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);
@@ -185,6 +190,9 @@ export default function TurnosPage() {
       .from("appointments")
       .select(`
         id,
+        customer_id,
+        service_id,
+        barber_id,
         start_at,
         end_at,
         status,
@@ -204,16 +212,21 @@ export default function TurnosPage() {
       `)
       .order("start_at", { ascending: true });
 
+    let list: Appointment[] = [];
+
     if (queryError) {
       console.error("Error loading appointments:", queryError);
       setError("No se pudieron cargar los turnos.");
       setAppointments([]);
     } else {
-      setAppointments((data ?? []) as unknown as Appointment[]);
+      list = (data ?? []) as unknown as Appointment[];
+      setAppointments(list);
     }
 
     setLoading(false);
     setRefreshing(false);
+
+    return list;
   }
 
   async function loadFormOptions() {
@@ -460,6 +473,29 @@ export default function TurnosPage() {
     await loadAppointments(true);
   }
 
+  async function saveAppointmentEdit(changes: AppointmentChanges): Promise<string | null> {
+    if (!editingAppointment) return "No hay turno seleccionado.";
+
+    const { error: updateError } = await supabase
+      .from("appointments")
+      .update({ ...changes, updated_at: new Date().toISOString() })
+      .eq("id", editingAppointment.id);
+
+    if (updateError) {
+      console.error("Error editing appointment:", updateError.code, updateError.message, updateError.details);
+      return `No se pudo guardar: ${updateError.message}`;
+    }
+
+    const fresh = await loadAppointments(true);
+    const updated = fresh.find((item) => item.id === editingAppointment.id) ?? null;
+
+    setSelectedAppointment(updated);
+    if (changes.start_at) setSelectedDate(new Date(changes.start_at));
+    setEditingAppointment(null);
+
+    return null;
+  }
+
   return (
     <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
       <style jsx>{`
@@ -630,7 +666,7 @@ export default function TurnosPage() {
                 )}
               </section>
 
-              <DetailPanel appointment={selectedAppointment} onClose={() => setSelectedAppointment(null)} onStatus={updateStatus} actionLoading={actionLoading} />
+              <DetailPanel appointment={selectedAppointment} onClose={() => setSelectedAppointment(null)} onStatus={updateStatus} onEdit={setEditingAppointment} actionLoading={actionLoading} />
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5">
@@ -688,12 +724,23 @@ export default function TurnosPage() {
                   </div>
                 </div>
               </section>
-              <DetailPanel appointment={selectedAppointment} onClose={() => setSelectedAppointment(null)} onStatus={updateStatus} actionLoading={actionLoading} />
+              <DetailPanel appointment={selectedAppointment} onClose={() => setSelectedAppointment(null)} onStatus={updateStatus} onEdit={setEditingAppointment} actionLoading={actionLoading} />
             </div>
           )}
           </main>
         </div>
       </div>
+
+      {editingAppointment && (
+        <EditAppointmentModal
+          appointment={editingAppointment}
+          customers={customers}
+          services={services}
+          barbers={barberOptions}
+          onClose={() => setEditingAppointment(null)}
+          onSave={saveAppointmentEdit}
+        />
+      )}
 
       {showNewAppointment && (
         <NewAppointmentModal
@@ -755,7 +802,7 @@ function EmptyAgenda({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appointment: Appointment | null; onClose: () => void; onStatus: (appointment: Appointment, status: string) => void; actionLoading: string }) {
+function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: { appointment: Appointment | null; onClose: () => void; onStatus: (appointment: Appointment, status: string) => void; onEdit: (appointment: Appointment) => void; actionLoading: string }) {
   if (!appointment) {
     return (
       <aside className="panel h-fit overflow-hidden rounded-[16px]">
@@ -798,6 +845,7 @@ function DetailPanel({ appointment, onClose, onStatus, actionLoading }: { appoin
 
         <div className="mt-5 border-t hairline pt-5">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Acciones</p>
+          <button type="button" disabled={!!actionLoading} onClick={() => onEdit(appointment)} className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.03] px-3 py-2.5 text-[12px] font-semibold text-white/85 transition hover:border-[#ff5a00]/30 hover:bg-white/[0.05] disabled:opacity-40"><Pencil size={13} />Editar turno</button>
           <div className="grid grid-cols-2 gap-2">
             {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => onStatus(appointment, "completed")} className="flex items-center justify-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-2.5 text-[12px] font-semibold text-emerald-200 transition hover:bg-emerald-300/[0.10] disabled:opacity-40"><Check size={13} />{actionLoading === `${appointment.id}:completed` ? "Guardando..." : "Completar"}</button>}
             {!completed && !cancelled && <button type="button" disabled={!!actionLoading} onClick={() => { if (window.confirm("¿Confirmás que el cliente no asistió a este turno?")) onStatus(appointment, "no_show"); }} className="flex items-center justify-center gap-2 rounded-xl border border-orange-300/15 bg-orange-300/[0.05] px-3 py-2.5 text-[12px] font-semibold text-orange-200 transition hover:bg-orange-300/[0.09] disabled:opacity-40"><CircleX size={13} />No asistió</button>}
@@ -851,4 +899,139 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
 
 function Field({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return <label className="block"><span className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[.14em] text-white/55">{icon}{label}</span>{children}</label>;
+}
+
+type AppointmentChanges = {
+  customer_id?: string;
+  service_id?: string;
+  barber_id?: string;
+  start_at?: string;
+  end_at?: string;
+  status?: string;
+  notes?: string | null;
+};
+
+function toLocalInputValue(iso: string) {
+  const date = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function EditAppointmentModal({ appointment, customers, services, barbers, onClose, onSave }: {
+  appointment: Appointment; customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[];
+  onClose: () => void; onSave: (changes: AppointmentChanges) => Promise<string | null>;
+}) {
+  const [customerId, setCustomerId] = useState(appointment.customer_id ?? "");
+  const [serviceId, setServiceId] = useState(appointment.service_id ?? "");
+  const [barberId, setBarberId] = useState(appointment.barber_id ?? "");
+  const [startAt, setStartAt] = useState(toLocalInputValue(appointment.start_at));
+  const [status, setStatus] = useState(appointment.status);
+  const [notes, setNotes] = useState(appointment.notes ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const selectedService = services.find((service) => service.id === serviceId);
+  const wasCompleted = appointment.status === "completed";
+
+  async function handleSave() {
+    if (!customerId || !serviceId || !startAt) {
+      setError("Completá cliente, servicio y horario.");
+      return;
+    }
+
+    const start = new Date(startAt);
+    const duration = Math.max(5, Number(selectedService?.duration_minutes ?? 30));
+
+    const changes: AppointmentChanges = {
+      customer_id: customerId,
+      service_id: serviceId,
+      start_at: start.toISOString(),
+      end_at: new Date(start.getTime() + duration * 60000).toISOString(),
+      status,
+      notes: notes.trim() || null,
+    };
+    if (barberId) changes.barber_id = barberId;
+
+    setSaving(true);
+    setError("");
+    const result = await onSave(changes);
+    setSaving(false);
+
+    if (result) setError(result);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
+        <div className="flex items-start justify-between border-b border-white/[0.06] px-6 py-5">
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Pencil size={12} />Editar atención</div>
+            <h2 className="text-lg font-semibold tracking-[-.025em] text-white">Editar turno</h2>
+            <p className="mt-1 text-[13px] text-white/55">Corregí horario, servicio, cliente o estado.{appointment.reservation_code ? ` Reserva ${appointment.reservation_code}.` : ""}</p>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button>
+        </div>
+
+        <div className="space-y-4 p-6">
+          <Field label="Cliente" icon={<UserRound size={12} />}>
+            <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field">
+              <option value="">Seleccionar cliente...</option>
+              {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Servicio" icon={<Scissors size={12} />}>
+              <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field">
+                <option value="">Seleccionar servicio...</option>
+                {services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}
+              </select>
+            </Field>
+            <Field label="Barbero" icon={<UserRound size={12} />}>
+              <select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field">
+                {!barberId && <option value="">Sin asignar</option>}
+                {barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Fecha y hora" icon={<CalendarDays size={12} />}>
+              <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="field" />
+            </Field>
+            <Field label="Estado" icon={<Check size={12} />}>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="field">
+                <option value="confirmed">Confirmado</option>
+                <option value="pending">Pendiente</option>
+                <option value="completed">Completado</option>
+                <option value="no_show">No asistió</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Observaciones" icon={<MoreHorizontal size={12} />}>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notas para el equipo..." className="field resize-none" />
+          </Field>
+
+          {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · el horario de fin se recalcula solo.</div>}
+
+          {wasCompleted && status !== "completed" && <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] text-amber-200">Este turno ya estaba completado: los puntos de fidelización que sumó no se descuentan solos. Si hace falta, ajustalos desde Fidelización.</div>}
+
+          {!wasCompleted && status === "completed" && <div className="rounded-xl border border-emerald-300/15 bg-emerald-300/[0.05] px-3 py-2.5 text-[12px] text-emerald-200">Al guardarlo como completado suma la visita y los puntos del cliente.</div>}
+
+          {error && <div className="flex items-center gap-2 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-3 py-2.5 text-[12px] text-red-200"><AlertCircle size={13} />{error}</div>}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] bg-white/[0.012] px-6 py-4">
+          <button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs font-medium text-white/62 transition hover:text-white">Cancelar</button>
+          <button type="button" disabled={saving} onClick={handleSave} className="flex items-center gap-2 rounded-xl bg-[#ff5a00] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#ff6a18] disabled:opacity-50">
+            {saving ? <><RefreshCw size={13} className="animate-spin" />Guardando...</> : <><Check size={13} />Guardar cambios</>}
+          </button>
+        </div>
+      </div>
+      <style jsx>{`.field{width:100%;border:1px solid rgba(255,255,255,.075);border-radius:12px;background:#0b0c0c;color:rgba(255,255,255,.78);padding:10px 12px;font-size:12px;outline:none}.field:focus{border-color:rgba(255,90,0,.4)}.field::placeholder{color:rgba(255,255,255,.22)}`}</style>
+    </div>
+  );
 }
