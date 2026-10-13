@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import DateTimeField from "@/components/admin/ui/DateTimeField";
 
 type DaySchedule = {
   id?: string;
@@ -427,22 +428,22 @@ export default function HorariosPage() {
 
   return (
     <main className="min-h-screen text-[#f5f5f5]">
-      <div className="mx-auto max-w-7xl px-8 py-10">
+      <div className="mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
         {/* HEADER */}
-        <header className="mb-10 flex items-end justify-between gap-6">
+        <header className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-4 flex items-center gap-2 text-sm text-white/40">
-              <CalendarDays size={16} />
-              <span>OPERACIONES</span>
-              <span>/</span>
-              <span>HORARIOS</span>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/82">BarberOS</span>
+              <span className="text-white/10">/</span>
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#ff6a18]">Disponibilidad</span>
+              <CalendarDays size={14} className="ml-1 text-[#ff6a18]" />
             </div>
 
-            <h1 className="text-4xl font-semibold tracking-tight">
+            <h1 className="font-[family:var(--font-barberos-display)] text-[34px] font-semibold leading-[.91] tracking-[-0.075em] text-white sm:text-[42px]">
               Horarios
             </h1>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
+            <p className="mt-3 max-w-2xl text-[14px] leading-6 text-white/64">
               Configurá los días y horarios en los que la barbería
               recibe reservas. Estos horarios determinan la
               disponibilidad del sistema.
@@ -452,9 +453,9 @@ export default function HorariosPage() {
           <button
             onClick={saveSchedules}
             disabled={saving || loading}
-            className="flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 items-center gap-2 rounded-[11px] bg-[#ff5a00] px-4 text-[13px] font-semibold text-white shadow-[0_10px_28px_rgba(255,90,0,.18)] transition hover:bg-[#ff6a18] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Save size={16} />
+            <Save size={15} />
 
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
@@ -480,7 +481,7 @@ export default function HorariosPage() {
         )}
 
         {/* WEEKLY SCHEDULE */}
-        <section className="mb-8 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
+        <section className="admin-panel mb-6 overflow-hidden">
           <div className="border-b border-white/[0.08] px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06]">
@@ -572,18 +573,14 @@ export default function HorariosPage() {
                             Primer turno
                           </label>
 
-                          <input
-                            type="time"
-                            value={schedule.open_time}
-                            onChange={(event) =>
-                              updateSchedule(
-                                schedule.day_of_week,
-                                "open_time",
-                                event.target.value
-                              )
-                            }
-                            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none transition focus:border-white/25"
-                          />
+                          <div className="w-[132px]">
+                            <DateTimeField
+                              mode="time"
+                              minuteStep={30}
+                              value={schedule.open_time ?? ""}
+                              onChange={(value) => updateSchedule(schedule.day_of_week, "open_time", value)}
+                            />
+                          </div>
                         </div>
 
                         <span className="mt-5 text-white/20">
@@ -595,18 +592,14 @@ export default function HorariosPage() {
                             Último turno
                           </label>
 
-                          <input
-                            type="time"
-                            value={schedule.close_time}
-                            onChange={(event) =>
-                              updateSchedule(
-                                schedule.day_of_week,
-                                "close_time",
-                                event.target.value
-                              )
-                            }
-                            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none transition focus:border-white/25"
-                          />
+                          <div className="w-[132px]">
+                            <DateTimeField
+                              mode="time"
+                              minuteStep={30}
+                              value={schedule.close_time ?? ""}
+                              onChange={(value) => updateSchedule(schedule.day_of_week, "close_time", value)}
+                            />
+                          </div>
                         </div>
 
                         <div className="ml-0 flex items-center gap-2 lg:ml-5">
@@ -640,35 +633,27 @@ export default function HorariosPage() {
 
                         {schedule.has_break && (
                           <>
-                            <input
-                              type="time"
-                              value={schedule.break_start}
-                              onChange={(event) =>
-                                updateSchedule(
-                                  schedule.day_of_week,
-                                  "break_start",
-                                  event.target.value
-                                )
-                              }
-                              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none"
+                            <div className="w-[132px]">
+                            <DateTimeField
+                              mode="time"
+                              minuteStep={30}
+                              value={schedule.break_start ?? ""}
+                              onChange={(value) => updateSchedule(schedule.day_of_week, "break_start", value)}
                             />
+                          </div>
 
                             <span className="text-white/20">
                               —
                             </span>
 
-                            <input
-                              type="time"
-                              value={schedule.break_end}
-                              onChange={(event) =>
-                                updateSchedule(
-                                  schedule.day_of_week,
-                                  "break_end",
-                                  event.target.value
-                                )
-                              }
-                              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none"
+                            <div className="w-[132px]">
+                            <DateTimeField
+                              mode="time"
+                              minuteStep={30}
+                              value={schedule.break_end ?? ""}
+                              onChange={(value) => updateSchedule(schedule.day_of_week, "break_end", value)}
                             />
+                          </div>
                           </>
                         )}
                       </div>
@@ -685,7 +670,7 @@ export default function HorariosPage() {
         </section>
 
         {/* BLOCKED PERIODS */}
-        <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
+        <section className="admin-panel overflow-hidden">
           <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-5">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06]">
@@ -765,14 +750,20 @@ export default function HorariosPage() {
                     Inicio
                   </label>
 
-                  <input
-                    type="datetime-local"
-                    value={blockStart}
-                    onChange={(event) =>
-                      setBlockStart(event.target.value)
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm outline-none focus:border-white/25"
-                  />
+                  {blockAllDay ? (
+                    <DateTimeField
+                      mode="date"
+                      value={blockStart.slice(0, 10)}
+                      onChange={(value) => setBlockStart(`${value}T00:00`)}
+                    />
+                  ) : (
+                    <DateTimeField
+                      mode="datetime"
+                      minuteStep={30}
+                      value={blockStart}
+                      onChange={setBlockStart}
+                    />
+                  )}
                 </div>
 
                 {!blockAllDay && (
@@ -781,13 +772,11 @@ export default function HorariosPage() {
                       Fin
                     </label>
 
-                    <input
-                      type="datetime-local"
+                    <DateTimeField
+                      mode="datetime"
+                      minuteStep={30}
                       value={blockEnd}
-                      onChange={(event) =>
-                        setBlockEnd(event.target.value)
-                      }
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm outline-none focus:border-white/25"
+                      onChange={setBlockEnd}
                     />
                   </div>
                 )}
@@ -803,7 +792,7 @@ export default function HorariosPage() {
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-md border ${
                       blockAllDay
-                        ? "border-white bg-white text-black"
+                        ? "border-[#ff5a00] bg-[#ff5a00]/15 text-white"
                         : "border-white/20 bg-transparent"
                     }`}
                   >
@@ -816,7 +805,7 @@ export default function HorariosPage() {
                 <button
                   onClick={createBlockedPeriod}
                   disabled={savingBlock}
-                  className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-[11px] bg-[#ff5a00] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#ff6a18] disabled:opacity-50"
                 >
                   <Plus size={15} />
 

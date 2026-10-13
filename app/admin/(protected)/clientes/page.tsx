@@ -27,12 +27,9 @@ import {
   ShieldCheck,
   Pencil,
 } from "lucide-react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dmMono } from "@/components/admin/fonts";
 import { createClient } from "@/lib/supabase/client";
 
-const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-barberos-ui" });
-const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-barberos-display" });
-const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "500"], variable: "--font-barberos-data" });
 
 type Customer = {
   id: string;
@@ -698,7 +695,7 @@ export default function ClientesPage() {
 
   return (
     <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} clientes-shell barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-dashboard{
           --ink:#070707;
           --surface:#0b0b0b;
@@ -1235,7 +1232,7 @@ export default function ClientesPage() {
               </div>
             ) : (
               <>
-                <div className="hidden grid-cols-[minmax(220px,1.4fr)_120px_120px_140px_120px_24px] gap-4 border-b border-white/[0.05] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC] lg:grid">
+                <div className="hidden grid-cols-[minmax(190px,1.5fr)_72px_104px_112px_92px_18px] gap-3 border-b border-white/[0.05] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#D0D0CC] lg:grid">
                   <span>Cliente</span>
                   <span>Visitas</span>
                   <span>Valor</span>
@@ -1254,7 +1251,7 @@ export default function ClientesPage() {
                         key={customer.id}
                         type="button"
                         onClick={() => setSelectedCustomer(customer)}
-                        className={`customer-row group grid w-full grid-cols-[1fr_auto] gap-4 px-6 py-4 text-left transition lg:grid-cols-[minmax(220px,1.4fr)_120px_120px_140px_120px_24px] ${
+                        className={`customer-row group grid w-full grid-cols-[1fr_auto] gap-3 px-6 py-4 text-left transition lg:grid-cols-[minmax(190px,1.5fr)_72px_104px_112px_92px_18px] ${
                           isSelected ? "customer-row-selected" : ""
                         }`}
                       >

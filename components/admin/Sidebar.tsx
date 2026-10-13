@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { manrope as navFont } from "@/components/admin/fonts";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -19,11 +19,6 @@ import {
 import { useAdminShell } from "./AdminShellContext";
 
 // Fuente redondeada solo para los labels de navegación.
-const navFont = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  display: "swap",
-});
 
 const navigation = [
   {

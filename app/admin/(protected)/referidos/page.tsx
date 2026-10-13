@@ -10,32 +10,16 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dmMono } from "@/components/admin/fonts";
 import type { ReactNode } from "react";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500"],
-  variable: "--font-barberos-data",
-});
 
 export default function ReferidosPage() {
   return (
     <main
       className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-white`}
     >
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-dashboard {
           --ink: #070707;
           --surface: #0b0b0b;

@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dmMono } from "@/components/admin/fonts";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -25,9 +25,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-barberos-ui" });
-const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-barberos-display" });
-const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "500"], variable: "--font-barberos-data" });
 
 type Barber = {
   id: string;
@@ -63,10 +60,7 @@ type BarberStats = Barber & {
 type Filter = "all" | "active" | "inactive";
 
 function money(value: number) {
-  return `$${value.toLocaleString("es-AR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
+  return `$${Math.round(value).toLocaleString("es-AR")}`;
 }
 
 function initials(name: string) {
@@ -304,7 +298,7 @@ export default function EquipoPage() {
 
   return (
     <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-page min-h-screen text-[#f5f5f4]`}>
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-page {
           --line: rgba(255,255,255,.075);
           --line-soft: rgba(255,255,255,.045);

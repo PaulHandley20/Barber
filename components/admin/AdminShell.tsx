@@ -2,39 +2,12 @@
 
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { adminFontVariables } from "./fonts";
+import "./admin.css";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { AdminShellProvider, useAdminShell } from "./AdminShellContext";
 
-/*
- * Tipografía del Admin
- *
- * Plus Jakarta Sans:
- * - interfaz
- * - navegación
- * - topbar
- * - textos secundarios
- *
- * Space Grotesk:
- * - títulos
- * - números
- * - elementos destacados
- *
- * La idea es que el Admin tenga una identidad propia,
- * moderna y mucho más limpia que Manrope + Sora.
- */
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
 
 /*
  * Rutas que no utilizan el chrome del Admin.
@@ -58,8 +31,7 @@ function AdminShellInner({
   return (
     <div
       className={[
-        jakarta.variable,
-        spaceGrotesk.variable,
+        adminFontVariables,
         "admin-shell",
         "relative min-h-screen overflow-x-hidden",
         "bg-[#050505] text-white",

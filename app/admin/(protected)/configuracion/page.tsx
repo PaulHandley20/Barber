@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dmMono } from "@/components/admin/fonts";
 import {
   Bell,
   ImagePlus,
@@ -32,25 +32,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import DateTimeField from "@/components/admin/ui/DateTimeField";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
 
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
 
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500"],
-  variable: "--font-barberos-data",
-});
 
 type Settings = {
   id: string;
@@ -1646,24 +1631,24 @@ export default function ConfiguracionPage() {
                           </div>
 
                           <div className={`grid grid-cols-2 gap-3 ${hour.is_open ? "" : "opacity-35 pointer-events-none"}`}>
-                            <label className="block">
+                            <div className="block">
                               <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Primer turno</span>
-                              <input
-                                type="time"
+                              <DateTimeField
+                                mode="time"
+                                minuteStep={30}
                                 value={hour.open_time ?? ""}
-                                onChange={(event) => updateHour(day.day, { open_time: event.target.value })}
-                                className="h-10 w-full rounded-[10px] border border-white/[0.085] bg-[#0B0B0B] px-3 text-[13px] font-medium text-white outline-none focus:border-[#FF5A00]/45"
+                                onChange={(value) => updateHour(day.day, { open_time: value })}
                               />
-                            </label>
-                            <label className="block">
+                            </div>
+                            <div className="block">
                               <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.14em] text-white/52">Último turno</span>
-                              <input
-                                type="time"
+                              <DateTimeField
+                                mode="time"
+                                minuteStep={30}
                                 value={hour.close_time ?? ""}
-                                onChange={(event) => updateHour(day.day, { close_time: event.target.value })}
-                                className="h-10 w-full rounded-[10px] border border-white/[0.085] bg-[#0B0B0B] px-3 text-[13px] font-medium text-white outline-none focus:border-[#FF5A00]/45"
+                                onChange={(value) => updateHour(day.day, { close_time: value })}
                               />
-                            </label>
+                            </div>
                           </div>
                         </div>
                       );

@@ -20,26 +20,10 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dmMono } from "@/components/admin/fonts";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
 
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
 
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500"],
-  variable: "--font-barberos-data",
-});
 
 type Customer = {
   id: string;
@@ -489,7 +473,7 @@ export default function FidelizacionPage() {
     <main
       className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
     >
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-dashboard {
           --ink:#070707;
           --surface:#0b0b0b;
