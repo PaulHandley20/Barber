@@ -250,7 +250,7 @@ export default function ReferidosPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricCard icon={<Users size={16} />} label="Referidos" value="—" detail="Personas invitadas por clientes" />
           <MetricCard icon={<UserPlus size={16} />} label="Clientes que refieren" value="—" detail="Clientes que participan" />
           <MetricCard icon={<CheckCircle2 size={16} />} label="Nuevos clientes" value="—" detail="Altas provenientes de referidos" />

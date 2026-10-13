@@ -1349,7 +1349,7 @@ export default function AdminDashboardPage() {
         ) : null}
 
         {/* CORE BUSINESS KPIs */}
-        <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="admin-kpis mb-5 grid grid-cols-2 gap-3 xl:grid-cols-5">
           <MetricCard
             icon={<Wallet size={16} />}
             label="Ingresos"

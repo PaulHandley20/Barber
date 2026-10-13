@@ -155,7 +155,7 @@ function AdminShellInner({
 
       <main
         className={[
-          "relative z-10 min-h-screen pt-[76px]",
+          "relative min-h-screen pt-[64px] lg:pt-[76px]",
           "pl-0",
           "transition-[padding-left] duration-300 ease-out",
           collapsed

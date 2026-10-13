@@ -9,6 +9,9 @@ import {
 } from "react";
 
 type AdminShellContextValue = {
+  /* Menú lateral desplegado en celular/tablet (debajo de 1024px). */
+  mobileOpen: boolean;
+  setMobileOpen: (value: boolean) => void;
   collapsed: boolean;
   setCollapsed: (value: boolean) => void;
   toggleSidebar: () => void;
@@ -23,16 +26,19 @@ export function AdminShellProvider({
   children: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const value = useMemo(
     () => ({
+      mobileOpen,
+      setMobileOpen,
       collapsed,
       setCollapsed,
       toggleSidebar: () => {
         setCollapsed((current) => !current);
       },
     }),
-    [collapsed]
+    [collapsed, mobileOpen]
   );
 
   return (

@@ -137,3 +137,33 @@
     0 24px 60px rgba(0, 0, 0, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
+
+/* ---------------------------------------------------------
+   Celular / tablet
+   --------------------------------------------------------- */
+@media (max-width: 639px) {
+  /* Tarjetas de métricas de a dos: más compactas. */
+  .admin-shell .admin-kpis > * {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .admin-shell .admin-kpis .page-number,
+  .admin-shell .admin-kpis [class*="text-[30px]"],
+  .admin-shell .admin-kpis [class*="text-[34px]"] {
+    font-size: 22px;
+  }
+
+  /* Títulos grandes de cada sección, un poco más chicos. */
+  .admin-shell h1 {
+    font-size: 32px;
+  }
+}
+
+/* En celular y tablet (2 columnas), si la cantidad de tarjetas es impar
+   la última ocupa todo el ancho en lugar de quedar sola a la mitad. */
+@media (max-width: 1279px) {
+  .admin-shell .admin-kpis > *:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+}

@@ -1754,7 +1754,7 @@ export default function ConfiguracionPage() {
         </div>
 
         {emailOpen ? (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto sm:items-center bg-black/70 p-4 backdrop-blur-md">
             <div className="w-full max-w-md overflow-hidden rounded-[16px] border border-white/[0.09] bg-[#0D0D0D] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
               <div className="flex items-start justify-between border-b border-white/[0.065] p-5">
                 <div>
@@ -1837,7 +1837,7 @@ export default function ConfiguracionPage() {
         ) : null}
 
         {passwordOpen ? (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto sm:items-center bg-black/70 p-4 backdrop-blur-md">
             <div className="w-full max-w-md overflow-hidden rounded-[16px] border border-white/[0.09] bg-[#0D0D0D] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
               <div className="flex items-start justify-between border-b border-white/[0.065] p-5">
                 <div>

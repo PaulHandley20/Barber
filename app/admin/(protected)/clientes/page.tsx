@@ -1027,7 +1027,7 @@ export default function ClientesPage() {
 
           <main className="clientes-main pb-10">
         {/* KPI GRID */}
-        <section className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <section className="admin-kpis mb-5 grid grid-cols-2 gap-3 xl:grid-cols-5">
           {[
             {
               label: "Clientes",
@@ -1250,7 +1250,13 @@ export default function ClientesPage() {
                       <button
                         key={customer.id}
                         type="button"
-                        onClick={() => setSelectedCustomer(customer)}
+                        onClick={() => {
+                          setSelectedCustomer(customer);
+                          // En celular/tablet el detalle queda debajo de la lista: lo mostramos.
+                          if (window.innerWidth < 1280) {
+                            window.setTimeout(() => document.getElementById("customer-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+                          }
+                        }}
                         className={`customer-row group grid w-full grid-cols-[1fr_auto] gap-3 px-6 py-4 text-left transition lg:grid-cols-[minmax(190px,1.5fr)_72px_104px_112px_92px_18px] ${
                           isSelected ? "customer-row-selected" : ""
                         }`}
@@ -1336,7 +1342,12 @@ export default function ClientesPage() {
           </div>
 
           {/* CUSTOMER 360 DETAIL */}
-          <aside className="panel h-full max-h-[calc(100vh-110px)] overflow-hidden rounded-[16px] xl:sticky xl:top-0">
+          <aside
+            id="customer-detail"
+            className={`panel scroll-mt-20 overflow-hidden rounded-[16px] xl:sticky xl:top-0 xl:block xl:h-full xl:max-h-[calc(100vh-110px)] ${
+              selectedCustomer ? "" : "hidden"
+            }`}
+          >
             {!selectedCustomer ? (
               <div className="flex min-h-[520px] flex-col items-center justify-center px-8 text-center">
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0B0B0B]">
@@ -1944,7 +1955,7 @@ export default function ClientesPage() {
       {/* DELETE CUSTOMER · ADMIN REAUTHENTICATION */}
       {showDelete && selectedCustomer && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-5 backdrop-blur-md"
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto sm:items-center bg-black/75 p-5 backdrop-blur-md"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget && !deleteSaving) {
               setShowDelete(false);

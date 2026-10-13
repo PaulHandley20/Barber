@@ -1127,7 +1127,7 @@ export default function ServiciosPage() {
           </div>
         </header>
 
-        <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <StatCard
             label="Servicios"
             value={services.length}
@@ -1618,7 +1618,7 @@ export default function ServiciosPage() {
       ) : null}
 
       {showServiceModal ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto sm:items-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-[560px] overflow-hidden rounded-[16px] border border-white/[0.09] bg-[#0f0f0f] shadow-2xl">
             <div className="flex items-start justify-between border-b border-white/[0.07] px-6 py-5">
               <div>

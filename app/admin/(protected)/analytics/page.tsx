@@ -1128,7 +1128,7 @@ export default function AnalyticsPage() {
           </section>
         ) : null}
 
-        <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricCard
             label="Ingresos"
             value={formatMoney(periodRevenue)}
@@ -1582,7 +1582,7 @@ export default function AnalyticsPage() {
               <TrendingUp size={18} className="text-white/20" />
             </div>
 
-            <div className="mt-6 grid grid-cols-6 gap-2">
+            <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-6">
               {(() => {
                 const months = [];
                 const now = new Date();

@@ -149,7 +149,7 @@ export default function DateTimeField({
 
       if (!trigger) return;
 
-      const width = popover?.width ?? 320;
+      const width = popover?.width ?? Math.min(424, window.innerWidth - 16);
       const height = popover?.height ?? 360;
       const margin = 8;
 
@@ -263,7 +263,7 @@ export default function DateTimeField({
               ref={popoverRef}
               role="dialog"
               aria-label={mode === "time" ? "Elegir horario" : "Elegir fecha"}
-              className={`${adminFontVariables} fixed z-[300] flex overflow-hidden rounded-2xl border border-white/[.1] bg-[#121212] shadow-[0_30px_80px_rgba(0,0,0,.6)]`}
+              className={`${adminFontVariables} fixed z-[300] flex max-h-[calc(100dvh-16px)] max-w-[calc(100vw-16px)] flex-col overflow-y-auto rounded-2xl sm:flex-row sm:overflow-hidden border border-white/[.1] bg-[#121212] shadow-[0_30px_80px_rgba(0,0,0,.6)]`}
               style={{
                 top: position?.top ?? -9999,
                 left: position?.left ?? -9999,
@@ -271,7 +271,7 @@ export default function DateTimeField({
               }}
             >
               {mode !== "time" && (
-                <div className="w-[292px] p-4">
+                <div className="w-[292px] max-w-full p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <button
                       type="button"
@@ -355,12 +355,18 @@ export default function DateTimeField({
 
               {mode !== "date" && (
                 <div
-                  className={`flex w-[132px] flex-col ${mode === "datetime" ? "border-l border-white/[.07]" : ""}`}
+                  className={`flex w-[292px] max-w-full flex-col sm:w-[132px] ${
+                    mode === "datetime" ? "border-t border-white/[.07] sm:border-l sm:border-t-0" : ""
+                  } ${mode === "time" ? "w-[160px] sm:w-[132px]" : ""}`}
                 >
                   <p className="border-b border-white/[.07] px-3 py-3 text-[12px] font-semibold text-white/60">
                     Horario
                   </p>
-                  <div className="max-h-[300px] flex-1 overflow-y-auto p-2">
+                  <div
+                    className={`flex-1 overflow-y-auto p-2 sm:block sm:max-h-[300px] ${
+                      mode === "datetime" ? "grid max-h-[168px] grid-cols-4 gap-1" : "max-h-[260px]"
+                    }`}
+                  >
                     {times.map((time) => {
                       const selected = time === parsed.time;
 
@@ -370,7 +376,7 @@ export default function DateTimeField({
                           type="button"
                           data-time-selected={selected}
                           onClick={() => selectTime(time)}
-                          className={`mb-1 w-full rounded-lg px-3 py-2 text-left text-[13px] tabular-nums transition ${
+                          className={`w-full rounded-lg px-2 py-2 text-center text-[13px] tabular-nums transition sm:mb-1 sm:px-3 sm:text-left ${
                             selected
                               ? "bg-[#ff5a00] font-semibold text-white"
                               : "text-white/80 hover:bg-white/[.07]"

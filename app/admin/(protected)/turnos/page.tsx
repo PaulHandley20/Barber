@@ -490,6 +490,17 @@ export default function TurnosPage() {
     await loadAppointments(true);
   }
 
+  function selectAppointment(appointment: Appointment) {
+    setSelectedAppointment(appointment);
+
+    // En celular/tablet el detalle está debajo de la agenda: lo mostramos.
+    if (window.innerWidth < 1536) {
+      window.setTimeout(() => {
+        document.getElementById("appointment-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
+  }
+
   async function saveAppointmentEdit(changes: AppointmentChanges): Promise<string | null> {
     if (!editingAppointment) return "No hay turno seleccionado.";
 
@@ -604,7 +615,7 @@ export default function TurnosPage() {
             </div>
           </section>
 
-          <section className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-5">
+          <section className="admin-kpis mb-6 grid grid-cols-2 gap-3 xl:grid-cols-5">
             <Metric label="Turnos" value={stats.total.toString()} detail={viewMode === "day" ? "en el día" : "en la semana"} icon={<CalendarDays size={15} />} />
             <Metric label="Confirmados" value={stats.confirmed.toString()} detail={`${stats.pending} pendientes`} icon={<CircleCheck size={15} />} accent />
             <Metric label="Completados" value={stats.completed.toString()} detail="atendidos" icon={<Check size={15} />} />
@@ -639,7 +650,7 @@ export default function TurnosPage() {
                   <EmptyAgenda onCreate={openNewAppointment} />
                 ) : (
                   <div className="scrollbar overflow-x-auto">
-                    <div className="relative min-w-[760px]">
+                    <div className="relative min-w-0">
                       {visibleHours.map((hour) => (
                         <div key={hour} className="grid grid-cols-[82px_1fr]" style={{ height: HOUR_HEIGHT }}>
                           <div className="border-r grid-line px-5 pt-2 text-[13px] font-medium tabular-nums text-white/60">{String(hour).padStart(2, "0")}:00</div>
@@ -657,7 +668,7 @@ export default function TurnosPage() {
                             <button
                               type="button"
                               key={appointment.id}
-                              onClick={() => setSelectedAppointment(appointment)}
+                              onClick={() => selectAppointment(appointment)}
                               className={`appointment-card absolute left-3 right-5 overflow-hidden rounded-xl border border-white/[0.09] bg-[#151717] px-4 text-left ${compact ? "py-2" : "py-2.5"} ${appointment.status === "cancelled" ? "opacity-55" : ""}`}
                               style={{ top: appointmentTop(appointment.start_at, visibleHours[0]), height: cardHeight }}
                             >
@@ -734,7 +745,7 @@ export default function TurnosPage() {
                                 {items.map((appointment) => {
                                   const status = getStatus(appointment.status);
                                   return (
-                                    <button key={appointment.id} type="button" onClick={() => setSelectedAppointment(appointment)} className="appointment-card w-full rounded-lg border border-white/[0.065] bg-[#111313] p-3 text-left">
+                                    <button key={appointment.id} type="button" onClick={() => selectAppointment(appointment)} className="appointment-card w-full rounded-lg border border-white/[0.065] bg-[#111313] p-3 text-left">
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-[13px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
                                         <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
@@ -835,7 +846,7 @@ function EmptyAgenda({ onCreate }: { onCreate: () => void }) {
 function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: { appointment: Appointment | null; onClose: () => void; onStatus: (appointment: Appointment, status: string) => void; onEdit: (appointment: Appointment) => void; actionLoading: string }) {
   if (!appointment) {
     return (
-      <aside className="panel h-fit overflow-hidden rounded-[16px]">
+      <aside className="panel hidden h-fit overflow-hidden rounded-[16px] 2xl:block">
         <div className="border-b hairline px-5 py-4"><p className="text-sm font-semibold text-white">Detalle</p><p className="mt-0.5 text-[13px] text-white/55">Seleccioná un turno para abrir la información del cliente y gestionar el turno.</p></div>
         <div className="flex min-h-[420px] flex-col items-center justify-center px-8 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]"><Clock3 size={18} className="text-white/42" /></div><p className="mt-4 text-xs font-medium text-white/68">Sin selección</p><p className="mt-1 max-w-[220px] text-[12px] leading-5 text-white/42">Elegí un turno de la agenda para gestionar su estado y consultar la información del cliente.</p></div>
       </aside>
@@ -847,7 +858,7 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
   const cancelled = appointment.status === "cancelled";
 
   return (
-    <aside className="panel h-fit overflow-hidden rounded-[16px] 2xl:sticky 2xl:top-[118px]">
+    <aside id="appointment-detail" className="panel h-fit scroll-mt-20 overflow-hidden rounded-[16px] 2xl:sticky 2xl:top-[118px]">
       <div className="flex items-start justify-between border-b hairline px-5 py-4">
         <div><p className="text-sm font-semibold text-white">Detalle del turno</p><p className="mt-0.5 text-[12px] text-white/55">Información de la atención</p></div>
         <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={14} /></button>
@@ -901,7 +912,7 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
   const [openedAt] = useState(() => Date.now());
   const isPast = Boolean(startAt) && new Date(startAt).getTime() < openedAt;
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:items-center sm:p-4" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
         <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
@@ -992,7 +1003,7 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:items-center sm:p-4" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
         <div className="flex items-start justify-between border-b border-white/[0.06] px-6 py-5">
           <div>
