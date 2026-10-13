@@ -869,7 +869,10 @@ export default function GestionarReservaPage() {
                     reservation.start_at
                   )} → ${formatArgentinaTime(reservation.end_at)}`}
                 />
-                <ReservationItem label="Barbero" value={reservation.barber_name} />
+                <ReservationItem
+                  label="Barbero"
+                  value={reservation.barber_name || BARBERSHOP.barber}
+                />
                 <ReservationItem
                   label="Estado"
                   value={getStatusLabel(reservation.status)}
@@ -877,6 +880,10 @@ export default function GestionarReservaPage() {
                 />
               </div>
 
+              {/* La base no devuelve datos personales al buscar por código
+                  (por privacidad). Si algún día los devuelve, se muestran
+                  enmascarados. */}
+              {reservation.customer_name && (
               <div className="border-t border-white/10 p-5 md:p-9">
                 <p className="text-[9px] uppercase tracking-[0.28em] text-[#625e58]">
                   Datos de contacto
@@ -894,6 +901,7 @@ export default function GestionarReservaPage() {
                   />
                 </div>
               </div>
+              )}
 
               {/* ACCIONES */}
 

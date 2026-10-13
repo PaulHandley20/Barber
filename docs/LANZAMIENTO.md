@@ -45,6 +45,28 @@ Revisar especialmente:
 | `…0400_public_booking.sql` | Horarios/reglas públicas para el calendario y búsqueda de reservas con email + teléfono |
 | `…0500_availability.sql` | Nueva `get_available_slots`: respeta horarios (Primer turno / Último turno **inclusive**), pausa, **períodos bloqueados** del panel, turnos tomados, anticipación y días máximos. Un trigger impide que la web reserve en un horario no disponible. El panel (admin) no tiene esa restricción |
 | `…0600_horarios_lunes_a_viernes.sql` | Deja el horario en lunes a viernes, turnos de 08:00 a 18:00 inclusive; sábado y domingo cerrados |
+| `…0700_web_booking_functions.sql` | Reescribe `create_web_appointment`, `reschedule_reservation` y `cancel_reservation` para que usen la misma regla de disponibilidad (tablas del panel). Resuelve clientes históricos por teléfono con verificación. Cancelar/reprogramar respeta la anticipación de Configuración |
+| `…0800_security_hardening.sql` | Activa RLS en las tablas de backup (estaban expuestas), cambia las políticas a `is_admin()` y agrega el permiso que faltaba para crear turnos desde la Agenda |
+
+#### Hallazgos del diagnóstico (13/10/2026)
+
+- **Las tablas `backup_*` y `migration_backup_*` no tenían RLS**: con la
+  clave pública de la web se podían leer (nombres y teléfonos). Lo
+  corrige la 08. Si ya no se usan, conviene borrarlas.
+- **La web usaba tablas viejas** (`business_hours`, `schedule_blocks`)
+  que el panel no modifica: por eso bloquear un día o cambiar horarios no
+  impactaba en la web. Lo corrigen la 05 y la 07.
+- `reschedule_reservation` leía columnas de `business_hours` distintas de
+  las que leía `get_available_slots`: una de las dos fallaba.
+- **Crear turno desde la Agenda fallaba**: `appointments` no tenía
+  política de INSERT. Lo corrige la 08.
+- **Admin → Horarios no podía guardar pausas ni bloqueos**: faltaban las
+  columnas `has_break`, `break_start`, `break_end` y `all_day`. Las
+  agrega la 04.
+- 84 de 85 clientes no tienen email: la 07 los reconoce por teléfono sin
+  modificar sus datos (ver punto 2).
+- `get_reservation_by_code` no devuelve datos personales del cliente
+  (bien, por privacidad); la web ya no muestra esos campos vacíos.
 
 Las migraciones fueron probadas sobre PostgreSQL 16 con un esquema
 equivalente (ver punto 7). Si alguna falla por un nombre de columna
@@ -65,7 +87,11 @@ on conflict (user_id) do nothing;
 ☐ **Authentication → Sign In / Providers → Email → "Allow new users to sign up" = OFF.**
 Sin esto, cualquiera podría crearse una cuenta con la clave pública.
 
-### 1.5 Endurecer RLS (recomendado)
+### 1.5 Endurecer RLS
+
+✅ Lo hace la migración 08. Solo falta el paso 1.3 (registrar a Manu).
+
+### 1.5.b (anterior) Endurecer RLS manualmente
 
 ☐ Con el resultado de la consulta 2, reemplazar las políticas de las tablas
 privadas por `using (public.is_admin())` (hay un ejemplo al final de
@@ -81,36 +107,31 @@ script exacto.
 
 ## 2. Clientes históricos sin email (flujo seguro)
 
-✅ Diseño implementado:
+✅ Implementado en `create_web_appointment` (migración 07):
 
-1. Cuando alguien reserva desde la web y el sistema lo asocia a un cliente
-   que ya existía, **la web no puede pisar** su nombre, teléfono ni email
-   (lo impide un trigger en la base, sin importar cómo esté escrita
-   `create_web_appointment`).
-2. Si la reserva trae un email nuevo, queda guardado como **"Email por
-   verificar"** (`pending_email`), nunca directamente en `email`.
-3. En **Admin → Clientes** aparece la etiqueta *Email por verificar*. Manu
-   confirma la identidad (en persona el día del turno, o escribiéndole al
-   teléfono que ya tenía registrado) y toca **Aprobar** o **Rechazar**.
-4. La búsqueda sin código de `/gestionar-reserva` solo compara contra
-   emails **verificados**, así nadie puede "colgarse" de un cliente ajeno.
-5. Si el cliente había aceptado recibir novedades, el consentimiento se
-   aplica recién cuando Manu aprueba el email.
+1. **Email ya registrado** → se usa ese cliente; el teléfono tiene que
+   coincidir (se comparan solo los dígitos, así "3442 12-3456" y
+   "3442123456" valen igual).
+2. **Email nuevo + teléfono de un cliente histórico sin email** → el turno
+   se asocia a ese cliente (suma en su historial y fidelización), pero
+   **no se modifica ningún dato**: el email y el nombre que escribió quedan
+   como *pendientes de verificar* y el turno queda marcado.
+3. En **Admin → Clientes** aparece la etiqueta *Email por verificar* con
+   el nombre con el que reservó. Manu confirma la identidad (en el local o
+   escribiéndole al teléfono registrado):
+   - **Aprobar** → el email queda guardado y verificado.
+   - **Rechazar** → se crea un cliente nuevo con los datos de la web y se
+     le pasa esa reserva; el cliente histórico queda como estaba.
+4. **Nada coincide** → cliente nuevo.
+5. La búsqueda sin código de `/gestionar-reserva` solo usa emails
+   verificados, y la consulta por código no muestra datos personales.
 
-☐ **Prueba con un cliente histórico real** (después de aplicar las migraciones):
+☐ **Prueba con un cliente histórico real:** reservar desde la web con su
+teléfono y un email de prueba → ver la etiqueta en Clientes → aprobar o
+rechazar → cancelar la reserva de prueba.
 
-1. Elegir un cliente histórico sin email (ver consulta 5 del diagnóstico).
-2. Hacer una reserva web con **su teléfono** y un email de prueba.
-3. Verificar en Supabase que `customers.email` sigue vacío y
-   `pending_email` tiene el email de prueba; nombre y teléfono sin cambios.
-4. En Admin → Clientes, aprobar el email y verificar que pasa a `email`.
-5. Cancelar la reserva de prueba.
-
-⚠️ Revisar con la consulta 3: si `create_web_appointment` asocia la reserva
-al cliente existente **solo por teléfono**, alguien que conozca ese teléfono
-podría ver el nombre y el email del cliente al consultar la reserva con su
-código. Si es así, mandame la definición de la función y la ajusto para que
-cree un cliente nuevo cuando el email no coincide.
+> Recomendación: que Manu verifique antes de tocar "Completar" en un turno
+> marcado, así los puntos van a la persona correcta.
 
 ---
 

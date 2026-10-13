@@ -63,6 +63,7 @@ type Appointment = {
 type CustomerPrivacy = {
   id: string;
   pending_email: string | null;
+  pending_full_name: string | null;
   pending_email_requested_at: string | null;
   email_verified_at: string | null;
   marketing_opt_in: boolean | null;
@@ -265,7 +266,7 @@ export default function ClientesPage() {
     const { data, error: privacyError } = await supabase
       .from("customers")
       .select(
-        "id, pending_email, pending_email_requested_at, email_verified_at, marketing_opt_in, privacy_accepted_at"
+        "id, pending_email, pending_full_name, pending_email_requested_at, email_verified_at, marketing_opt_in, privacy_accepted_at"
       );
 
     if (privacyError) {
@@ -317,7 +318,12 @@ export default function ClientesPage() {
     }
 
     await loadPrivacy();
-    setNotice(approve ? "Email verificado y guardado." : "Email pendiente descartado.");
+    if (!approve) await loadData();
+    setNotice(
+      approve
+        ? "Email verificado y guardado."
+        : "Listo: la reserva quedó en un cliente nuevo."
+    );
   }
 
   async function toggleMarketing(customerId: string, optIn: boolean) {
@@ -1492,11 +1498,17 @@ export default function ClientesPage() {
                             <p className="mt-2 break-all text-[13px] text-[#F0F0ED]">
                               {privacy.pending_email}
                             </p>
+                            {privacy.pending_full_name && (
+                              <p className="mt-1 text-[12px] text-[#C9C9C5]">
+                                Reservó como: <span className="text-[#F0F0ED]">{privacy.pending_full_name}</span>
+                              </p>
+                            )}
                             <p className="mt-2 text-[11px] leading-5 text-[#C9C9C5]">
-                              Llegó desde una reserva web con el teléfono de este
-                              cliente. Antes de aprobarlo, confirmá que es la
-                              misma persona (en el local o escribiéndole al
-                              teléfono que ya estaba registrado).
+                              Alguien reservó por la web con el teléfono de este
+                              cliente y un email nuevo. Confirmá que es la misma
+                              persona (en el local o escribiéndole al teléfono
+                              registrado). Aprobar guarda el email; Rechazar pasa
+                              esa reserva a un cliente nuevo.
                             </p>
                             <div className="mt-3 flex gap-2">
                               <button

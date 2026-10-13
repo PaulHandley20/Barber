@@ -810,7 +810,8 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
   setCustomerId: (v: string) => void; setServiceId: (v: string) => void; setBarberId: (v: string) => void; setStartAt: (v: string) => void; setNotes: (v: string) => void; setAttended: (v: boolean) => void; onClose: () => void; onCreate: () => void;
 }) {
   const selectedService = services.find((service) => service.id === serviceId);
-  const isPast = Boolean(startAt) && new Date(startAt).getTime() < Date.now();
+  const [openedAt] = useState(() => Date.now());
+  const isPast = Boolean(startAt) && new Date(startAt).getTime() < openedAt;
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">

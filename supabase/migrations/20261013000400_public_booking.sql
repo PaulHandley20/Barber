@@ -8,6 +8,16 @@
 --   código, con email + teléfono (ambos tienen que coincidir).
 -- =====================================================================
 
+-- Columnas que usa la pantalla Admin → Horarios y que faltaban en la base
+-- (sin ellas, guardar horarios con pausa o bloquear un día fallaba).
+alter table public.barbershop_hours
+  add column if not exists has_break   boolean not null default false,
+  add column if not exists break_start time,
+  add column if not exists break_end   time;
+
+alter table public.barbershop_blocked_periods
+  add column if not exists all_day boolean not null default false;
+
 create or replace function public.get_public_booking_config()
 returns jsonb
 language sql

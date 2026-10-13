@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
-  const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,10 +17,10 @@ export default function AdminLoginPage() {
 
     // La cuenta inició sesión pero no está en ADMIN_EMAILS:
     // cerramos esa sesión para que no quede activa en el navegador.
-    supabase.auth.signOut().finally(() => {
+    createClient().auth.signOut().finally(() => {
       setError("Esta cuenta no tiene acceso al panel de administración.");
     });
-  }, [supabase]);
+  }, []);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,7 +28,7 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await createClient().auth.signInWithPassword({
       email,
       password,
     });

@@ -118,6 +118,12 @@ grant execute on function public.record_booking_consent(text, text, text, boolea
 -- ---------------------------------------------------------------------
 -- Aprobar o rechazar el email pendiente de un cliente histórico
 -- (solo admins; se usa desde Admin → Clientes).
+--
+--   Aprobar  = es la misma persona: el email pasa a ser el del cliente
+--              y sus turnos web quedan confirmados en su historial.
+--   Rechazar = NO es la misma persona: se crea un cliente nuevo con los
+--              datos que cargó en la web y se le pasan esos turnos, así
+--              el historial y los puntos del cliente histórico no se mezclan.
 -- ---------------------------------------------------------------------
 create or replace function public.resolve_pending_email(
   p_customer_id uuid,
@@ -129,51 +135,80 @@ security definer
 set search_path = public
 as $$
 declare
-  v_pending   text;
+  v_customer  record;
   v_marketing boolean;
+  v_new_id    uuid;
 begin
   if not public.is_admin() then
     raise exception 'No autorizado' using errcode = '42501';
   end if;
 
-  select pending_email into v_pending
+  select * into v_customer
     from public.customers
    where id = p_customer_id;
 
-  if v_pending is null then
+  if not found or v_customer.pending_email is null then
     return;
   end if;
 
-  if not p_approve then
+  if p_approve then
+    select exists (
+      select 1 from public.consent_events
+       where customer_id = p_customer_id
+         and email = v_customer.pending_email
+         and consent_type = 'marketing'
+         and granted
+    ) into v_marketing;
+
     update public.customers
-       set pending_email              = null,
-           pending_email_requested_at = null
+       set email                      = v_customer.pending_email,
+           email_verified_at          = now(),
+           pending_email              = null,
+           pending_full_name          = null,
+           pending_email_requested_at = null,
+           marketing_opt_in           = marketing_opt_in or v_marketing,
+           marketing_opt_in_at        = case when v_marketing and not marketing_opt_in
+                                             then now() else marketing_opt_in_at end
      where id = p_customer_id;
+
+    update public.appointments
+       set pending_identity = false
+     where customer_id = p_customer_id
+       and pending_identity;
+
+    update public.consent_events
+       set verified = true
+     where customer_id = p_customer_id
+       and email = v_customer.pending_email;
+
     return;
   end if;
 
-  select exists (
-    select 1 from public.consent_events
-     where customer_id = p_customer_id
-       and email = v_pending
-       and consent_type = 'marketing'
-       and granted
-  ) into v_marketing;
+  -- Rechazo: separar en un cliente nuevo.
+  insert into public.customers (full_name, phone, email)
+  values (
+    coalesce(v_customer.pending_full_name, v_customer.full_name),
+    v_customer.phone,
+    v_customer.pending_email
+  )
+  returning id into v_new_id;
 
-  update public.customers
-     set email                      = v_pending,
-         email_verified_at          = now(),
-         pending_email              = null,
-         pending_email_requested_at = null,
-         marketing_opt_in           = marketing_opt_in or v_marketing,
-         marketing_opt_in_at        = case when v_marketing and not marketing_opt_in
-                                           then now() else marketing_opt_in_at end
-   where id = p_customer_id;
+  update public.appointments
+     set customer_id      = v_new_id,
+         pending_identity = false
+   where customer_id = p_customer_id
+     and pending_identity;
 
   update public.consent_events
-     set verified = true
+     set customer_id = v_new_id
    where customer_id = p_customer_id
-     and email = v_pending;
+     and email = v_customer.pending_email;
+
+  update public.customers
+     set pending_email              = null,
+         pending_full_name          = null,
+         pending_email_requested_at = null
+   where id = p_customer_id;
 end;
 $$;
 

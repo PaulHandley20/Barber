@@ -21,8 +21,14 @@
 
 alter table public.customers
   add column if not exists pending_email              text,
+  add column if not exists pending_full_name          text,
   add column if not exists pending_email_requested_at timestamptz,
   add column if not exists email_verified_at          timestamptz;
+
+-- Turnos web asociados a un cliente histórico solo por el teléfono.
+-- Quedan marcados hasta que Manu verifique la identidad.
+alter table public.appointments
+  add column if not exists pending_identity boolean not null default false;
 
 create or replace function public.protect_customer_identity()
 returns trigger
