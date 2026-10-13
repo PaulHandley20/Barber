@@ -1,63 +1,96 @@
 -- =====================================================================
 -- DON SEGUNDO · DIAGNÓSTICO DE LA BASE (solo lectura, no modifica nada)
 -- =====================================================================
--- Ejecutalo en Supabase → SQL Editor ANTES de aplicar las migraciones.
--- Guardá los resultados: sirven para revisar la seguridad y para
--- adaptar las funciones si hiciera falta.
+-- Cómo usarlo:
+--   1. Supabase → SQL Editor → "New query".
+--   2. Pegar TODO este archivo y tocar "Run".
+--   3. Aparece una sola fila con una columna "diagnostico".
+--      Hacer clic en la celda, copiar el contenido y mandárselo a Claude.
+--
+-- No incluye datos de clientes: solo estructura, permisos, la definición
+-- de las funciones y cantidades.
 -- =====================================================================
 
--- 1) Tablas públicas y si tienen RLS activado.
---    TODAS deberían tener rls_enabled = true.
-select c.relname as tabla,
-       c.relrowsecurity as rls_enabled
-from pg_class c
-join pg_namespace n on n.oid = c.relnamespace
-where n.nspname = 'public' and c.relkind = 'r'
-order by 1;
+select jsonb_pretty(jsonb_build_object(
 
--- 2) Políticas RLS existentes.
---    ALERTA si alguna política de customers, appointments,
---    loyalty_* o consent_events incluye el rol anon o public
---    con SELECT/UPDATE/DELETE: significaría que cualquier visitante
---    puede leer o modificar datos personales con la clave pública.
-select tablename, policyname, roles, cmd, qual, with_check
-from pg_policies
-where schemaname = 'public'
-order by tablename, cmd, policyname;
+  -- 1) Tablas y si tienen RLS activado (todas deberían estar en true).
+  'tablas_rls', (
+    select jsonb_object_agg(c.relname, c.relrowsecurity)
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind = 'r'
+  ),
 
--- 3) Definición de las funciones que usa la web pública.
---    Revisá especialmente create_web_appointment: cómo busca al
---    cliente existente (¿por teléfono? ¿por email?) y qué actualiza.
-select p.proname as funcion,
-       p.prosecdef as security_definer,
-       pg_get_functiondef(p.oid) as definicion
-from pg_proc p
-join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public'
-  and p.proname in (
-    'create_web_appointment',
-    'get_available_slots',
-    'get_reservation_by_code',
-    'reschedule_reservation',
-    'cancel_reservation'
-  );
+  -- 2) Políticas RLS. Alerta si customers/appointments/loyalty_* tienen
+  --    políticas para anon o public con select/update/delete.
+  'politicas', (
+    select jsonb_agg(jsonb_build_object(
+             'tabla', tablename,
+             'politica', policyname,
+             'roles', roles,
+             'accion', cmd,
+             'condicion', qual,
+             'check', with_check
+           ) order by tablename, cmd, policyname)
+      from pg_policies
+     where schemaname = 'public'
+  ),
 
--- 4) Columnas de las tablas principales (para confirmar tipos).
-select table_name, column_name, data_type, is_nullable
-from information_schema.columns
-where table_schema = 'public'
-  and table_name in ('customers', 'appointments', 'services',
-                     'barbershop_settings', 'barbershop_hours')
-order by table_name, ordinal_position;
+  -- 3) Definición de las funciones que usa la web pública.
+  'funciones', (
+    select jsonb_object_agg(
+             p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')',
+             jsonb_build_object(
+               'security_definer', p.prosecdef,
+               'definicion', pg_get_functiondef(p.oid)
+             )
+           )
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname in (
+         'create_web_appointment',
+         'get_available_slots',
+         'get_reservation_by_code',
+         'reschedule_reservation',
+         'cancel_reservation'
+       )
+  ),
 
--- 5) Clientes históricos sin email (los que necesitan el flujo seguro).
-select count(*) filter (where email is null or trim(email) = '') as sin_email,
-       count(*) as total
-from public.customers
-where deleted_at is null;
+  -- 4) Triggers existentes (por ejemplo, el que suma puntos).
+  'triggers', (
+    select jsonb_agg(jsonb_build_object(
+             'tabla', event_object_table,
+             'trigger', trigger_name,
+             'evento', event_manipulation,
+             'accion', action_statement
+           ) order by event_object_table, trigger_name)
+      from information_schema.triggers
+     where trigger_schema = 'public'
+  ),
 
--- 6) Usuarios con acceso al panel (Authentication → Users).
---    Debería figurar SOLO la cuenta de Manu (y la tuya si corresponde).
-select id, email, created_at, last_sign_in_at
-from auth.users
-order by created_at;
+  -- 5) Columnas de las tablas principales.
+  'columnas', (
+    select jsonb_object_agg(table_name, cols)
+      from (
+        select table_name,
+               jsonb_agg(column_name || ' ' || data_type order by ordinal_position) as cols
+          from information_schema.columns
+         where table_schema = 'public'
+           and table_name in ('customers', 'appointments', 'services',
+                              'barbershop_settings', 'barbershop_hours',
+                              'barbershop_blocked_periods')
+         group by table_name
+      ) t
+  ),
+
+  -- 6) Cantidades (sin datos personales).
+  'cantidades', jsonb_build_object(
+    'clientes_activos',   (select count(*) from public.customers where deleted_at is null),
+    'clientes_sin_email', (select count(*) from public.customers
+                            where deleted_at is null and (email is null or trim(email) = '')),
+    'turnos',             (select count(*) from public.appointments),
+    'usuarios_panel',     (select count(*) from auth.users)
+  )
+
+)) as diagnostico;

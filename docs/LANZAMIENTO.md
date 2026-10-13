@@ -20,7 +20,7 @@ dominio y pruebas reales).
 
 ### 1.1 Diagnóstico (solo lectura)
 
-☐ Abrir **Supabase → SQL Editor**, pegar `supabase/diagnostics.sql` y ejecutar.
+☐ Abrir **Supabase → SQL Editor → New query**, pegar todo `supabase/diagnostics.sql` y tocar **Run**. Devuelve una sola celda (`diagnostico`): copiarla entera.
 Revisar especialmente:
 
 - **Consulta 1:** todas las tablas con `rls_enabled = true`.
