@@ -417,8 +417,18 @@ export default function TurnosPage() {
       .single();
 
     if (insertError || !created) {
-      console.error("Error creating appointment:", insertError);
-      setCreateError("No se pudo crear el turno. Revisá los datos e intentá nuevamente.");
+      console.error(
+        "Error creating appointment:",
+        insertError?.code,
+        insertError?.message,
+        insertError?.details,
+        insertError?.hint
+      );
+      setCreateError(
+        insertError?.code === "42501"
+          ? "Tu usuario no tiene permiso para crear turnos. Revisá que esté registrado como admin."
+          : `No se pudo crear el turno: ${insertError?.message ?? "error desconocido"}`
+      );
       setCreating(false);
       return;
     }
@@ -436,7 +446,7 @@ export default function TurnosPage() {
         .eq("id", created.id);
 
       if (completeError) {
-        console.error("Error completing appointment:", completeError);
+        console.error("Error completing appointment:", completeError?.code, completeError?.message, completeError?.details);
         setCreateError("El turno se creó, pero no se pudo marcar como atendido. Marcalo con \"Completar\" desde la agenda.");
         setCreating(false);
         await loadAppointments(true);
