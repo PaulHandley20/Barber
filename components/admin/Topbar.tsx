@@ -480,16 +480,29 @@ export default function Topbar() {
     <header
       className={[
         "fixed left-0 top-0 right-0 z-30 h-[64px] lg:h-[72px]",
-        "transition-[left,background-color,backdrop-filter,box-shadow]",
+        "transition-[left,background-color]",
         "duration-300 ease-out",
         collapsed
           ? "lg:left-[76px]"
           : "lg:left-[240px]",
         scrolled
-          ? "bg-[#08090a]/70 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,.28)]"
+          ? "bg-[#08090a]"
           : "bg-transparent",
       ].join(" ")}
     >
+      {/* Al hacer scroll la barra es sólida (sin desenfoque ni sombra):
+          el contenido que pasa por debajo se desvanece en este degradé
+          corto en lugar de verse borroso. */}
+      <div
+        aria-hidden="true"
+        className={[
+          "pointer-events-none absolute inset-x-0 top-full h-5",
+          "bg-gradient-to-b from-[#08090a] to-transparent",
+          "transition-opacity duration-300",
+          scrolled ? "opacity-100" : "opacity-0",
+        ].join(" ")}
+      />
+
       {/* ========================================================
           CONTENT
       ======================================================== */}
