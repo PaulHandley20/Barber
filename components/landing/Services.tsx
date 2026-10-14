@@ -25,7 +25,8 @@ export default function Services() {
 
       const { data, error } = await supabase
         .from("services")
-        .select("id, name, description, duration_minutes, price, active")
+        // "*" para no fallar si todavía no existe show_on_web (migración 13).
+        .select("*")
         .eq("active", true)
         .order("price", { ascending: true });
 
@@ -35,7 +36,12 @@ export default function Services() {
         return;
       }
 
-      setServices(data ?? []);
+      // Los servicios "solo panel" (ej. Kids) no se ofrecen en la web.
+      setServices(
+        (data ?? []).filter(
+          (service: { show_on_web?: boolean | null }) => service.show_on_web !== false
+        )
+      );
       setLoading(false);
     }
 

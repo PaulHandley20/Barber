@@ -55,6 +55,7 @@ Revisar especialmente:
 | `…1000_table_grants.sql` | Permisos de tabla (GRANT) para que el panel pueda leer y escribir con el usuario admin |
 | `…1100_web_booking_notifications.sql` | Marca el origen de cada turno nuevo (`source`: `web` o `panel`) y activa Realtime en `appointments`: la campanita del panel avisa al instante cuando alguien reserva desde la web |
 | `…1200_cancel_anytime_and_audit.sql` | Reservar y reprogramar online hasta **1 hora antes**; cancelar online **en cualquier momento antes del turno**. Cada turno guarda quién lo canceló (cliente o panel, con el email del admin), cuándo, y cuándo se marcó "No asistió". Los cancelados no se borran |
+| `…1300_panel_services_and_barbers.sql` | **Servicios "solo panel"** (ej. Kids): no aparecen ni se pueden reservar en la web, pero se usan en la Agenda. **Varios barberos**: los horarios libres se calculan por barbero; la web deja elegir barbero o "Sin preferencia" (con un solo barbero activo no muestra la elección); reprogramar mantiene el barbero del turno |
 
 #### Hallazgos del diagnóstico (13/10/2026)
 

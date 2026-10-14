@@ -160,7 +160,7 @@ export default function EquipoPage() {
     const previousStart = new Date(now);
     previousStart.setDate(previousStart.getDate() - 60);
 
-    const valid = appointments.filter((item) => item.status !== "cancelled");
+    const valid = appointments.filter((item) => item.status !== "cancelled" && item.status !== "no_show");
     const totalRevenue = valid
       .filter((item) => item.status === "completed")
       .reduce((sum, item) => sum + Number(item.service?.price ?? 0), 0);
@@ -661,11 +661,14 @@ export default function EquipoPage() {
       )}
 
       {createOpen && (
-        <Modal title="Nuevo profesional" eyebrow="Equipo" description="Agregá un profesional al equipo." onClose={() => setCreateOpen(false)}>
+        <Modal title="Nuevo profesional" eyebrow="Equipo" description="Agregá un profesional al equipo y a las reservas web." onClose={() => setCreateOpen(false)}>
           <label className="block">
             <span className="data mb-2 block text-[9px] font-bold uppercase tracking-[.16em] text-white/64">Nombre completo</span>
             <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createBarber()} placeholder="Ej. Manuel Cladera" className="control h-11 w-full rounded-[11px] px-4 text-[11px] text-white outline-none placeholder:text-white/32" />
           </label>
+          <p className="mt-3 rounded-[11px] border border-white/[0.07] bg-white/[0.015] px-4 py-3 text-[12px] leading-5 text-white/58">
+            Al crearlo queda activo y aparece en la web para que los clientes elijan con quién cortarse. Con un solo profesional activo, la web no muestra esa elección. Si lo desactivás, deja de aparecer.
+          </p>
           <div className="mt-6 flex justify-end gap-2 border-t hairline pt-5">
             <button type="button" onClick={() => setCreateOpen(false)} className="control h-10 rounded-[10px] px-4 text-[9px] font-semibold text-white/60">Cancelar</button>
             <button type="button" disabled={saving || !newName.trim()} onClick={createBarber} className="primary h-10 rounded-[10px] px-4 text-[9px] font-semibold text-white disabled:opacity-35">{saving ? "Guardando..." : "Crear profesional"}</button>

@@ -44,7 +44,14 @@ export const bookingCardClass =
 /* ---------------------------------------------------------
    Barra superior con la marca
    --------------------------------------------------------- */
-export function BookingTopBar({ current }: { current: "reservar" | "mi-reserva" }) {
+export function BookingTopBar({
+  current,
+  onReserveClick,
+}: {
+  current: "reservar" | "mi-reserva";
+  /* Si se pasa, reemplaza la navegación del botón "Reservar" (ej. empezar una reserva nueva). */
+  onReserveClick?: () => void;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b border-[#EADFCB]/[0.07] bg-[#100f0d]/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 md:h-[72px] lg:px-8">
@@ -72,6 +79,14 @@ export function BookingTopBar({ current }: { current: "reservar" | "mi-reserva" 
 
           <Link
             href="/reservar"
+            onClick={
+              onReserveClick
+                ? (event) => {
+                    event.preventDefault();
+                    onReserveClick();
+                  }
+                : undefined
+            }
             aria-current={current === "reservar" ? "page" : undefined}
             className={`rounded-full px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] transition ${
               current === "reservar"

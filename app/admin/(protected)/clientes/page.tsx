@@ -71,10 +71,18 @@ type CustomerPrivacy = {
 
 type CustomerWithStats = Customer & {
   visits: number;
+  noShows: number;
   spent: number;
   lastVisit: string | null;
   favoriteService: string | null;
 };
+
+/* Visita = turno que no se canceló ni quedó como "no asistió". */
+const isNoShowStatus = (status: string) => status === "no_show";
+const isCancelledStatus = (status: string) =>
+  status === "cancelled" || status === "canceled";
+const countsAsVisit = (status: string) =>
+  !isCancelledStatus(status) && !isNoShowStatus(status);
 
 type Segment = "all" | "new" | "active" | "vip" | "risk" | "inactive";
 
@@ -358,11 +366,15 @@ export default function ClientesPage() {
 
   const customersWithStats = useMemo<CustomerWithStats[]>(() => {
     return customers.map((customer) => {
-      const customerAppointments = appointments.filter(
-        (appointment) =>
-          appointment.customer_id === customer.id &&
-          appointment.status !== "cancelled"
+      const ownAppointments = appointments.filter(
+        (appointment) => appointment.customer_id === customer.id
       );
+      const customerAppointments = ownAppointments.filter((appointment) =>
+        countsAsVisit(appointment.status)
+      );
+      const noShows = ownAppointments.filter((appointment) =>
+        isNoShowStatus(appointment.status)
+      ).length;
 
       const spent = customerAppointments.reduce(
         (total, appointment) =>
@@ -387,6 +399,7 @@ export default function ClientesPage() {
       return {
         ...customer,
         visits: customerAppointments.length,
+        noShows,
         spent,
         lastVisit: customerAppointments[0]?.start_at ?? null,
         favoriteService,
@@ -433,12 +446,12 @@ export default function ClientesPage() {
     (customer) => getCustomerSegment(customer) === "inactive"
   ).length;
 
-  const totalVisits = appointments.filter(
-    (appointment) => appointment.status !== "cancelled"
+  const totalVisits = appointments.filter((appointment) =>
+    countsAsVisit(appointment.status)
   ).length;
 
   const totalRevenue = appointments
-    .filter((appointment) => appointment.status !== "cancelled")
+    .filter((appointment) => countsAsVisit(appointment.status))
     .reduce(
       (total, appointment) =>
         total + Number(appointment.service?.price ?? 0),
@@ -452,7 +465,7 @@ export default function ClientesPage() {
     ? appointments.filter(
         (appointment) =>
           appointment.customer_id === selectedCustomer.id &&
-          appointment.status !== "cancelled"
+          !isCancelledStatus(appointment.status)
       )
     : [];
 
@@ -501,6 +514,7 @@ export default function ClientesPage() {
     const createdWithStats: CustomerWithStats = {
       ...createdCustomer,
       visits: 0,
+      noShows: 0,
       spent: 0,
       lastVisit: null,
       favoriteService: null,
@@ -1550,6 +1564,13 @@ export default function ClientesPage() {
                       <p className="mt-2 text-[24px] font-semibold text-white tabular-nums">
                         {selectedCustomer.visits}
                       </p>
+                      {selectedCustomer.noShows > 0 && (
+                        <p className="mt-1 text-[11px] font-semibold text-red-300/85">
+                          {selectedCustomer.noShows === 1
+                            ? "1 no asistió"
+                            : `${selectedCustomer.noShows} no asistió`}
+                        </p>
+                      )}
                     </div>
 
                     <div className="rounded-xl border border-white/[0.07] bg-[#0B0B0B] p-4">
@@ -1594,10 +1615,17 @@ export default function ClientesPage() {
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {selectedCustomerAppointments.slice(0, 6).map((appointment) => (
+                      {selectedCustomerAppointments.slice(0, 6).map((appointment) => {
+                        const noShow = isNoShowStatus(appointment.status);
+
+                        return (
                         <div
                           key={appointment.id}
-                          className="rounded-xl border border-white/[0.065] bg-[#0B0B0B] p-3.5"
+                          className={`rounded-xl border p-3.5 ${
+                            noShow
+                              ? "border-red-300/15 bg-red-300/[0.03]"
+                              : "border-white/[0.065] bg-[#0B0B0B]"
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -1610,9 +1638,15 @@ export default function ClientesPage() {
                               </div>
                             </div>
 
-                            <span className="shrink-0 text-[12px] font-semibold text-white tabular-nums">
-                              {formatMoney(Number(appointment.service?.price ?? 0))}
-                            </span>
+                            {noShow ? (
+                              <span className="shrink-0 rounded-full border border-red-300/20 bg-red-300/[0.06] px-2 py-0.5 text-[11px] font-semibold text-red-200/90">
+                                No asistió
+                              </span>
+                            ) : (
+                              <span className="shrink-0 text-[12px] font-semibold text-white tabular-nums">
+                                {formatMoney(Number(appointment.service?.price ?? 0))}
+                              </span>
+                            )}
                           </div>
 
                           {appointment.notes && (
@@ -1621,7 +1655,8 @@ export default function ClientesPage() {
                             </p>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

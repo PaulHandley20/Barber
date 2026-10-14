@@ -49,8 +49,78 @@ type Appointment = {
 };
 
 type CustomerOption = { id: string; full_name: string; phone: string | null };
-type ServiceOption = { id: string; name: string; price: number; duration_minutes?: number | null };
-type BarberOption = { id: string; name: string };
+type ServiceOption = {
+  id: string;
+  name: string;
+  price: number;
+  duration_minutes?: number | null;
+  active?: boolean | null;
+  /* false = servicio "solo panel" (no se ofrece en la web). */
+  show_on_web?: boolean | null;
+};
+type BarberOption = { id: string; name: string; active?: boolean | null };
+
+/* Opciones de servicio: separa los de la web de los "solo panel" y
+   oculta los inactivos (salvo el que ya tiene el turno). */
+function ServiceOptions({ services, currentId }: { services: ServiceOption[]; currentId?: string | null }) {
+  const visible = services.filter((service) => service.active !== false || service.id === currentId);
+  const web = visible.filter((service) => service.show_on_web !== false);
+  const panelOnly = visible.filter((service) => service.show_on_web === false);
+  const option = (service: ServiceOption) => (
+    <option key={service.id} value={service.id}>
+      {service.name} · {formatMoney(Number(service.price))}
+      {service.active === false ? " (inactivo)" : ""}
+    </option>
+  );
+
+  if (panelOnly.length === 0) return <>{web.map(option)}</>;
+
+  return (
+    <>
+      <optgroup label="Servicios de la web">{web.map(option)}</optgroup>
+      <optgroup label="Solo panel">{panelOnly.map(option)}</optgroup>
+    </>
+  );
+}
+
+function barberChoices(barbers: BarberOption[], currentId?: string | null) {
+  return barbers.filter((barber) => barber.active !== false || barber.id === currentId);
+}
+
+/* Turno activo del mismo barbero que se superpone (solo para avisar). */
+function findBarberConflict(
+  appointments: Appointment[],
+  barberId: string,
+  start: Date,
+  durationMinutes: number,
+  excludeId?: string
+) {
+  if (!barberId || Number.isNaN(start.getTime())) return null;
+  const startMs = start.getTime();
+  const endMs = startMs + Math.max(5, durationMinutes) * 60000;
+
+  return (
+    appointments.find(
+      (item) =>
+        item.id !== excludeId &&
+        item.barber_id === barberId &&
+        !["cancelled", "canceled", "no_show"].includes(item.status) &&
+        new Date(item.start_at).getTime() < endMs &&
+        new Date(item.end_at).getTime() > startMs
+    ) ?? null
+  );
+}
+
+function BarberConflictNotice({ conflict, barberName }: { conflict: Appointment; barberName: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] leading-5 text-amber-200">
+      <AlertCircle size={13} className="mt-0.5 shrink-0" />
+      <span>
+        {barberName} ya tiene a {conflict.customer?.full_name ?? "otro cliente"} a las {formatTime(conflict.start_at)}. Se guarda igual, como sobreturno.
+      </span>
+    </div>
+  );
+}
 
 type ViewMode = "day" | "week";
 
@@ -225,6 +295,74 @@ function appointmentHeight(startAt: string, endAt: string) {
   return (diff / 60) * HOUR_HEIGHT - 4;
 }
 
+const isInactiveStatus = (status: string) => ["cancelled", "canceled", "no_show"].includes(status);
+
+/* Turnos del mismo horario (confirmados, cancelados, no asistió, en
+   cualquier combinación) se apilan: uno queda al frente y el resto
+   "detrás"; se despliegan al pasar el mouse (o con "+N" en celular).
+   Al frente va el turno activo; si todos están cancelados, el último
+   que se canceló. Turnos que no se cruzan con nada se ven normal. */
+function buildTimeline<
+  T extends { id: string; start_at: string; end_at: string; status: string; cancelled_at?: string | null }
+>(items: T[]) {
+  const range = (item: T) => {
+    const start = new Date(item.start_at).getTime();
+    return [start, Math.max(new Date(item.end_at).getTime(), start + 30 * 60000)] as const;
+  };
+  const overlap = (a: T, b: T) => {
+    const [aStart, aEnd] = range(a);
+    const [bStart, bEnd] = range(b);
+    return Math.min(aEnd, bEnd) - Math.max(aStart, bStart);
+  };
+  const byStart = (a: T, b: T) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+  const recency = (item: T) => new Date(item.cancelled_at ?? item.start_at).getTime();
+
+  const leads: { lead: T; hidden: T[] }[] = [];
+
+  // 1) Activos: el primero de cada horario va al frente; si hay otro
+  //    activo en el mismo horario (doble turno), queda detrás.
+  for (const item of items.filter((entry) => !isInactiveStatus(entry.status)).sort(byStart)) {
+    const owner = leads.find((entry) => overlap(entry.lead, item) > 0);
+    if (owner) owner.hidden.push(item);
+    else leads.push({ lead: item, hidden: [] });
+  }
+
+  // 2) Cancelados / no asistió: detrás del activo con el que más se
+  //    cruzan; si no hay activo, se apilan entre ellos (al frente el
+  //    último cancelado).
+  const inactive = items
+    .filter((entry) => isInactiveStatus(entry.status))
+    .sort((a, b) => recency(b) - recency(a));
+
+  for (const item of inactive) {
+    let owner: { lead: T; hidden: T[] } | null = null;
+    let best = 0;
+
+    for (const entry of leads) {
+      const value = overlap(entry.lead, item);
+      const activeLead = !isInactiveStatus(entry.lead.status);
+      // Preferimos un turno activo como "dueño" del horario.
+      const score = value > 0 ? value + (activeLead ? 1e12 : 0) : 0;
+      if (score > best) {
+        owner = entry;
+        best = score;
+      }
+    }
+
+    if (owner) owner.hidden.push(item);
+    else leads.push({ lead: item, hidden: [] });
+  }
+
+  return leads
+    .map(({ lead, hidden }) => ({
+      appointment: lead,
+      hidden: hidden.sort(
+        (a, b) => Number(isInactiveStatus(a.status)) - Number(isInactiveStatus(b.status)) || byStart(a, b)
+      ),
+    }))
+    .sort((a, b) => byStart(a.appointment, b.appointment));
+}
+
 /* Rango de horas visible: 08 a 20 por defecto, ampliado si hay turnos
    antes o después (ej. un turno cargado a las 21:00). */
 function getVisibleHours(items: { start_at: string; end_at: string }[]) {
@@ -335,8 +473,9 @@ export default function TurnosPage() {
   async function loadFormOptions() {
     const [customersResult, servicesResult, barbersResult] = await Promise.all([
       supabase.from("customers").select("id, full_name, phone").order("full_name"),
-      supabase.from("services").select("id, name, price, duration_minutes").order("name"),
-      supabase.from("barbers").select("id, name").order("name"),
+      // "*" para incluir show_on_web/active sin fallar si aún no existen.
+      supabase.from("services").select("*").order("name"),
+      supabase.from("barbers").select("*").order("name"),
     ]);
 
     if (!customersResult.error) setCustomers((customersResult.data ?? []) as CustomerOption[]);
@@ -351,10 +490,14 @@ export default function TurnosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Filtro: barberos activos del equipo + los que figuran en turnos. */
   const barbers = useMemo(() => {
-    const names = appointments.map((a) => a.barber?.name).filter(Boolean) as string[];
+    const names = [
+      ...barberOptions.filter((barber) => barber.active !== false).map((barber) => barber.name),
+      ...(appointments.map((a) => a.barber?.name).filter(Boolean) as string[]),
+    ];
     return Array.from(new Set(names));
-  }, [appointments]);
+  }, [appointments, barberOptions]);
 
   const filteredAppointments = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -376,6 +519,10 @@ export default function TurnosPage() {
   }, [filteredAppointments, selectedDate]);
 
   const visibleHours = useMemo(() => getVisibleHours(dayAppointments), [dayAppointments]);
+
+  // Cancelados "detrás" de los turnos activos del mismo horario.
+  const timeline = useMemo(() => buildTimeline(dayAppointments), [dayAppointments]);
+  const [expandedStack, setExpandedStack] = useState<string | null>(null);
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(selectedDate);
@@ -749,49 +896,21 @@ export default function TurnosPage() {
                         </div>
                       ))}
                       <div className="absolute inset-y-0 left-[82px] right-0">
-                        {dayAppointments.map((appointment) => {
-                          const status = displayStatus(appointment);
-                          const cardHeight = appointmentHeight(appointment.start_at, appointment.end_at);
-                          const compact = cardHeight < 80;
-                          return (
-                            <button
-                              type="button"
-                              key={appointment.id}
-                              onClick={() => selectAppointment(appointment)}
-                              className={`appointment-card absolute left-3 right-5 overflow-hidden rounded-xl border border-white/[0.09] bg-[#151717] px-4 text-left ${compact ? "py-2" : "py-2.5"} ${appointment.status === "cancelled" ? "opacity-55" : ""}`}
-                              style={{ top: appointmentTop(appointment.start_at, visibleHours[0]), height: cardHeight }}
-                            >
-                              <div className={`absolute inset-y-0 left-0 w-[3px] ${status.dot}`} />
-                              {compact ? (
-                                <div className="flex h-full items-center justify-between gap-3 pl-1">
-                                  <div className="flex min-w-0 items-center gap-3">
-                                    <span className="shrink-0 text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
-                                    <span className="truncate text-[14px] font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</span>
-                                    <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/60 md:flex"><Scissors size={11} />{appointment.service?.name ?? "Servicio"}</span>
-                                    {shortAudit(appointment) && <span className="hidden shrink-0 text-[12px] text-red-200/70 lg:inline">· {shortAudit(appointment)}</span>}
-                                  </div>
-                                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
-                                </div>
-                              ) : (
-                              <div className="flex items-start justify-between gap-3 pl-1">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
-                                    <span className="text-[12px] text-white/48">→ {formatTime(appointment.end_at)}</span>
-                                  </div>
-                                  <p className="mt-1 truncate text-sm font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</p>
-                                  <div className="mt-1 flex items-center gap-3 truncate text-[12px] text-white/60">
-                                    <span className="flex items-center gap-1"><Scissors size={10} />{appointment.service?.name ?? "Servicio"}</span>
-                                    {appointment.barber?.name && <span className="flex items-center gap-1"><UserRound size={10} />{appointment.barber.name}</span>}
-                                    {shortAudit(appointment) && <span className="text-red-200/70">{shortAudit(appointment)}</span>}
-                                  </div>
-                                </div>
-                                <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
-                              </div>
-                              )}
-                            </button>
-                          );
-                        })}
+                        {timeline.map(({ appointment, hidden }) => (
+                          <TimelineEntry
+                            key={appointment.id}
+                            appointment={appointment}
+                            hidden={hidden}
+                            top={appointmentTop(appointment.start_at, visibleHours[0])}
+                            height={appointmentHeight(appointment.start_at, appointment.end_at)}
+                            selectedId={selectedAppointment?.id}
+                            expanded={expandedStack === appointment.id}
+                            onToggle={() =>
+                              setExpandedStack((current) => (current === appointment.id ? null : appointment.id))
+                            }
+                            onSelect={selectAppointment}
+                          />
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -870,6 +989,7 @@ export default function TurnosPage() {
           customers={customers}
           services={services}
           barbers={barberOptions}
+          appointments={appointments}
           onClose={() => setEditingAppointment(null)}
           onSave={saveAppointmentEdit}
         />
@@ -880,6 +1000,7 @@ export default function TurnosPage() {
           customers={customers}
           services={services}
           barbers={barberOptions}
+          appointments={appointments}
           customerId={newCustomerId}
           serviceId={newServiceId}
           barberId={newBarberId}
@@ -995,24 +1116,188 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
   );
 }
 
+/* Tarjeta de la línea de tiempo. Si tiene turnos cancelados detrás, se
+   ven sus bordes asomando y se despliegan debajo al pasar el mouse o al
+   tocar "+N cancelado". */
+function TimelineEntry({
+  appointment,
+  hidden,
+  top,
+  height,
+  selectedId,
+  expanded,
+  onToggle,
+  onSelect,
+}: {
+  appointment: Appointment;
+  hidden: Appointment[];
+  top: number;
+  height: number;
+  selectedId?: string;
+  expanded: boolean;
+  onToggle: () => void;
+  onSelect: (appointment: Appointment) => void;
+}) {
+  const status = displayStatus(appointment);
+  const compact = height < 80;
+  const isSelected = selectedId === appointment.id;
+  const inactive = isInactiveStatus(appointment.status);
+  const open = expanded || hidden.some((item) => item.id === selectedId);
+  const layers = Math.min(hidden.length, 2);
+
+  return (
+    <div
+      className={`group/entry absolute left-3 right-5 ${open ? "z-30" : "z-[1] hover:z-30"}`}
+      style={{ top, height }}
+    >
+      {/* Bordes de los turnos que quedan detrás */}
+      {Array.from({ length: layers }, (_, index) => (
+        <div
+          key={index}
+          aria-hidden="true"
+          className={`absolute inset-x-0 rounded-xl border transition-all duration-200 group-hover/entry:opacity-0 ${
+            hidden.every((item) => isInactiveStatus(item.status))
+              ? "border-red-300/20 bg-[#1b1515]"
+              : "border-amber-300/20 bg-[#1b1912]"
+          }`}
+          style={{
+            top: 4 * (index + 1),
+            bottom: -4 * (index + 1),
+            left: 6 * (index + 1),
+            right: 6 * (index + 1),
+            zIndex: -1 - index,
+          }}
+        />
+      ))}
+
+      <button
+        type="button"
+        onClick={() => onSelect(appointment)}
+        aria-pressed={isSelected}
+        className={`appointment-card relative h-full w-full overflow-hidden rounded-xl border bg-[#151717] px-4 text-left ${
+          compact ? "py-2" : "py-2.5"
+        } ${isSelected ? "border-[#ff6a18]/55" : "border-white/[0.09]"} ${inactive && !isSelected ? "opacity-60 hover:opacity-100" : ""}`}
+      >
+        <div className={`absolute inset-y-0 left-0 w-[3px] ${status.dot}`} />
+        {compact ? (
+          <div className="flex h-full items-center justify-between gap-3 pl-1">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="shrink-0 text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
+              <span className="truncate text-[14px] font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</span>
+              <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/60 md:flex"><Scissors size={11} />{appointment.service?.name ?? "Servicio"}</span>
+              {shortAudit(appointment) && <span className="hidden shrink-0 text-[12px] text-red-200/70 lg:inline">· {shortAudit(appointment)}</span>}
+            </div>
+            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
+          </div>
+        ) : (
+          <div className="flex items-start justify-between gap-3 pl-1">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
+                <span className="text-[12px] text-white/48">→ {formatTime(appointment.end_at)}</span>
+              </div>
+              <p className="mt-1 truncate text-sm font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</p>
+              <div className="mt-1 flex items-center gap-3 truncate text-[12px] text-white/60">
+                <span className="flex items-center gap-1"><Scissors size={10} />{appointment.service?.name ?? "Servicio"}</span>
+                {appointment.barber?.name && <span className="flex items-center gap-1"><UserRound size={10} />{appointment.barber.name}</span>}
+                {shortAudit(appointment) && <span className="text-red-200/70">{shortAudit(appointment)}</span>}
+              </div>
+            </div>
+            <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
+          </div>
+        )}
+      </button>
+
+      {hidden.length > 0 && (
+        <>
+          {/* "+N cancelado": indica que hay algo detrás; en celular despliega */}
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            className={`absolute -bottom-2 right-3 z-10 rounded-full border px-2 py-[1px] text-[10px] font-semibold transition ${
+              hidden.every((item) => isInactiveStatus(item.status))
+                ? "border-red-300/25 bg-[#1b1515] text-red-200/85 hover:border-red-300/50"
+                : "border-amber-300/30 bg-[#1b1912] text-amber-200/90 hover:border-amber-300/60"
+            }`}
+          >
+            +{hidden.length}{" "}
+            {hidden.length === 1
+              ? hidden[0].status === "no_show"
+                ? "no asistió"
+                : isInactiveStatus(hidden[0].status)
+                  ? "cancelado"
+                  : "turno"
+              : "turnos"}
+          </button>
+
+          {/* Lista desplegable con los turnos de detrás */}
+          <div
+            className={`absolute inset-x-0 top-full pt-2.5 transition duration-200 ${
+              open
+                ? "pointer-events-auto translate-y-0 opacity-100"
+                : "pointer-events-none -translate-y-1 opacity-0 group-hover/entry:pointer-events-auto group-hover/entry:translate-y-0 group-hover/entry:opacity-100"
+            }`}
+          >
+            <div className="overflow-hidden rounded-xl border border-white/[0.1] bg-[#121313] shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+              <p className="border-b border-white/[0.06] px-4 py-2 text-[10px] font-semibold uppercase tracking-[.16em] text-white/45">
+                También en este horario
+              </p>
+              {hidden.map((item) => {
+                const itemStatus = displayStatus(item);
+                const selected = item.id === selectedId;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelect(item)}
+                    aria-pressed={selected}
+                    className={`relative flex w-full min-w-0 items-center gap-3 px-4 py-2.5 text-left transition ${
+                      selected ? "bg-[#ff5a00]/[0.08]" : "hover:bg-white/[0.035]"
+                    }`}
+                  >
+                    <span className={`absolute inset-y-0 left-0 w-[3px] ${itemStatus.dot}`} />
+                    <span className={`shrink-0 pl-1 text-[13px] font-semibold tabular-nums ${isInactiveStatus(item.status) ? "text-white/55" : "text-white"}`}>{formatTime(item.start_at)}</span>
+                    <span className={`min-w-0 truncate text-[13px] ${isInactiveStatus(item.status) ? "text-white/65" : "font-semibold text-white/92"}`}>{item.customer?.full_name ?? "Cliente sin nombre"}</span>
+                    {!isInactiveStatus(item.status) && <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/55 md:flex"><Scissors size={11} />{item.service?.name ?? "Servicio"}</span>}
+                    {shortAudit(item) && <span className="hidden min-w-0 truncate text-[12px] text-red-200/60 md:inline">· {shortAudit(item)}</span>}
+                    <span className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${itemStatus.badge}`}>
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${itemStatus.dot} sm:mr-1.5`} />
+                      <span className="hidden sm:inline">{itemStatus.label}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Info({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return <div className="rounded-xl border border-white/[0.055] bg-white/[0.014] p-3"><p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[.12em] text-white/45">{icon}{label}</p><p className="mt-2 truncate text-xs font-medium text-white/82">{value}</p></div>;
 }
 
-function NewAppointmentModal({ customers, services, barbers, customerId, serviceId, barberId, startAt, notes, attended, error, creating, setCustomerId, setServiceId, setBarberId, setStartAt, setNotes, setAttended, onClose, onCreate }: {
-  customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; customerId: string; serviceId: string; barberId: string; startAt: string; notes: string; attended: boolean; error: string; creating: boolean;
+function NewAppointmentModal({ customers, services, barbers, appointments, customerId, serviceId, barberId, startAt, notes, attended, error, creating, setCustomerId, setServiceId, setBarberId, setStartAt, setNotes, setAttended, onClose, onCreate }: {
+  customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; appointments: Appointment[]; customerId: string; serviceId: string; barberId: string; startAt: string; notes: string; attended: boolean; error: string; creating: boolean;
   setCustomerId: (v: string) => void; setServiceId: (v: string) => void; setBarberId: (v: string) => void; setStartAt: (v: string) => void; setNotes: (v: string) => void; setAttended: (v: boolean) => void; onClose: () => void; onCreate: () => void;
 }) {
   const selectedService = services.find((service) => service.id === serviceId);
   const [openedAt] = useState(() => Date.now());
   const isPast = Boolean(startAt) && new Date(startAt).getTime() < openedAt;
+  const conflict = startAt
+    ? findBarberConflict(appointments, barberId, new Date(startAt), Number(selectedService?.duration_minutes ?? 30))
+    : null;
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:items-center sm:p-4" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
         <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.035em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option><ServiceOptions services={services} currentId={serviceId} /></select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barberChoices(barbers, barberId).map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
           <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><DateTimeField mode="datetime" value={startAt} onChange={(value) => { setStartAt(value); if (value && new Date(value).getTime() < Date.now()) setAttended(true); }} /></Field>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.075] bg-white/[0.015] px-3 py-3">
             <input type="checkbox" checked={attended} onChange={(e) => setAttended(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#ff5a00]" />
@@ -1021,6 +1306,7 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
               <span className="block text-white/50">Para registrar un corte que ya se hizo (por ejemplo, alguien que vino sin reservar). Queda como completado y suma la visita y los puntos.</span>
             </span>
           </label>
+          {conflict && <BarberConflictNotice conflict={conflict} barberName={barbers.find((barber) => barber.id === barberId)?.name ?? "El barbero"} />}
           {isPast && !attended && <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] text-amber-200">Este horario ya pasó. Si el cliente ya se atendió, marcá &quot;Ya fue atendido&quot;.</div>}
           <Field label="Observaciones" icon={<MoreHorizontal size={12} />}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notas para el equipo..." className="field resize-none" /></Field>
           {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración estimada: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · Estado: <span className="font-semibold text-emerald-200">{attended ? "Completado" : "Confirmado"}</span></div>}
@@ -1054,8 +1340,8 @@ function toLocalInputValue(iso: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function EditAppointmentModal({ appointment, customers, services, barbers, onClose, onSave }: {
-  appointment: Appointment; customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[];
+function EditAppointmentModal({ appointment, customers, services, barbers, appointments, onClose, onSave }: {
+  appointment: Appointment; customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; appointments: Appointment[];
   onClose: () => void; onSave: (changes: AppointmentChanges) => Promise<string | null>;
 }) {
   const [customerId, setCustomerId] = useState(appointment.customer_id ?? "");
@@ -1069,6 +1355,9 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
 
   const selectedService = services.find((service) => service.id === serviceId);
   const wasCompleted = appointment.status === "completed";
+  const conflict = ["cancelled", "canceled", "no_show"].includes(status)
+    ? null
+    : findBarberConflict(appointments, barberId, new Date(startAt), Number(selectedService?.duration_minutes ?? 30), appointment.id);
 
   async function handleSave() {
     if (!customerId || !serviceId || !startAt) {
@@ -1121,13 +1410,13 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
             <Field label="Servicio" icon={<Scissors size={12} />}>
               <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field">
                 <option value="">Seleccionar servicio...</option>
-                {services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}
+                <ServiceOptions services={services} currentId={appointment.service_id} />
               </select>
             </Field>
             <Field label="Barbero" icon={<UserRound size={12} />}>
               <select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field">
                 {!barberId && <option value="">Sin asignar</option>}
-                {barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}
+                {barberChoices(barbers, appointment.barber_id).map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}
               </select>
             </Field>
           </div>
@@ -1152,6 +1441,10 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
           </Field>
 
           {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · el horario de fin se recalcula solo.</div>}
+
+          {conflict && <BarberConflictNotice conflict={conflict} barberName={barbers.find((barber) => barber.id === barberId)?.name ?? "El barbero"} />}
+
+          {appointment.barber_id && barberId && barberId !== appointment.barber_id && <div className="rounded-xl border border-sky-300/15 bg-sky-300/[0.05] px-3 py-2.5 text-[12px] leading-5 text-sky-100/85">El turno pasa de {appointment.barber?.name ?? "su barbero"} a {barbers.find((barber) => barber.id === barberId)?.name ?? "otro barbero"}. Si es una reserva web, el cliente lo va a ver en &quot;Mi reserva&quot;.</div>}
 
           {wasCompleted && status !== "completed" && <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] text-amber-200">Este turno ya estaba completado: los puntos de fidelización que sumó no se descuentan solos. Si hace falta, ajustalos desde Fidelización.</div>}
 
