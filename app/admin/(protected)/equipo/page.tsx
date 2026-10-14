@@ -160,7 +160,7 @@ export default function EquipoPage() {
     const previousStart = new Date(now);
     previousStart.setDate(previousStart.getDate() - 60);
 
-    const valid = appointments.filter((item) => item.status !== "cancelled");
+    const valid = appointments.filter((item) => item.status !== "cancelled" && item.status !== "no_show");
     const totalRevenue = valid
       .filter((item) => item.status === "completed")
       .reduce((sum, item) => sum + Number(item.service?.price ?? 0), 0);

@@ -116,7 +116,8 @@ type Settings = {
   loyalty_enabled: boolean;
 };
 
-const CANCELLED = new Set(["cancelled", "canceled", "rejected", "no_show"]);
+const CANCELLED = new Set(["cancelled", "canceled", "rejected"]);
+const NO_SHOW = new Set(["no_show", "noshow"]);
 const COMPLETED = new Set(["completed", "complete", "done", "finished"]);
 const PENDING = new Set(["pending", "requested"]);
 const CONFIRMED = new Set(["confirmed", "booked", "scheduled"]);
@@ -127,6 +128,10 @@ function statusValue(value: unknown) {
 
 function isCancelled(a: Appointment) {
   return CANCELLED.has(statusValue(a.status));
+}
+
+function isNoShow(a: Appointment) {
+  return NO_SHOW.has(statusValue(a.status));
 }
 
 function isCompleted(a: Appointment) {
@@ -142,7 +147,7 @@ function isConfirmed(a: Appointment) {
 }
 
 function isActiveAppointment(a: Appointment) {
-  return !isCancelled(a);
+  return !isCancelled(a) && !isNoShow(a);
 }
 
 function customerKey(a: Appointment) {
@@ -302,6 +307,7 @@ function getStatusLabel(status: unknown) {
   const value = statusValue(status);
   if (isCompleted({ status } as Appointment)) return "Completado";
   if (isCancelled({ status } as Appointment)) return "Cancelado";
+  if (isNoShow({ status } as Appointment)) return "No asistió";
   if (isPending({ status } as Appointment)) return "Pendiente";
   if (isConfirmed({ status } as Appointment)) return "Confirmado";
   return value ? value.replaceAll("_", " ") : "Sin estado";
@@ -311,7 +317,7 @@ function getStatusClass(status: unknown) {
   const value = statusValue(status);
   if (COMPLETED.has(value))
     return "border-[#ff5a00]/20 bg-[#ff5a00]/[.07] text-[#ff9a66]";
-  if (CANCELLED.has(value))
+  if (CANCELLED.has(value) || NO_SHOW.has(value))
     return "border-red-400/15 bg-red-400/[.04] text-red-300/80";
   if (PENDING.has(value))
     return "border-amber-300/15 bg-amber-300/[.04] text-amber-200/80";
@@ -384,21 +390,20 @@ function MetricCard({
   );
 }
 
-function Donut({
-  completed,
-  cancelled,
-  pending,
-}: {
-  completed: number;
-  cancelled: number;
-  pending: number;
-}) {
-  const totalRaw = completed + cancelled + pending;
+type DonutSegment = { value: number; color: string };
+
+function Donut({ segments }: { segments: DonutSegment[] }) {
+  const totalRaw = segments.reduce((sum, segment) => sum + segment.value, 0);
   const total = totalRaw || 1;
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
-  const completedLength = (completed / total) * circumference;
-  const cancelledLength = (cancelled / total) * circumference;
+  const arcs = segments.map((segment, index) => {
+    const length = (segment.value / total) * circumference;
+    const start = segments
+      .slice(0, index)
+      .reduce((sum, previous) => sum + (previous.value / total) * circumference, 0);
+    return { ...segment, length, start };
+  });
 
   return (
     <div className="relative h-40 w-40 shrink-0">
@@ -411,31 +416,21 @@ function Donut({
           stroke="rgba(255,255,255,.055)"
           strokeWidth="10"
         />
-        {completed > 0 ? (
-          <circle
-            cx="55"
-            cy="55"
-            r={radius}
-            fill="none"
-            stroke="#ff5a00"
-            strokeWidth="10"
-            strokeDasharray={`${completedLength} ${circumference}`}
-            strokeLinecap="round"
-          />
-        ) : null}
-        {cancelled > 0 ? (
-          <circle
-            cx="55"
-            cy="55"
-            r={radius}
-            fill="none"
-            stroke="#666"
-            strokeWidth="10"
-            strokeDasharray={`${cancelledLength} ${circumference}`}
-            strokeDashoffset={-completedLength}
-            strokeLinecap="round"
-          />
-        ) : null}
+        {arcs.map((arc, index) =>
+          arc.value > 0 ? (
+            <circle
+              key={index}
+              cx="55"
+              cy="55"
+              r={radius}
+              fill="none"
+              stroke={arc.color}
+              strokeWidth="10"
+              strokeDasharray={`${arc.length} ${circumference}`}
+              strokeDashoffset={-arc.start}
+            />
+          ) : null
+        )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="page-number text-[30px] font-semibold text-white">
@@ -915,29 +910,35 @@ export default function AdminDashboardPage() {
     }).length;
   }, [loyalty]);
 
-  const statusCounts = useMemo(
-    () => ({
-      completed: periodAppointments.filter(isCompleted).length,
-      cancelled: appointments.filter((appointment) => {
-        const date = new Date(appointment.start_at);
-        return (
-          date >= currentBounds.start &&
-          date <= currentBounds.end &&
-          isCancelled(appointment)
-        );
-      }).length,
-      pending: periodAppointments.filter(isPending).length,
-    }),
-    [appointments, periodAppointments, currentBounds]
-  );
+  const statusCounts = useMemo(() => {
+    const inPeriod = appointments.filter((appointment) => {
+      const date = new Date(appointment.start_at);
+      return date >= currentBounds.start && date <= currentBounds.end;
+    });
 
+    return {
+      completed: inPeriod.filter(isCompleted).length,
+      confirmed: inPeriod.filter(isConfirmed).length,
+      pending: inPeriod.filter(isPending).length,
+      noShow: inPeriod.filter(isNoShow).length,
+      cancelled: inPeriod.filter(isCancelled).length,
+    };
+  }, [appointments, currentBounds]);
+
+  /* Sobre los turnos ya cerrados: completados vs. no asistió / cancelados. */
   const operationalCompletion = useMemo(() => {
-    const total =
-      statusCounts.completed +
-      statusCounts.cancelled +
-      statusCounts.pending;
-    return total > 0 ? (statusCounts.completed / total) * 100 : 0;
+    const closed =
+      statusCounts.completed + statusCounts.noShow + statusCounts.cancelled;
+    return closed > 0 ? (statusCounts.completed / closed) * 100 : 0;
   }, [statusCounts]);
+
+  const statusRows: [string, number, string, string][] = [
+    ["Completados", statusCounts.completed, "bg-[#ff5a00]", "#ff5a00"],
+    ["Confirmados", statusCounts.confirmed, "bg-emerald-300", "#6ee7b7"],
+    ["Pendientes", statusCounts.pending, "bg-amber-300", "#fcd34d"],
+    ["No asistió", statusCounts.noShow, "bg-red-400", "#f87171"],
+    ["Cancelados", statusCounts.cancelled, "bg-[#666]", "#666666"],
+  ];
 
   const busyDays = useMemo(() => {
     const map = new Map<string, number>();
@@ -1698,17 +1699,11 @@ export default function AdminDashboardPage() {
 
             <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
               <Donut
-                completed={statusCounts.completed}
-                cancelled={statusCounts.cancelled}
-                pending={statusCounts.pending}
+                segments={statusRows.map(([, value, , color]) => ({ value, color }))}
               />
 
-              <div className="flex-1 space-y-4">
-                {[
-                  ["Completados", statusCounts.completed, "bg-[#ff5a00]"],
-                  ["Pendientes", statusCounts.pending, "bg-amber-300"],
-                  ["Cancelados", statusCounts.cancelled, "bg-[#666]"],
-                ].map(([label, value, dot]) => (
+              <div className="flex-1 space-y-3.5">
+                {statusRows.map(([label, value, dot]) => (
                   <div
                     key={label}
                     className="flex items-center justify-between gap-4"
@@ -1724,7 +1719,9 @@ export default function AdminDashboardPage() {
                 ))}
 
                 <div className="border-t hairline pt-4">
-                  <div className="meta-label text-white/42">Tasa de completado</div>
+                  <div className="meta-label text-white/42" title="Completados sobre turnos cerrados (completados, no asistió y cancelados)">
+                    Tasa de completado
+                  </div>
                   <div className="display mt-2 text-[24px] font-semibold text-white">
                     {operationalCompletion.toFixed(0)}%
                   </div>
