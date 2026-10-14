@@ -64,6 +64,12 @@ type AppointmentResult = {
   id?: string;
   appointment_id?: string;
   reservation_code?: string;
+  barber_id?: string | null;
+};
+
+type PublicBarber = {
+  id: string;
+  name: string;
 };
 
 type StepStatus = "complete" | "current" | "locked";
@@ -213,6 +219,13 @@ export default function ReservarPage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
 
+  /*
+    Barberos activos. Con uno solo no se muestra la elección y todo
+    funciona como siempre. null = "Sin preferencia".
+  */
+  const [barbers, setBarbers] = useState<PublicBarber[]>([]);
+  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -268,6 +281,29 @@ export default function ReservarPage() {
     [config.hours]
   );
 
+  const showBarberChoice = barbers.length > 1;
+  const selectedBarber =
+    barbers.find((barber) => barber.id === selectedBarberId) ?? null;
+
+  // Nombre para el ticket: el elegido, "Sin preferencia" o el único barbero.
+  const draftBarberName = selectedBarber
+    ? selectedBarber.name
+    : showBarberChoice
+      ? "Sin preferencia"
+      : barbers[0]?.name ?? BARBERSHOP.barber;
+
+  function handleBarberSelect(barberId: string | null) {
+    if (barberId === selectedBarberId) return;
+
+    setSelectedBarberId(barberId);
+    setShowCustomerForm(false);
+    setShowReview(false);
+
+    if (selectedService && selectedDate) {
+      loadSlots(selectedService, selectedDate, barberId);
+    }
+  }
+
   const fieldErrors = getFieldErrors({
     name: customerName,
     phone: customerPhone,
@@ -321,12 +357,27 @@ export default function ReservarPage() {
   */
 
   useEffect(() => {
+    async function loadBarbers() {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("get_public_barbers");
+
+      // Sin la migración 13 la función no existe: queda un solo barbero.
+      if (error) return;
+
+      setBarbers((data ?? []) as PublicBarber[]);
+    }
+
+    loadBarbers();
+  }, []);
+
+  useEffect(() => {
     async function loadServices() {
       const supabase = createClient();
 
       const { data, error } = await supabase
         .from("services")
-        .select("id, name, description, duration_minutes, price, active")
+        // "*" para no fallar si todavía no existe show_on_web (migración 13).
+        .select("*")
         .eq("active", true)
         .order("price", { ascending: true });
 
@@ -341,7 +392,9 @@ export default function ReservarPage() {
         return;
       }
 
-      const list = data ?? [];
+      // Los servicios "solo panel" (ej. Kids) no se ofrecen en la web.
+      const list = ((data ?? []) as (Service & { show_on_web?: boolean | null })[])
+        .filter((service) => service.show_on_web !== false);
 
       setServices(list);
       setLoadingServices(false);
@@ -360,7 +413,11 @@ export default function ReservarPage() {
     loadServices();
   }, []);
 
-  async function loadSlots(service: Service, date: string) {
+  async function loadSlots(
+    service: Service,
+    date: string,
+    barberId: string | null = selectedBarberId
+  ) {
     setLoadingSlots(true);
     setError(null);
     setSelectedSlot(null);
@@ -371,6 +428,7 @@ export default function ReservarPage() {
     const { data, error } = await supabase.rpc("get_available_slots", {
       p_date: date,
       p_service_id: service.id,
+      ...(barberId ? { p_barber_id: barberId } : {}),
     });
 
     if (error) {
@@ -485,6 +543,7 @@ export default function ReservarPage() {
       p_service_id: selectedService.id,
       p_start_at: selectedSlot.slot_start,
       p_notes: customerNotes.trim() || null,
+      ...(selectedBarberId ? { p_barber_id: selectedBarberId } : {}),
     });
 
     if (error) {
@@ -518,6 +577,7 @@ export default function ReservarPage() {
       id: appointmentData?.id,
       appointment_id: appointmentData?.appointment_id,
       reservation_code: appointmentData?.reservation_code,
+      barber_id: appointmentData?.barber_id ?? null,
     };
 
     /*
@@ -728,7 +788,10 @@ export default function ReservarPage() {
               serviceName={selectedService.name}
               durationMinutes={selectedService.duration_minutes}
               price={selectedService.price}
-              barber={BARBERSHOP.barber}
+              barber={
+                barbers.find((barber) => barber.id === confirmedAppointment.barber_id)
+                  ?.name ?? draftBarberName
+              }
               code={code || null}
               codeAction={
                 code ? (
@@ -1148,21 +1211,35 @@ export default function ReservarPage() {
                     <span className="text-[#F4EEE5]">
                       {formatArgentinaTime(selectedSlot.slot_start)} →{" "}
                       {formatArgentinaTime(selectedSlot.slot_end)} hs
+                      {showBarberChoice ? ` · ${draftBarberName}` : null}
                     </span>
                   )
                 }
                 onEdit={() => reopen(3)}
               >
+                {selectedDate && showBarberChoice ? (
+                  <BarberChoice
+                    barbers={barbers}
+                    selectedId={selectedBarberId}
+                    onSelect={handleBarberSelect}
+                    disabled={loadingSlots}
+                  />
+                ) : null}
+
                 {!selectedDate ? null : loadingSlots ? (
                   <LoadingState label="Buscando horarios disponibles..." />
                 ) : slots.length === 0 ? (
                   <div className="rounded-[18px] border border-[#EADFCB]/[0.1] bg-[#0f0e0c] p-6">
                     <p className="font-serif text-xl">
-                      No hay horarios disponibles ese día.
+                      {selectedBarber
+                        ? `${selectedBarber.name} no tiene horarios libres ese día.`
+                        : "No hay horarios disponibles ese día."}
                     </p>
 
                     <p className="mt-2 text-sm leading-7 text-[#8d877e]">
-                      Probá con otro día.
+                      {selectedBarber
+                        ? "Probá con otro día o elegí “Sin preferencia”."
+                        : "Probá con otro día."}
                     </p>
 
                     <button
@@ -1478,6 +1555,9 @@ export default function ReservarPage() {
                           selectedSlot.slot_start
                         )} → ${formatArgentinaTime(selectedSlot.slot_end)}`}
                       />
+                      {showBarberChoice ? (
+                        <ReviewItem label="Barbero" value={draftBarberName} />
+                      ) : null}
                       <ReviewItem label="Nombre" value={customerName} />
                       <ReviewItem label="Teléfono" value={customerPhone} />
                       <ReviewItem label="Email" value={customerEmail} />
@@ -1573,7 +1653,7 @@ export default function ReservarPage() {
                 serviceName={selectedService?.name ?? null}
                 durationMinutes={selectedService?.duration_minutes ?? null}
                 price={selectedService?.price ?? null}
-                barber={BARBERSHOP.barber}
+                barber={draftBarberName}
                 notchColor={BOOKING_BG}
                 timeKnown={Boolean(selectedSlot)}
               />
@@ -1916,6 +1996,73 @@ function BookingPaused() {
           <Mail size={15} />
           Email
         </a>
+      </div>
+    </div>
+  );
+}
+
+/* Elección de barbero (solo si hay más de uno activo). */
+function BarberChoice({
+  barbers,
+  selectedId,
+  onSelect,
+  disabled,
+}: {
+  barbers: PublicBarber[];
+  selectedId: string | null;
+  onSelect: (barberId: string | null) => void;
+  disabled?: boolean;
+}) {
+  const options: { id: string | null; name: string; hint: string }[] = [
+    { id: null, name: "Sin preferencia", hint: "El primero libre" },
+    ...barbers.map((barber) => ({ id: barber.id, name: barber.name, hint: "Barbero" })),
+  ];
+
+  return (
+    <div className="mb-6">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.26em] text-[#a88d68]">
+        ¿Con quién te cortás?
+      </p>
+
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Barbero">
+        {options.map((option) => {
+          const active = option.id === selectedId;
+
+          return (
+            <button
+              key={option.id ?? "any"}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              disabled={disabled}
+              onClick={() => onSelect(option.id)}
+              className={`flex items-center gap-3 rounded-full border py-2 pl-2 pr-4 text-left transition disabled:opacity-60 ${
+                active
+                  ? "border-[#EADFCB] bg-[#EADFCB] text-[#1b1915]"
+                  : "border-[#EADFCB]/15 bg-[#0f0e0c] text-[#ddd6cc] hover:border-[#EADFCB]/40"
+              }`}
+            >
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-serif text-[13px] ${
+                  active ? "bg-[#1b1915] text-[#EADFCB]" : "bg-[#EADFCB]/[0.08] text-[#c9a46e]"
+                }`}
+                aria-hidden="true"
+              >
+                {option.id ? option.name.trim().charAt(0).toUpperCase() : "∗"}
+              </span>
+              <span className="leading-tight">
+                <span className="block text-[13px] font-semibold">{option.name}</span>
+                <span
+                  className={`block text-[10px] uppercase tracking-[0.18em] ${
+                    active ? "text-[#1b1915]/60" : "text-[#8d877e]"
+                  }`}
+                >
+                  {option.hint}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

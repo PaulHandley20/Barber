@@ -49,8 +49,78 @@ type Appointment = {
 };
 
 type CustomerOption = { id: string; full_name: string; phone: string | null };
-type ServiceOption = { id: string; name: string; price: number; duration_minutes?: number | null };
-type BarberOption = { id: string; name: string };
+type ServiceOption = {
+  id: string;
+  name: string;
+  price: number;
+  duration_minutes?: number | null;
+  active?: boolean | null;
+  /* false = servicio "solo panel" (no se ofrece en la web). */
+  show_on_web?: boolean | null;
+};
+type BarberOption = { id: string; name: string; active?: boolean | null };
+
+/* Opciones de servicio: separa los de la web de los "solo panel" y
+   oculta los inactivos (salvo el que ya tiene el turno). */
+function ServiceOptions({ services, currentId }: { services: ServiceOption[]; currentId?: string | null }) {
+  const visible = services.filter((service) => service.active !== false || service.id === currentId);
+  const web = visible.filter((service) => service.show_on_web !== false);
+  const panelOnly = visible.filter((service) => service.show_on_web === false);
+  const option = (service: ServiceOption) => (
+    <option key={service.id} value={service.id}>
+      {service.name} · {formatMoney(Number(service.price))}
+      {service.active === false ? " (inactivo)" : ""}
+    </option>
+  );
+
+  if (panelOnly.length === 0) return <>{web.map(option)}</>;
+
+  return (
+    <>
+      <optgroup label="Servicios de la web">{web.map(option)}</optgroup>
+      <optgroup label="Solo panel">{panelOnly.map(option)}</optgroup>
+    </>
+  );
+}
+
+function barberChoices(barbers: BarberOption[], currentId?: string | null) {
+  return barbers.filter((barber) => barber.active !== false || barber.id === currentId);
+}
+
+/* Turno activo del mismo barbero que se superpone (solo para avisar). */
+function findBarberConflict(
+  appointments: Appointment[],
+  barberId: string,
+  start: Date,
+  durationMinutes: number,
+  excludeId?: string
+) {
+  if (!barberId || Number.isNaN(start.getTime())) return null;
+  const startMs = start.getTime();
+  const endMs = startMs + Math.max(5, durationMinutes) * 60000;
+
+  return (
+    appointments.find(
+      (item) =>
+        item.id !== excludeId &&
+        item.barber_id === barberId &&
+        !["cancelled", "canceled", "no_show"].includes(item.status) &&
+        new Date(item.start_at).getTime() < endMs &&
+        new Date(item.end_at).getTime() > startMs
+    ) ?? null
+  );
+}
+
+function BarberConflictNotice({ conflict, barberName }: { conflict: Appointment; barberName: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] leading-5 text-amber-200">
+      <AlertCircle size={13} className="mt-0.5 shrink-0" />
+      <span>
+        {barberName} ya tiene a {conflict.customer?.full_name ?? "otro cliente"} a las {formatTime(conflict.start_at)}. Se guarda igual, como sobreturno.
+      </span>
+    </div>
+  );
+}
 
 type ViewMode = "day" | "week";
 
@@ -403,8 +473,9 @@ export default function TurnosPage() {
   async function loadFormOptions() {
     const [customersResult, servicesResult, barbersResult] = await Promise.all([
       supabase.from("customers").select("id, full_name, phone").order("full_name"),
-      supabase.from("services").select("id, name, price, duration_minutes").order("name"),
-      supabase.from("barbers").select("id, name").order("name"),
+      // "*" para incluir show_on_web/active sin fallar si aún no existen.
+      supabase.from("services").select("*").order("name"),
+      supabase.from("barbers").select("*").order("name"),
     ]);
 
     if (!customersResult.error) setCustomers((customersResult.data ?? []) as CustomerOption[]);
@@ -419,10 +490,14 @@ export default function TurnosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Filtro: barberos activos del equipo + los que figuran en turnos. */
   const barbers = useMemo(() => {
-    const names = appointments.map((a) => a.barber?.name).filter(Boolean) as string[];
+    const names = [
+      ...barberOptions.filter((barber) => barber.active !== false).map((barber) => barber.name),
+      ...(appointments.map((a) => a.barber?.name).filter(Boolean) as string[]),
+    ];
     return Array.from(new Set(names));
-  }, [appointments]);
+  }, [appointments, barberOptions]);
 
   const filteredAppointments = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -914,6 +989,7 @@ export default function TurnosPage() {
           customers={customers}
           services={services}
           barbers={barberOptions}
+          appointments={appointments}
           onClose={() => setEditingAppointment(null)}
           onSave={saveAppointmentEdit}
         />
@@ -924,6 +1000,7 @@ export default function TurnosPage() {
           customers={customers}
           services={services}
           barbers={barberOptions}
+          appointments={appointments}
           customerId={newCustomerId}
           serviceId={newServiceId}
           barberId={newBarberId}
@@ -1204,20 +1281,23 @@ function Info({ label, value, icon }: { label: string; value: string; icon: Reac
   return <div className="rounded-xl border border-white/[0.055] bg-white/[0.014] p-3"><p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[.12em] text-white/45">{icon}{label}</p><p className="mt-2 truncate text-xs font-medium text-white/82">{value}</p></div>;
 }
 
-function NewAppointmentModal({ customers, services, barbers, customerId, serviceId, barberId, startAt, notes, attended, error, creating, setCustomerId, setServiceId, setBarberId, setStartAt, setNotes, setAttended, onClose, onCreate }: {
-  customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; customerId: string; serviceId: string; barberId: string; startAt: string; notes: string; attended: boolean; error: string; creating: boolean;
+function NewAppointmentModal({ customers, services, barbers, appointments, customerId, serviceId, barberId, startAt, notes, attended, error, creating, setCustomerId, setServiceId, setBarberId, setStartAt, setNotes, setAttended, onClose, onCreate }: {
+  customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; appointments: Appointment[]; customerId: string; serviceId: string; barberId: string; startAt: string; notes: string; attended: boolean; error: string; creating: boolean;
   setCustomerId: (v: string) => void; setServiceId: (v: string) => void; setBarberId: (v: string) => void; setStartAt: (v: string) => void; setNotes: (v: string) => void; setAttended: (v: boolean) => void; onClose: () => void; onCreate: () => void;
 }) {
   const selectedService = services.find((service) => service.id === serviceId);
   const [openedAt] = useState(() => Date.now());
   const isPast = Boolean(startAt) && new Date(startAt).getTime() < openedAt;
+  const conflict = startAt
+    ? findBarberConflict(appointments, barberId, new Date(startAt), Number(selectedService?.duration_minutes ?? 30))
+    : null;
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:items-center sm:p-4" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
         <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.035em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option><ServiceOptions services={services} currentId={serviceId} /></select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barberChoices(barbers, barberId).map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
           <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><DateTimeField mode="datetime" value={startAt} onChange={(value) => { setStartAt(value); if (value && new Date(value).getTime() < Date.now()) setAttended(true); }} /></Field>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.075] bg-white/[0.015] px-3 py-3">
             <input type="checkbox" checked={attended} onChange={(e) => setAttended(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#ff5a00]" />
@@ -1226,6 +1306,7 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
               <span className="block text-white/50">Para registrar un corte que ya se hizo (por ejemplo, alguien que vino sin reservar). Queda como completado y suma la visita y los puntos.</span>
             </span>
           </label>
+          {conflict && <BarberConflictNotice conflict={conflict} barberName={barbers.find((barber) => barber.id === barberId)?.name ?? "El barbero"} />}
           {isPast && !attended && <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] text-amber-200">Este horario ya pasó. Si el cliente ya se atendió, marcá &quot;Ya fue atendido&quot;.</div>}
           <Field label="Observaciones" icon={<MoreHorizontal size={12} />}><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notas para el equipo..." className="field resize-none" /></Field>
           {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración estimada: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · Estado: <span className="font-semibold text-emerald-200">{attended ? "Completado" : "Confirmado"}</span></div>}
@@ -1259,8 +1340,8 @@ function toLocalInputValue(iso: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function EditAppointmentModal({ appointment, customers, services, barbers, onClose, onSave }: {
-  appointment: Appointment; customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[];
+function EditAppointmentModal({ appointment, customers, services, barbers, appointments, onClose, onSave }: {
+  appointment: Appointment; customers: CustomerOption[]; services: ServiceOption[]; barbers: BarberOption[]; appointments: Appointment[];
   onClose: () => void; onSave: (changes: AppointmentChanges) => Promise<string | null>;
 }) {
   const [customerId, setCustomerId] = useState(appointment.customer_id ?? "");
@@ -1274,6 +1355,9 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
 
   const selectedService = services.find((service) => service.id === serviceId);
   const wasCompleted = appointment.status === "completed";
+  const conflict = ["cancelled", "canceled", "no_show"].includes(status)
+    ? null
+    : findBarberConflict(appointments, barberId, new Date(startAt), Number(selectedService?.duration_minutes ?? 30), appointment.id);
 
   async function handleSave() {
     if (!customerId || !serviceId || !startAt) {
@@ -1326,13 +1410,13 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
             <Field label="Servicio" icon={<Scissors size={12} />}>
               <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field">
                 <option value="">Seleccionar servicio...</option>
-                {services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}
+                <ServiceOptions services={services} currentId={appointment.service_id} />
               </select>
             </Field>
             <Field label="Barbero" icon={<UserRound size={12} />}>
               <select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field">
                 {!barberId && <option value="">Sin asignar</option>}
-                {barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}
+                {barberChoices(barbers, appointment.barber_id).map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}
               </select>
             </Field>
           </div>
@@ -1357,6 +1441,10 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
           </Field>
 
           {selectedService && <div className="rounded-xl border border-[#ff5a00]/15 bg-[#ff5a00]/[0.045] px-3 py-2.5 text-[12px] text-white/64">Duración: <span className="font-semibold text-white/80">{Number(selectedService.duration_minutes ?? 30)} min</span> · el horario de fin se recalcula solo.</div>}
+
+          {conflict && <BarberConflictNotice conflict={conflict} barberName={barbers.find((barber) => barber.id === barberId)?.name ?? "El barbero"} />}
+
+          {appointment.barber_id && barberId && barberId !== appointment.barber_id && <div className="rounded-xl border border-sky-300/15 bg-sky-300/[0.05] px-3 py-2.5 text-[12px] leading-5 text-sky-100/85">El turno pasa de {appointment.barber?.name ?? "su barbero"} a {barbers.find((barber) => barber.id === barberId)?.name ?? "otro barbero"}. Si es una reserva web, el cliente lo va a ver en &quot;Mi reserva&quot;.</div>}
 
           {wasCompleted && status !== "completed" && <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 py-2.5 text-[12px] text-amber-200">Este turno ya estaba completado: los puntos de fidelización que sumó no se descuentan solos. Si hace falta, ajustalos desde Fidelización.</div>}
 

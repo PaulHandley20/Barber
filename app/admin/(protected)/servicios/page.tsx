@@ -40,7 +40,23 @@ type Service = {
   active: boolean;
   created_at: string;
   currency: string;
+  /* false = "solo panel": no se ofrece en la web (migración 13). */
+  show_on_web?: boolean | null;
 };
+
+const isPanelOnly = (service: Pick<Service, "show_on_web">) =>
+  service.show_on_web === false;
+
+function PanelOnlyBadge({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={`shrink-0 rounded-full border border-sky-300/15 bg-sky-300/[0.06] px-2 py-0.5 text-[9px] font-semibold text-sky-200/90 ${className}`}
+      title="No se ofrece en la web; se usa desde la Agenda"
+    >
+      Solo panel
+    </span>
+  );
+}
 
 type Appointment = {
   id: string;
@@ -360,6 +376,8 @@ function ServiceRow({
               >
                 {service.active ? "Activo" : "Inactivo"}
               </span>
+
+              {isPanelOnly(service) ? <PanelOnlyBadge /> : null}
             </div>
 
             <div className="mt-1 flex min-w-0 items-center gap-3 text-[12px] leading-5 text-white/58">
@@ -453,7 +471,11 @@ export default function ServiciosPage() {
     price: "",
     currency: "ARS",
     active: true,
+    show_on_web: true,
   });
+
+  /* La columna show_on_web existe recién con la migración 13. */
+  const [supportsWebVisibility, setSupportsWebVisibility] = useState(false);
 
   useEffect(() => {
     const surfaces = document.querySelectorAll<HTMLElement>(
@@ -488,6 +510,15 @@ export default function ServiciosPage() {
     };
   }, [services.length]);
 
+  /* Sin servicios cargados no se puede mirar la fila: se consulta la columna. */
+  async function probeWebVisibility() {
+    const { error: probeError } = await supabase
+      .from("services")
+      .select("show_on_web")
+      .limit(1);
+    return !probeError;
+  }
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -496,9 +527,7 @@ export default function ServiciosPage() {
       const [servicesResponse, appointmentsResponse] = await Promise.all([
         supabase
           .from("services")
-          .select(
-            "id,name,description,duration_minutes,price,active,created_at,currency"
-          )
+          .select("*")
           .order("active", { ascending: false })
           .order("name", { ascending: true }),
 
@@ -516,6 +545,12 @@ export default function ServiciosPage() {
         setError("No se pudieron cargar los servicios.");
         setServices([]);
       } else {
+        const rows = servicesResponse.data ?? [];
+        setSupportsWebVisibility(
+          rows.length
+            ? rows.some((row) => "show_on_web" in row)
+            : await probeWebVisibility()
+        );
         setServices(
           (servicesResponse.data ?? []).map((service) => ({
             ...service,
@@ -766,6 +801,7 @@ export default function ServiciosPage() {
       price: "",
       currency: "ARS",
       active: true,
+      show_on_web: true,
     });
     setShowServiceModal(true);
   }
@@ -779,6 +815,7 @@ export default function ServiciosPage() {
       price: String(service.price),
       currency: service.currency,
       active: service.active,
+      show_on_web: !isPanelOnly(service),
     });
     setShowServiceModal(true);
   }
@@ -810,6 +847,7 @@ export default function ServiciosPage() {
       price: numericPrice,
       currency: form.currency,
       active: form.active,
+      ...(supportsWebVisibility ? { show_on_web: form.show_on_web } : {}),
     };
 
     if (editingService) {
@@ -817,9 +855,7 @@ export default function ServiciosPage() {
         .from("services")
         .update(payload)
         .eq("id", editingService.id)
-        .select(
-          "id,name,description,duration_minutes,price,active,created_at,currency"
-        )
+        .select("*")
         .single();
 
       if (updateError) {
@@ -849,9 +885,7 @@ export default function ServiciosPage() {
       const { data, error: insertError } = await supabase
         .from("services")
         .insert(payload)
-        .select(
-          "id,name,description,duration_minutes,price,active,created_at,currency"
-        )
+        .select("*")
         .single();
 
       if (insertError) {
@@ -1636,6 +1670,10 @@ export default function ServiciosPage() {
                     >
                       {selectedService.active ? "Activo" : "Inactivo"}
                     </span>
+
+                    {isPanelOnly(selectedService) ? (
+                      <PanelOnlyBadge className="px-2.5 py-1" />
+                    ) : null}
                   </div>
 
                   <p className="mt-2 text-[13px] leading-5 text-white/62">
@@ -1707,6 +1745,15 @@ export default function ServiciosPage() {
                     {selectedService.active ? "Disponible" : "Inactivo"}
                   </span>
                 </div>
+
+                {supportsWebVisibility ? (
+                  <div className="flex items-center justify-between gap-4 border-b border-white/[0.055] px-4 py-3.5">
+                    <span className="text-[12px] text-white/58">Se ofrece en</span>
+                    <span className="text-[12px] font-semibold text-white/84">
+                      {isPanelOnly(selectedService) ? "Solo panel" : "Web y panel"}
+                    </span>
+                  </div>
+                ) : null}
 
                 <div className="flex items-center justify-between gap-4 border-b border-white/[0.055] px-4 py-3.5">
                   <span className="text-[12px] text-white/58">Creado</span>
@@ -1929,6 +1976,44 @@ export default function ServiciosPage() {
                   </button>
                 </div>
               </div>
+
+              {supportsWebVisibility ? (
+                <div>
+                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[.14em] text-white/62">
+                    Dónde se ofrece
+                  </span>
+                  <div className="grid grid-cols-2 gap-1 rounded-[12px] border border-white/[0.08] bg-[#080808] p-1">
+                    {[
+                      { value: true, label: "Web y panel" },
+                      { value: false, label: "Solo panel" },
+                    ].map((option) => (
+                      <button
+                        key={option.label}
+                        type="button"
+                        aria-pressed={form.show_on_web === option.value}
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            show_on_web: option.value,
+                          }))
+                        }
+                        className={`h-9 rounded-[9px] text-[12px] font-semibold transition ${
+                          form.show_on_web === option.value
+                            ? "bg-white/[0.08] text-white"
+                            : "text-white/50 hover:text-white/80"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[12px] leading-5 text-white/50">
+                    {form.show_on_web
+                      ? "Los clientes lo ven y lo pueden reservar desde la web."
+                      : "No aparece en la web. Lo usás desde la Agenda, por ejemplo para cambiar un turno a “Kids”."}
+                  </p>
+                </div>
+              ) : null}
 
               <div className="rounded-[12px] border border-[#ff5a00]/10 bg-[#ff5a00]/[0.03] px-4 py-3 text-[12px] leading-5 text-white/58">
                 Los cambios se guardan en el catálogo central de BarberOS. La

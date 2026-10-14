@@ -383,10 +383,19 @@ export default function GestionarReservaPage() {
 
     const supabase = createClient();
 
-    const { data, error } = await supabase.rpc("get_available_slots", {
+    // Horarios del mismo barbero del turno (migración 13). Si esa función
+    // todavía no existe, se usa la disponibilidad general.
+    let { data, error } = await supabase.rpc("get_reschedule_slots", {
+      p_reservation_code: reservation.reservation_code,
       p_date: date,
-      p_service_id: reservation.service_id,
     });
+
+    if (error) {
+      ({ data, error } = await supabase.rpc("get_available_slots", {
+        p_date: date,
+        p_service_id: reservation.service_id,
+      }));
+    }
 
     setLoadingSlots(false);
 
