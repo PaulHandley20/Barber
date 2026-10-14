@@ -230,7 +230,8 @@
 .admin-shell .barberos-services,
 .admin-shell .barberos-config,
 .admin-shell .barberos-page,
-.admin-shell .clientes-shell {
+.admin-shell .clientes-shell,
+.admin-shell .agenda-shell {
   background: transparent !important;
 }
 

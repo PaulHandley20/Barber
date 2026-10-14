@@ -1068,7 +1068,7 @@ export default function ConfiguracionPage() {
         </section>
 
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="panel-surface h-fit rounded-[16px] p-2 lg:sticky lg:top-6 lg:-mt-2">
+          <aside className="panel-surface h-fit self-start rounded-[16px] p-2 lg:!sticky lg:top-24">
             <div className="px-3 pb-3 pt-2">
               <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">
                 CONFIGURACIÓN
