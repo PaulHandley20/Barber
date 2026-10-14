@@ -1,9 +1,10 @@
 // app/admin/equipo/page.tsx
 "use client";
 
+import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -25,9 +26,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-barberos-ui" });
-const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-barberos-display" });
-const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "500"], variable: "--font-barberos-data" });
 
 type Barber = {
   id: string;
@@ -63,10 +61,7 @@ type BarberStats = Barber & {
 type Filter = "all" | "active" | "inactive";
 
 function money(value: number) {
-  return `$${value.toLocaleString("es-AR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
+  return formatMoney(value);
 }
 
 function initials(name: string) {
@@ -303,8 +298,8 @@ export default function EquipoPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-page min-h-screen text-[#f5f5f4]`}>
-      <style jsx>{`
+    <div className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-page min-h-screen text-[#f5f5f4]`}>
+      <style jsx global>{`
         .barberos-page {
           --line: rgba(255,255,255,.075);
           --line-soft: rgba(255,255,255,.045);
@@ -318,7 +313,7 @@ export default function EquipoPage() {
         }
         .display { font-family: var(--font-barberos-display), Sora, sans-serif; }
         .data {
-          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-variant-numeric: tabular-nums lining-nums;
         }
         .panel {
@@ -731,7 +726,7 @@ function DetailStat({ label, value, icon }: { label: string; value: string; icon
 
 function Modal({ title, eyebrow, description, onClose, children }: { title: string; eyebrow: string; description: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto sm:items-center bg-black/75 p-4 backdrop-blur-sm">
       <div className="w-full max-w-[440px] overflow-hidden rounded-[16px] border border-white/[.075] bg-[#0b0b0b] p-6 shadow-[0_30px_100px_rgba(0,0,0,.5)]">
         <div className="flex items-start justify-between gap-4">
           <div><div className="data text-[8px] font-bold uppercase tracking-[.16em] text-white/36">{eyebrow}</div><h2 className="display mt-2 text-[22px] font-semibold tracking-[-.04em] text-white">{title}</h2><p className="mt-1 text-[10px] text-white/64">{description}</p></div>

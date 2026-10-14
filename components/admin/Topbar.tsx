@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { manrope as navFont } from "@/components/admin/fonts";
 import {
   Bell,
   ChevronDown,
@@ -12,17 +12,13 @@ import {
   UserRound,
   CalendarDays,
   CheckCircle2,
+  Menu,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAdminShell } from "./AdminShellContext";
 import { createClient } from "@/lib/supabase/client";
 
 // Fuente redondeada, misma que usamos en el sidebar.
-const navFont = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  display: "swap",
-});
 
 const pageMeta: Record<
   string,
@@ -141,7 +137,7 @@ function minutesUntil(iso: string) {
 
 export default function Topbar() {
   const pathname = usePathname();
-  const { collapsed } = useAdminShell();
+  const { collapsed, setMobileOpen } = useAdminShell();
 
   const meta = getPageMeta(pathname);
 
@@ -483,37 +479,29 @@ export default function Topbar() {
   return (
     <header
       className={[
-        "fixed top-0 right-0 z-30 h-[72px]",
-        "transition-[left,background-color,backdrop-filter,box-shadow]",
+        "fixed left-0 top-0 right-0 z-30 h-[64px] lg:h-[72px]",
+        "transition-[left,background-color]",
         "duration-300 ease-out",
         collapsed
           ? "lg:left-[76px]"
           : "lg:left-[240px]",
         scrolled
-          ? "bg-[#050505]/65 backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,.28)]"
+          ? "bg-[#08090a]"
           : "bg-transparent",
       ].join(" ")}
     >
-      {/* ========================================================
-          SUBTLE ORANGE ATMOSPHERE
-      ======================================================== */}
-
+      {/* Al hacer scroll la barra es sólida (sin desenfoque ni sombra):
+          el contenido que pasa por debajo se desvanece en este degradé
+          corto en lugar de verse borroso. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div
-          className="
-            absolute
-            right-[8%]
-            top-[-260px]
-            h-[420px]
-            w-[600px]
-            rounded-full
-            bg-[radial-gradient(ellipse,rgba(255,90,0,0.065)_0%,rgba(255,90,0,0.025)_35%,transparent_72%)]
-          "
-        />
-      </div>
+        className={[
+          "pointer-events-none absolute inset-x-0 top-full h-5",
+          "bg-gradient-to-b from-[#08090a] to-transparent",
+          "transition-opacity duration-300",
+          scrolled ? "opacity-100" : "opacity-0",
+        ].join(" ")}
+      />
 
       {/* ========================================================
           CONTENT
@@ -524,6 +512,16 @@ export default function Topbar() {
         {/* ======================================================
             LEFT
         ====================================================== */}
+
+        <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Abrir menú"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border border-white/[0.08] bg-white/[0.03] text-white/80 transition hover:bg-white/[0.06] lg:hidden"
+        >
+          <Menu size={18} strokeWidth={1.6} />
+        </button>
 
         <div className="min-w-0">
 
@@ -565,11 +563,13 @@ export default function Topbar() {
           <p
             className={[
               navFont.className,
-              "mt-1 text-[13px] font-medium tracking-[-0.006em] text-white/82",
+              "mt-1 truncate text-[13px] font-medium tracking-[-0.006em] text-white/82",
             ].join(" ")}
           >
-            Hola, {adminName} · bienvenido
+            <span className="hidden sm:inline">Hola, {adminName} · bienvenido</span>
+            <span className="sm:hidden">Hola, {adminName.split(" ")[0]}</span>
           </p>
+        </div>
         </div>
 
         {/* ======================================================

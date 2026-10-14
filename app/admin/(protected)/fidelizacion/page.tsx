@@ -20,26 +20,10 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
 
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
 
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500"],
-  variable: "--font-barberos-data",
-});
 
 type Customer = {
   id: string;
@@ -487,9 +471,9 @@ export default function FidelizacionPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
     >
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-dashboard {
           --ink:#070707;
           --surface:#0b0b0b;
@@ -517,7 +501,7 @@ export default function FidelizacionPage() {
           text-wrap:balance;
         }
         .barberos-dashboard .data{
-          font-family:var(--font-barberos-data),DM Mono,monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-variant-numeric:tabular-nums lining-nums;
         }
         .barberos-dashboard .page-display{
@@ -1751,7 +1735,7 @@ function LoyaltySettingsModal({
     "control h-11 w-full rounded-[11px] px-3 text-[13px] text-white outline-none focus:border-[#ff5a00]/35";
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 sm:p-6 backdrop-blur-[4px]">
+    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto sm:items-center bg-black/75 p-4 sm:p-6 backdrop-blur-[4px]">
       <div className="w-full max-w-[700px] max-h-[90vh] overflow-y-auto rounded-[16px] border border-white/[.08] bg-[#0d0d0d] shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[.06] bg-[#0d0d0d]/95 px-6 py-5 backdrop-blur">
           <div>
@@ -1955,7 +1939,7 @@ function RewardModal({
     "control h-11 w-full rounded-[11px] px-3 text-[13px] text-white outline-none focus:border-[#ff5a00]/35";
 
   return (
-    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/75 p-4 sm:p-6 backdrop-blur-[4px]">
+    <div className="fixed inset-0 z-[65] flex items-start justify-center overflow-y-auto sm:items-center bg-black/75 p-4 sm:p-6 backdrop-blur-[4px]">
       <div className="w-full max-w-[520px] overflow-hidden rounded-[16px] border border-white/[.08] bg-[#0d0d0d] shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/[.06] px-6 py-5">
           <div>

@@ -1,7 +1,8 @@
 "use client";
 
+import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
   Search,
   Plus,
@@ -23,25 +24,10 @@ import {
   Archive,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import BarChart, { compactNumber } from "@/components/admin/ui/BarChart";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
 
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
 
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500"],
-  variable: "--font-barberos-data",
-});
 
 type Service = {
   id: string;
@@ -75,10 +61,7 @@ function formatPrice(price: number, currency = "ARS") {
     })}`;
   }
 
-  return `$${price.toLocaleString("es-AR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
+  return formatMoney(price);
 }
 
 function formatCompactPrice(price: number, currency = "ARS") {
@@ -86,7 +69,7 @@ function formatCompactPrice(price: number, currency = "ARS") {
     return `US$ ${Math.round(price).toLocaleString("en-US")}`;
   }
 
-  return `$${Math.round(price).toLocaleString("es-AR")}`;
+  return formatMoney(price);
 }
 
 function formatDuration(minutes: number) {
@@ -185,43 +168,20 @@ function MiniRevenueChart({
   values: number[];
   labels: string[];
 }) {
-  const max = Math.max(...values, 1);
-
   return (
     <div className="rounded-[14px] border border-white/[0.055] bg-[#080808] p-4">
-      <div className="relative h-[190px]">
-        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
-          {[0, 1, 2, 3].map((line) => (
-            <div key={line} className="border-t border-white/[0.045]" />
-          ))}
-        </div>
-
-        <div className="relative flex h-full items-end gap-2.5">
-          {values.map((value, index) => {
-            const height =
-              value > 0 ? Math.max((value / max) * 100, 7) : 2;
-
-            return (
-              <div
-                key={`${labels[index]}-${index}`}
-                className="group flex min-w-0 flex-1 flex-col items-center justify-end"
-              >
-                <div className="relative flex h-[155px] w-full items-end justify-center">
-                  <div
-                    className="w-full max-w-[72px] rounded-t-[6px] bg-[#ff5a00]/80 transition-all duration-300 group-hover:bg-[#ff6a18]"
-                    style={{ height: `${height}%` }}
-                    title={`${formatCompactPrice(value)} · ${labels[index]}`}
-                  />
-                </div>
-
-                <span className="mt-3 truncate text-[10px] font-medium text-white/58">
-                  {labels[index]}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <BarChart
+        height={180}
+        seriesLabel="Ingresos"
+        formatValue={formatMoney}
+        formatAxis={(value) => `$${compactNumber(value)}`}
+        ariaLabel="Ingresos diarios del catálogo"
+        data={values.map((value, index) => ({
+          key: `${labels[index]}-${index}`,
+          label: labels[index],
+          value,
+        }))}
+      />
     </div>
   );
 }
@@ -840,9 +800,9 @@ export default function ServiciosPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-services min-h-screen text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-services min-h-screen text-white`}
     >
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-services {
           --line: rgba(255, 255, 255, 0.075);
           --line-soft: rgba(255, 255, 255, 0.045);
@@ -889,7 +849,7 @@ export default function ServiciosPage() {
         }
 
         .barberos-services .data {
-          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-variant-numeric: tabular-nums;
         }
 
@@ -1168,7 +1128,7 @@ export default function ServiciosPage() {
           </div>
         </header>
 
-        <section className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <StatCard
             label="Servicios"
             value={services.length}
@@ -1659,7 +1619,7 @@ export default function ServiciosPage() {
       ) : null}
 
       {showServiceModal ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto sm:items-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-[560px] overflow-hidden rounded-[16px] border border-white/[0.09] bg-[#0f0f0f] shadow-2xl">
             <div className="flex items-start justify-between border-b border-white/[0.07] px-6 py-5">
               <div>

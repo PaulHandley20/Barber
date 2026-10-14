@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,25 +25,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import BarChart, { compactNumber } from "@/components/admin/ui/BarChart";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
 
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
 
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500"],
-  variable: "--font-barberos-data",
-});
 
 type RangeKey = "DAY" | "WEEK" | "MONTH" | "YEAR";
 
@@ -161,6 +146,34 @@ function isActiveAppointment(a: Appointment) {
 
 function customerKey(a: Appointment) {
   return a.customer_id || a.customer?.phone || a.customer?.full_name || a.id;
+}
+
+function isSameCalendarSlot(date: Date, range: string) {
+  const now = new Date();
+
+  if (range === "DAY") {
+    return date.getHours() <= now.getHours() && now.getHours() < date.getHours() + 2;
+  }
+
+  if (range === "YEAR") {
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }
+
+  return date.toDateString() === now.toDateString();
+}
+
+function formatSlotLabel(date: Date, range: string) {
+  if (range === "DAY") {
+    const end = String(date.getHours() + 2).padStart(2, "0");
+
+    return `${String(date.getHours()).padStart(2, "0")}:00 a ${end}:00`;
+  }
+
+  if (range === "YEAR") {
+    return new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(date);
+  }
+
+  return new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "numeric", month: "long" }).format(date);
 }
 
 function formatMoney(value: number) {
@@ -1034,8 +1047,6 @@ export default function AdminDashboardPage() {
     return result;
   }, [range, currentBounds.start, completedPeriodAppointments]);
 
-  const maxRevenue = Math.max(...periodDays.map((x) => x.revenue), 1);
-  const maxCount = Math.max(...periodDays.map((x) => x.count), 1);
 
   const capacitySignal = useMemo(() => {
     const active = activeTodayAppointments.length;
@@ -1060,7 +1071,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <main
-        className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-white`}
+        className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-white`}
       >
         <div className="flex min-h-screen items-center justify-center">
           <div className="panel-surface flex items-center gap-3 rounded-2xl px-6 py-4 text-[13px] text-white/70">
@@ -1074,9 +1085,9 @@ export default function AdminDashboardPage() {
 
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}
     >
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-dashboard {
           --ink: #070707;
           --surface: #0b0b0b;
@@ -1109,9 +1120,13 @@ export default function AdminDashboardPage() {
           text-wrap: balance;
         }
 
-        .barberos-dashboard .data,
+        .barberos-dashboard .data {
+          font-family: var(--font-barberos-data), Sora, sans-serif;
+          font-variant-numeric: tabular-nums lining-nums;
+        }
+
         .barberos-dashboard .page-number {
-          font-family: var(--font-barberos-data), DM Mono, monospace;
+          font-family: var(--font-barberos-display), Sora, sans-serif;
           font-variant-numeric: tabular-nums lining-nums;
         }
 
@@ -1242,7 +1257,7 @@ export default function AdminDashboardPage() {
             <div className="meta-label text-[#ff6a18]">CENTRO DE MANDO</div>
             <h1 className="page-display mt-3 text-white">Dashboard</h1>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-              <p className="text-[13px] capitalize text-white/72">
+              <p className="text-[13px] text-white/72 first-letter:uppercase">
                 {formatDate(now)}
               </p>
               <span className="hidden h-1 w-1 rounded-full bg-white/15 sm:block" />
@@ -1312,7 +1327,7 @@ export default function AdminDashboardPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Sistema conectado
               <span className="text-white/15">·</span>
-              <span className="capitalize">{periodLabel(anchorDate, range)}</span>
+              <span className="inline-block first-letter:uppercase">{periodLabel(anchorDate, range)}</span>
             </div>
           </div>
         </header>
@@ -1334,7 +1349,7 @@ export default function AdminDashboardPage() {
         ) : null}
 
         {/* CORE BUSINESS KPIs */}
-        <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="admin-kpis mb-5 grid grid-cols-2 gap-3 xl:grid-cols-5">
           <MetricCard
             icon={<Wallet size={16} />}
             label="Ingresos"
@@ -1550,15 +1565,9 @@ export default function AdminDashboardPage() {
               title="Ingresos y actividad"
               description="Evolución de los servicios completados dentro del período seleccionado."
               action={
-                <div className="hidden items-center gap-4 text-[10px] text-white/45 sm:flex">
-                  <span className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00]" />
-                    Ingresos
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
-                    Turnos
-                  </span>
+                <div className="hidden items-center gap-2 text-[12px] text-white/60 sm:flex">
+                  <span className="h-2.5 w-2.5 rounded-[3px] bg-[#ff5a00]/80" />
+                  Ingresos
                 </div>
               }
             />
@@ -1579,50 +1588,22 @@ export default function AdminDashboardPage() {
               </div>
             ) : (
               <div>
-                <div className="flex h-[280px] items-end gap-1.5 overflow-hidden sm:gap-2">
-                  {periodDays.map((item, index) => {
-                    const revenueHeight =
-                      item.revenue > 0
-                        ? Math.max(5, (item.revenue / maxRevenue) * 100)
-                        : 0;
-                    const countHeight =
-                      item.count > 0
-                        ? Math.max(3, (item.count / maxCount) * 100)
-                        : 0;
-
-                    return (
-                      <div
-                        key={`${item.label}-${index}`}
-                        className="group flex min-w-0 flex-1 flex-col justify-end"
-                      >
-                        <div className="relative flex h-[230px] items-end justify-center gap-1">
-                          <div
-                            className="bar-fill w-[58%] min-w-[3px] rounded-t-[5px] bg-[#ff5a00]/75"
-                            style={{ height: `${revenueHeight}%` }}
-                            title={`${item.label}: ${formatMoney(item.revenue)}`}
-                          />
-                          <div
-                            className="bar-fill w-[25%] min-w-[2px] rounded-t-[4px] bg-white/20"
-                            style={{ height: `${countHeight}%` }}
-                            title={`${item.label}: ${item.count} turnos`}
-                          />
-
-                          <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/[.08] bg-[#151515] px-2.5 py-2 text-[10px] shadow-xl group-hover:block">
-                            <div className="font-semibold text-white">
-                              {formatMoney(item.revenue)}
-                            </div>
-                            <div className="mt-0.5 text-white/45">
-                              {item.count} turnos · {item.label}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-3 truncate text-center text-[9px] text-white/35">
-                          {item.label}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <BarChart
+                  height={260}
+                  seriesLabel="Ingresos"
+                  formatValue={formatMoney}
+                  formatAxis={(value) => `$${compactNumber(value)}`}
+                  maxXLabels={range === "MONTH" ? 10 : 12}
+                  highlightKey={periodDays.find((item) => isSameCalendarSlot(item.date, range))?.label}
+                  ariaLabel="Ingresos por período"
+                  data={periodDays.map((item) => ({
+                    key: item.label,
+                    label: item.label,
+                    value: item.revenue,
+                    fullLabel: formatSlotLabel(item.date, range),
+                    detail: `${item.count} ${item.count === 1 ? "turno completado" : "turnos completados"}`,
+                  }))}
+                />
 
                 <div className="mt-5 grid grid-cols-1 gap-3 border-t hairline pt-5 sm:grid-cols-3">
                   <div>

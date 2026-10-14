@@ -10,32 +10,16 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import type { ReactNode } from "react";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-ui",
-});
-const sora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-barberos-display",
-});
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500"],
-  variable: "--font-barberos-data",
-});
 
 export default function ReferidosPage() {
   return (
     <main
-      className={`${manrope.variable} ${sora.variable} ${dmMono.variable} barberos-dashboard min-h-screen text-white`}
+      className={`${manrope.variable} ${sora.variable} ${dataFont.variable} barberos-dashboard min-h-screen text-white`}
     >
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-dashboard {
           --ink: #070707;
           --surface: #0b0b0b;
@@ -205,7 +189,7 @@ export default function ReferidosPage() {
 
         .accent-number {
           color: #ff6a18;
-          font-family: var(--font-barberos-data), monospace;
+          font-family: var(--font-barberos-data), Sora, sans-serif;
           font-size: 9px;
           letter-spacing: .08em;
         }
@@ -266,7 +250,7 @@ export default function ReferidosPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricCard icon={<Users size={16} />} label="Referidos" value="—" detail="Personas invitadas por clientes" />
           <MetricCard icon={<UserPlus size={16} />} label="Clientes que refieren" value="—" detail="Clientes que participan" />
           <MetricCard icon={<CheckCircle2 size={16} />} label="Nuevos clientes" value="—" detail="Altas provenientes de referidos" />

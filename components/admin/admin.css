@@ -1,0 +1,239 @@
+/* =========================================================
+   BarberOS · Sistema visual del panel
+   ---------------------------------------------------------
+   Reglas globales que unifican todas las secciones del panel.
+   Este CSS NO está en una capa de Tailwind, así que tiene
+   prioridad sobre las utilidades sueltas de cada página.
+   ========================================================= */
+
+.admin-shell {
+  --admin-surface: rgba(14, 14, 14, 0.86);
+  --admin-surface-2: rgba(255, 255, 255, 0.03);
+  --admin-border: rgba(255, 255, 255, 0.075);
+  --admin-border-strong: rgba(255, 255, 255, 0.12);
+  --admin-accent: #ff5a00;
+  --admin-accent-soft: rgba(255, 90, 0, 0.12);
+  --admin-text: rgba(255, 255, 255, 0.92);
+  --admin-text-2: rgba(255, 255, 255, 0.66);
+  --admin-text-3: rgba(255, 255, 255, 0.5);
+
+  font-family: var(--font-barberos-ui), ui-sans-serif, system-ui, sans-serif;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Las fuentes "serif" del navegador nunca se usan en el panel. */
+.admin-shell .font-serif {
+  font-family: var(--font-barberos-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------------------------------------------------------
+   Piso tipográfico: nada por debajo de 11px.
+   (Había etiquetas de 7–10px imposibles de leer.)
+   --------------------------------------------------------- */
+.admin-shell .text-\[7px\],
+.admin-shell .text-\[8px\],
+.admin-shell .text-\[9px\],
+.admin-shell .text-\[10px\] {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.admin-shell .text-\[11px\] {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-shell .text-\[12px\] {
+  font-size: 12.5px;
+}
+
+/* Etiquetas en mayúsculas: menos espaciado, más legibles. */
+.admin-shell .uppercase.tracking-\[0\.3em\],
+.admin-shell .uppercase.tracking-\[0\.28em\],
+.admin-shell .uppercase.tracking-\[0\.25em\],
+.admin-shell .uppercase.tracking-\[0\.22em\],
+.admin-shell .uppercase.tracking-\[0\.2em\],
+.admin-shell .uppercase.tracking-\[\.2em\],
+.admin-shell .uppercase.tracking-\[0\.18em\] {
+  letter-spacing: 0.14em;
+}
+
+/* ---------------------------------------------------------
+   Piso de contraste: textos secundarios legibles.
+   --------------------------------------------------------- */
+.admin-shell .text-white\/20,
+.admin-shell .text-white\/25,
+.admin-shell .text-white\/30,
+.admin-shell .text-white\/35 {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.admin-shell .text-white\/38,
+.admin-shell .text-white\/40,
+.admin-shell .text-white\/42,
+.admin-shell .text-white\/45 {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+/* Números siempre alineados en tablas y métricas. */
+.admin-shell .tabular-nums,
+.admin-shell [class*="font-[family:var(--font-barberos-data)]"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------
+   Controles nativos coherentes con el tema oscuro.
+   --------------------------------------------------------- */
+.admin-shell select,
+.admin-shell input,
+.admin-shell textarea {
+  color-scheme: dark;
+}
+
+.admin-shell select option {
+  background: #121212;
+  color: #f2f2f2;
+}
+
+.admin-shell ::selection {
+  background: rgba(255, 90, 0, 0.32);
+  color: #fff;
+}
+
+/* Scroll fino */
+.admin-shell * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+.admin-shell *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-shell *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.admin-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------------------------------------------------------
+   Superficie estándar de tarjeta (usada por el dashboard).
+   --------------------------------------------------------- */
+.admin-panel {
+  position: relative;
+  border: 1px solid var(--admin-border);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent 32%),
+    var(--admin-surface);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+/* ---------------------------------------------------------
+   Celular / tablet
+   --------------------------------------------------------- */
+@media (max-width: 639px) {
+  /* Tarjetas de métricas de a dos: más compactas. */
+  .admin-shell .admin-kpis > * {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .admin-shell .admin-kpis .page-number,
+  .admin-shell .admin-kpis [class*="text-[30px]"],
+  .admin-shell .admin-kpis [class*="text-[34px]"] {
+    font-size: 22px;
+  }
+
+  /* Títulos grandes de cada sección, un poco más chicos. */
+  .admin-shell h1 {
+    font-size: 32px;
+  }
+}
+
+/* En celular y tablet (2 columnas), si la cantidad de tarjetas es impar
+   la última ocupa todo el ancho en lugar de quedar sola a la mitad. */
+@media (max-width: 1279px) {
+  .admin-shell .admin-kpis > *:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+}
+
+/* ---------------------------------------------------------
+   Hover sobrio en tarjetas
+   ---------------------------------------------------------
+   Cada sección tenía su propio "spotlight" naranja que aparecía
+   al pasar el mouse por una tarjeta (y algunas un brillo fijo en
+   la esquina). Se quitan todos: las tarjetas son planas y al
+   pasar el mouse solo se aclara apenas el borde, igual en todo
+   el panel.
+   --------------------------------------------------------- */
+.admin-shell .panel::before,
+.admin-shell .panel::after,
+.admin-shell .panel-surface::before,
+.admin-shell .panel-surface::after,
+.admin-shell .metric-card::before,
+.admin-shell .metric-card::after {
+  content: none !important;
+}
+
+.admin-shell .panel:hover,
+.admin-shell .panel-surface:hover,
+.admin-shell .panel-hover:hover,
+.admin-shell .metric-card:hover,
+.admin-shell .appointment-card:hover {
+  border-color: rgba(255, 255, 255, 0.11) !important;
+}
+
+/* Sin sombras difusas ni desenfoques en tarjetas y controles: al hacer
+   scroll se veían como manchas oscuras alrededor de cada cuadro. Las
+   tarjetas se separan del fondo solo por el borde. (Los modales
+   conservan su fondo oscuro con desenfoque.) */
+.admin-shell .panel,
+.admin-shell .panel-surface,
+.admin-shell .panel-hover,
+.admin-shell .metric-card,
+.admin-shell .admin-panel,
+.admin-shell .appointment-card,
+.admin-shell .system-strip,
+.admin-shell .glass-control {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+}
+
+.admin-shell .glass-control {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Filas: hover neutro, sin degradé naranja. */
+.admin-shell .interactive-row:hover,
+.admin-shell .customer-row:not(.customer-row-selected):hover,
+.admin-shell .service-row:hover,
+.admin-shell .flow-row:hover {
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+/* ---------------------------------------------------------
+   Fondo único (AdminBackdrop). Las secciones ya no pintan su
+   propio brillo ni grilla: todas se ven sobre el mismo fondo.
+   --------------------------------------------------------- */
+.admin-shell .barberos-dashboard,
+.admin-shell .barberos-services,
+.admin-shell .barberos-config,
+.admin-shell .barberos-page,
+.admin-shell .clientes-shell {
+  background: transparent !important;
+}
+
+.admin-shell .dashboard-grid-bg {
+  display: none;
+}

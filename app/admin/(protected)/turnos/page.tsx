@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -22,12 +23,10 @@ import {
   Sparkles,
   Pencil,
 } from "lucide-react";
-import { DM_Mono, Manrope, Sora } from "next/font/google";
+import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import { createClient } from "@/lib/supabase/client";
+import DateTimeField from "@/components/admin/ui/DateTimeField";
 
-const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-barberos-ui" });
-const sora = Sora({ subsets: ["latin"], display: "swap", variable: "--font-barberos-display" });
-const dmMono = DM_Mono({ subsets: ["latin"], display: "swap", weight: ["400", "500"], variable: "--font-barberos-data" });
 
 type Appointment = {
   id: string;
@@ -84,7 +83,9 @@ const STATUS: Record<string, StatusMeta> = {
   },
 };
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 9); // 09:00 — 21:00
+const HOUR_HEIGHT = 104; // px por hora en la línea de tiempo (30 min = 52px)
+const DEFAULT_START_HOUR = 8;
+const DEFAULT_END_HOUR = 20;
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 function getStatus(status: string) {
@@ -143,14 +144,29 @@ function toDateTimeLocal(date: Date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function appointmentTop(startAt: string, dayStartHour = 9) {
+function appointmentTop(startAt: string, dayStartHour: number) {
   const date = new Date(startAt);
-  return ((date.getHours() - dayStartHour) * 60 + date.getMinutes()) / 60 * 72;
+  return ((date.getHours() - dayStartHour) * 60 + date.getMinutes()) / 60 * HOUR_HEIGHT + 2;
 }
 
 function appointmentHeight(startAt: string, endAt: string) {
   const diff = Math.max(30, (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60000);
-  return Math.max(46, (diff / 60) * 72 - 4);
+  return (diff / 60) * HOUR_HEIGHT - 4;
+}
+
+/* Rango de horas visible: 08 a 20 por defecto, ampliado si hay turnos
+   antes o después (ej. un turno cargado a las 21:00). */
+function getVisibleHours(items: { start_at: string; end_at: string }[]) {
+  let start = DEFAULT_START_HOUR;
+  let end = DEFAULT_END_HOUR;
+
+  items.forEach((item) => {
+    start = Math.min(start, new Date(item.start_at).getHours());
+    const finish = new Date(item.end_at);
+    end = Math.max(end, finish.getHours() + (finish.getMinutes() > 0 ? 1 : 0));
+  });
+
+  return Array.from({ length: end - start }, (_, index) => start + index);
 }
 
 export default function TurnosPage() {
@@ -271,6 +287,8 @@ export default function TurnosPage() {
   const dayAppointments = useMemo(() => {
     return filteredAppointments.filter((a) => isSameDay(new Date(a.start_at), selectedDate));
   }, [filteredAppointments, selectedDate]);
+
+  const visibleHours = useMemo(() => getVisibleHours(dayAppointments), [dayAppointments]);
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(selectedDate);
@@ -473,6 +491,17 @@ export default function TurnosPage() {
     await loadAppointments(true);
   }
 
+  function selectAppointment(appointment: Appointment) {
+    setSelectedAppointment(appointment);
+
+    // En celular/tablet el detalle está debajo de la agenda: lo mostramos.
+    if (window.innerWidth < 1536) {
+      window.setTimeout(() => {
+        document.getElementById("appointment-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
+  }
+
   async function saveAppointmentEdit(changes: AppointmentChanges): Promise<string | null> {
     if (!editingAppointment) return "No hay turno seleccionado.";
 
@@ -497,8 +526,8 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className={`${manrope.variable} ${sora.variable} ${dmMono.variable} min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
-      <style jsx>{`
+    <div className={`${manrope.variable} ${sora.variable} ${dataFont.variable} min-h-screen text-[#f5f5f4] selection:bg-[#ff5a00]/30`}>
+      <style jsx global>{`
         .agenda-shell {
           --ink: #070707; --surface: #0b0b0b; --surface-2: #0f0f0f;
           --line: rgba(255,255,255,.075); --line-soft: rgba(255,255,255,.05);
@@ -507,7 +536,7 @@ export default function TurnosPage() {
           background: radial-gradient(720px 360px at 88% -8%, rgba(255,90,0,.045), transparent 70%), radial-gradient(520px 320px at 8% 14%, rgba(255,255,255,.010), transparent 74%), transparent;
         }
         .agenda-display { font-family: var(--font-barberos-display), Sora, sans-serif; }
-        .agenda-data { font-family: var(--font-barberos-data), DM Mono, monospace; font-variant-numeric: tabular-nums; }
+        .agenda-data { font-family: var(--font-barberos-data), Sora, sans-serif; font-variant-numeric: tabular-nums; }
         .panel {
           position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 16px;
           background: linear-gradient(180deg, rgba(255,255,255,.018), transparent 30%), rgba(11,11,11,.88);
@@ -566,7 +595,7 @@ export default function TurnosPage() {
                 <button type="button" onClick={() => navigatePeriod(1)} className="agenda-control flex h-10 w-10 items-center justify-center rounded-[10px] text-white/62"><ChevronRight size={17} /></button>
                 <div className="ml-2 hidden h-7 w-px bg-white/[0.07] sm:block" />
                 <div className="hidden sm:block">
-                  <p className="text-xs font-semibold capitalize text-white/90">{viewMode === "day" ? formatDateLong(selectedDate) : `Semana del ${formatDateShort(weekDays[0])}`}</p>
+                  <p className="text-xs font-semibold text-white/90 first-letter:uppercase">{viewMode === "day" ? formatDateLong(selectedDate) : `Semana del ${formatDateShort(weekDays[0])}`}</p>
                   <p className="mt-0.5 text-[13px] text-white/55">Don Segundo · Operación diaria</p>
                 </div>
               </div>
@@ -587,11 +616,11 @@ export default function TurnosPage() {
             </div>
           </section>
 
-          <section className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-5">
+          <section className="admin-kpis mb-6 grid grid-cols-2 gap-3 xl:grid-cols-5">
             <Metric label="Turnos" value={stats.total.toString()} detail={viewMode === "day" ? "en el día" : "en la semana"} icon={<CalendarDays size={15} />} />
             <Metric label="Confirmados" value={stats.confirmed.toString()} detail={`${stats.pending} pendientes`} icon={<CircleCheck size={15} />} accent />
             <Metric label="Completados" value={stats.completed.toString()} detail="atendidos" icon={<Check size={15} />} />
-            <Metric label="Ingresos estimados" value={`$${stats.revenue.toLocaleString("es-AR")}`} detail={`$${stats.completedRevenue.toLocaleString("es-AR")} realizados`} icon={<Scissors size={15} />} />
+            <Metric label="Ingresos estimados" value={formatMoney(stats.revenue)} detail={`${formatMoney(stats.completedRevenue)} realizados`} icon={<Scissors size={15} />} />
             <Metric label="Estado operativo" value={loading ? "—" : stats.total > 0 ? "Activo" : "Libre"} detail={stats.total > 0 ? "hay actividad" : "sin reservas"} icon={<Sparkles size={15} />} accent className="col-span-2 xl:col-span-1" />
           </section>
 
@@ -608,7 +637,7 @@ export default function TurnosPage() {
                 <div className="flex items-center justify-between border-b hairline px-5 py-4">
                   <div>
                     <p className="text-sm font-semibold text-[#ff6a18]">Timeline operativo</p>
-                    <p className="mt-0.5 text-[14px] text-white/58">09:00 — 21:00 · {dayAppointments.length} turnos visibles</p>
+                    <p className="mt-0.5 text-[14px] text-white/58">{String(visibleHours[0]).padStart(2, "0")}:00 — {String(visibleHours[visibleHours.length - 1] + 1).padStart(2, "0")}:00 · {dayAppointments.length} {dayAppointments.length === 1 ? "turno" : "turnos"}</p>
                   </div>
                   <div className="flex items-center gap-3 text-[14px] text-white/58">
                     <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-emerald-300" />Confirmado</span>
@@ -622,27 +651,39 @@ export default function TurnosPage() {
                   <EmptyAgenda onCreate={openNewAppointment} />
                 ) : (
                   <div className="scrollbar overflow-x-auto">
-                    <div className="relative min-w-[760px]">
-                      {HOURS.map((hour) => (
-                        <div key={hour} className="grid grid-cols-[82px_1fr]" style={{ height: 72 }}>
-                          <div className="border-r grid-line px-5 pt-2 text-[13px] font-medium tabular-nums text-white/55">{String(hour).padStart(2, "0")}:00</div>
+                    <div className="relative min-w-0">
+                      {visibleHours.map((hour) => (
+                        <div key={hour} className="grid grid-cols-[82px_1fr]" style={{ height: HOUR_HEIGHT }}>
+                          <div className="border-r grid-line px-5 pt-2 text-[13px] font-medium tabular-nums text-white/60">{String(hour).padStart(2, "0")}:00</div>
                           <div className="relative border-b grid-line">
-                            <div className="absolute left-0 right-0 top-[35px] border-t border-dashed border-white/[0.025]" />
+                            <div className="absolute left-0 right-0 border-t border-dashed border-white/[0.04]" style={{ top: HOUR_HEIGHT / 2 }} />
                           </div>
                         </div>
                       ))}
                       <div className="absolute inset-y-0 left-[82px] right-0">
                         {dayAppointments.map((appointment) => {
                           const status = getStatus(appointment.status);
+                          const cardHeight = appointmentHeight(appointment.start_at, appointment.end_at);
+                          const compact = cardHeight < 80;
                           return (
                             <button
                               type="button"
                               key={appointment.id}
-                              onClick={() => setSelectedAppointment(appointment)}
-                              className={`appointment-card absolute left-3 right-5 overflow-hidden rounded-xl border border-white/[0.09] bg-[#151717] px-4 py-2.5 text-left ${appointment.status === "cancelled" ? "opacity-55" : ""}`}
-                              style={{ top: appointmentTop(appointment.start_at), height: appointmentHeight(appointment.start_at, appointment.end_at) }}
+                              onClick={() => selectAppointment(appointment)}
+                              className={`appointment-card absolute left-3 right-5 overflow-hidden rounded-xl border border-white/[0.09] bg-[#151717] px-4 text-left ${compact ? "py-2" : "py-2.5"} ${appointment.status === "cancelled" ? "opacity-55" : ""}`}
+                              style={{ top: appointmentTop(appointment.start_at, visibleHours[0]), height: cardHeight }}
                             >
-                              <div className={`absolute inset-y-0 left-0 w-[2px] ${status.dot}`} />
+                              <div className={`absolute inset-y-0 left-0 w-[3px] ${status.dot}`} />
+                              {compact ? (
+                                <div className="flex h-full items-center justify-between gap-3 pl-1">
+                                  <div className="flex min-w-0 items-center gap-3">
+                                    <span className="shrink-0 text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
+                                    <span className="truncate text-[14px] font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</span>
+                                    <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/60 md:flex"><Scissors size={11} />{appointment.service?.name ?? "Servicio"}</span>
+                                  </div>
+                                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
+                                </div>
+                              ) : (
                               <div className="flex items-start justify-between gap-3 pl-1">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
@@ -657,6 +698,7 @@ export default function TurnosPage() {
                                 </div>
                                 <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
                               </div>
+                              )}
                             </button>
                           );
                         })}
@@ -704,7 +746,7 @@ export default function TurnosPage() {
                                 {items.map((appointment) => {
                                   const status = getStatus(appointment.status);
                                   return (
-                                    <button key={appointment.id} type="button" onClick={() => setSelectedAppointment(appointment)} className="appointment-card w-full rounded-lg border border-white/[0.065] bg-[#111313] p-3 text-left">
+                                    <button key={appointment.id} type="button" onClick={() => selectAppointment(appointment)} className="appointment-card w-full rounded-lg border border-white/[0.065] bg-[#111313] p-3 text-left">
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-[13px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
                                         <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
@@ -805,7 +847,7 @@ function EmptyAgenda({ onCreate }: { onCreate: () => void }) {
 function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: { appointment: Appointment | null; onClose: () => void; onStatus: (appointment: Appointment, status: string) => void; onEdit: (appointment: Appointment) => void; actionLoading: string }) {
   if (!appointment) {
     return (
-      <aside className="panel h-fit overflow-hidden rounded-[16px]">
+      <aside className="panel hidden h-fit overflow-hidden rounded-[16px] 2xl:block">
         <div className="border-b hairline px-5 py-4"><p className="text-sm font-semibold text-white">Detalle</p><p className="mt-0.5 text-[13px] text-white/55">Seleccioná un turno para abrir la información del cliente y gestionar el turno.</p></div>
         <div className="flex min-h-[420px] flex-col items-center justify-center px-8 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]"><Clock3 size={18} className="text-white/42" /></div><p className="mt-4 text-xs font-medium text-white/68">Sin selección</p><p className="mt-1 max-w-[220px] text-[12px] leading-5 text-white/42">Elegí un turno de la agenda para gestionar su estado y consultar la información del cliente.</p></div>
       </aside>
@@ -817,7 +859,7 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
   const cancelled = appointment.status === "cancelled";
 
   return (
-    <aside className="panel h-fit overflow-hidden rounded-[16px] 2xl:sticky 2xl:top-[118px]">
+    <aside id="appointment-detail" className="panel h-fit scroll-mt-20 overflow-hidden rounded-[16px] 2xl:sticky 2xl:top-[118px]">
       <div className="flex items-start justify-between border-b hairline px-5 py-4">
         <div><p className="text-sm font-semibold text-white">Detalle del turno</p><p className="mt-0.5 text-[12px] text-white/55">Información de la atención</p></div>
         <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={14} /></button>
@@ -836,7 +878,7 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
           <Info label="Horario" value={`${formatTime(appointment.start_at)} — ${formatTime(appointment.end_at)}`} icon={<Clock3 size={12} />} />
           <Info label="Servicio" value={appointment.service?.name ?? "Servicio"} icon={<Scissors size={12} />} />
           <Info label="Barbero" value={appointment.barber?.name ?? "Sin asignar"} icon={<UserRound size={12} />} />
-          <Info label="Importe" value={`$${Number(appointment.service?.price ?? 0).toLocaleString("es-AR")}`} icon={<span className="text-[13px]">$</span>} />
+          <Info label="Importe" value={formatMoney(Number(appointment.service?.price ?? 0))} icon={<span className="text-[13px]">$</span>} />
         </div>
 
         {appointment.notes && <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Observaciones</p><p className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.018] p-3 text-xs leading-5 text-white/64">{appointment.notes}</p></div>}
@@ -871,13 +913,13 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
   const [openedAt] = useState(() => Date.now());
   const isPast = Boolean(startAt) && new Date(startAt).getTime() < openedAt;
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:items-center sm:p-4" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
         <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
-          <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><input type="datetime-local" value={startAt} onChange={(e) => { setStartAt(e.target.value); if (e.target.value && new Date(e.target.value).getTime() < Date.now()) setAttended(true); }} className="field" /></Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
+          <Field label="Fecha y hora" icon={<CalendarDays size={12} />}><DateTimeField mode="datetime" value={startAt} onChange={(value) => { setStartAt(value); if (value && new Date(value).getTime() < Date.now()) setAttended(true); }} /></Field>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.075] bg-white/[0.015] px-3 py-3">
             <input type="checkbox" checked={attended} onChange={(e) => setAttended(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#ff5a00]" />
             <span className="text-[12px] leading-5 text-white/70">
@@ -962,7 +1004,7 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:items-center sm:p-4" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
         <div className="flex items-start justify-between border-b border-white/[0.06] px-6 py-5">
           <div>
@@ -985,7 +1027,7 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
             <Field label="Servicio" icon={<Scissors size={12} />}>
               <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field">
                 <option value="">Seleccionar servicio...</option>
-                {services.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString("es-AR")}</option>)}
+                {services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}
               </select>
             </Field>
             <Field label="Barbero" icon={<UserRound size={12} />}>
@@ -998,7 +1040,7 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Fecha y hora" icon={<CalendarDays size={12} />}>
-              <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="field" />
+              <DateTimeField mode="datetime" value={startAt} onChange={setStartAt} />
             </Field>
             <Field label="Estado" icon={<Check size={12} />}>
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="field">

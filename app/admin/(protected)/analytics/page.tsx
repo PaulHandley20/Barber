@@ -21,6 +21,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import DateTimeField from "@/components/admin/ui/DateTimeField";
+import BarChart, { compactNumber } from "@/components/admin/ui/BarChart";
 type RangeKey = "7D" | "30D" | "12M" | "CUSTOM";
 
 type Service = {
@@ -116,6 +118,7 @@ type ChartPoint = {
   label: string;
   revenue: number;
   appointments: number;
+  axisLabel?: string;
 };
 
 const formatMoney = (value: number) =>
@@ -658,6 +661,7 @@ export default function AnalyticsPage() {
 
       points.push({
         label: formatShortDate(day),
+        axisLabel: `${day.getDate()}/${day.getMonth() + 1}`,
         revenue: rows.reduce(
           (sum, row) => sum + Number(getService(row)?.price ?? 0),
           0
@@ -669,7 +673,6 @@ export default function AnalyticsPage() {
     return points;
   }, [completedAppointments, dates, range]);
 
-  const revenueMax = Math.max(...revenueChart.map((point) => point.revenue), 1);
 
   const peakHours = useMemo(() => {
     const buckets = new Map<number, number>();
@@ -880,7 +883,7 @@ export default function AnalyticsPage() {
 
   return (
     <main className="barberos-dashboard min-h-screen text-white">
-      <style jsx>{`
+      <style jsx global>{`
         .barberos-dashboard {
           --ink:#070707;
           --surface:#0b0b0b;
@@ -891,7 +894,7 @@ export default function AnalyticsPage() {
           --quiet:rgba(255,255,255,.30);
           --orange:#ff5a00;
           --orange-bright:#ff7a22;
-          font-family:Manrope,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+          font-family:var(--font-barberos-ui),ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
           font-feature-settings:"kern" 1,"liga" 1,"calt" 1;
           text-rendering:optimizeLegibility;
           -webkit-font-smoothing:antialiased;
@@ -907,17 +910,17 @@ export default function AnalyticsPage() {
         .barberos-dashboard h2,
         .barberos-dashboard h3,
         .barberos-dashboard h4 {
-          font-family:Sora,Manrope,ui-sans-serif,system-ui,sans-serif;
+          font-family:var(--font-barberos-display),ui-sans-serif,system-ui,sans-serif;
           font-feature-settings:"kern" 1,"liga" 1;
         }
 
         .barberos-dashboard .data {
-          font-family:"DM Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+          font-family:var(--font-barberos-data),Sora,sans-serif;
           font-variant-numeric:tabular-nums;
         }
 
         .barberos-dashboard .display {
-          font-family:Sora,Manrope,ui-sans-serif,system-ui,sans-serif;
+          font-family:var(--font-barberos-display),ui-sans-serif,system-ui,sans-serif;
         }
 
         .barberos-dashboard .panel-surface {
@@ -1021,19 +1024,13 @@ export default function AnalyticsPage() {
             <div className="flex flex-wrap items-center gap-2">
               {range === "CUSTOM" ? (
                 <>
-                  <input
-                    type="date"
-                    value={customStart}
-                    onChange={(event) => setCustomStart(event.target.value)}
-                    className="h-9 rounded-lg border border-white/[.075] bg-white/[.025] px-3 text-[11px] text-white/75 outline-none"
-                  />
+                  <div className="w-[190px]">
+                    <DateTimeField mode="date" value={customStart} onChange={setCustomStart} />
+                  </div>
                   <span className="text-white/25">→</span>
-                  <input
-                    type="date"
-                    value={customEnd}
-                    onChange={(event) => setCustomEnd(event.target.value)}
-                    className="h-9 rounded-lg border border-white/[.075] bg-white/[.025] px-3 text-[11px] text-white/75 outline-none"
-                  />
+                  <div className="w-[190px]">
+                    <DateTimeField mode="date" value={customEnd} onChange={setCustomEnd} />
+                  </div>
                 </>
               ) : null}
 
@@ -1131,7 +1128,7 @@ export default function AnalyticsPage() {
           </section>
         ) : null}
 
-        <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MetricCard
             label="Ingresos"
             value={formatMoney(periodRevenue)}
@@ -1185,48 +1182,21 @@ export default function AnalyticsPage() {
             <div className="mt-7">
               {revenueChart.length ? (
                 <>
-                  <div className="relative h-64">
-                    <div className="absolute inset-0 flex flex-col justify-between">
-                      {[0, 1, 2, 3].map((line) => (
-                        <div key={line} className="border-t border-white/[.045]" />
-                      ))}
-                    </div>
-
-                    <div className="relative flex h-full items-end gap-1.5 pb-7">
-                      {revenueChart.map((point, index) => (
-                        <div key={`${point.label}-${index}`} className="flex h-full min-w-0 flex-1 items-end">
-                          <div
-                            className="w-full rounded-t-[4px] bg-[#ff5a00]/75 transition hover:bg-[#ff6a18]"
-                            style={{
-                              height: `${Math.max(
-                                point.revenue > 0 ? 5 : 1,
-                                (point.revenue / revenueMax) * 88
-                              )}%`,
-                            }}
-                            title={`${point.label}: ${formatMoney(point.revenue)}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-between gap-2 overflow-hidden">
-                      {revenueChart.map((point, index) => {
-                        const shouldShow =
-                          range === "12M" ||
-                          revenueChart.length <= 12 ||
-                          index % Math.ceil(revenueChart.length / 8) === 0;
-
-                        return (
-                          <span
-                            key={`${point.label}-label`}
-                            className={`data min-w-0 text-[9px] text-white/32 ${shouldShow ? "" : "invisible"}`}
-                          >
-                            {point.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <BarChart
+                    height={250}
+                    seriesLabel="Facturación"
+                    formatValue={formatMoney}
+                    formatAxis={(value) => `$${compactNumber(value)}`}
+                    maxXLabels={range === "12M" ? 12 : 8}
+                    ariaLabel="Evolución de facturación"
+                    data={revenueChart.map((point, index) => ({
+                      key: `${point.label}-${index}`,
+                      label: point.axisLabel ?? point.label,
+                      fullLabel: point.label,
+                      value: point.revenue,
+                      detail: `${point.appointments} ${point.appointments === 1 ? "turno completado" : "turnos completados"}`,
+                    }))}
+                  />
 
                   <div className="mt-5 flex flex-wrap gap-x-7 gap-y-2 text-[12px] text-white/55">
                     <span>
@@ -1458,20 +1428,17 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="mt-6">
-              <div className="flex h-32 items-end gap-2">
-                {weekdayMetrics.map((day) => (
-                  <div key={day.label} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                    <div className="flex h-24 w-full items-end">
-                      <div
-                        className="w-full rounded-t-md bg-[#ff5a00]/75"
-                        style={{ height: `${Math.max(day.value ? 7 : 2, day.height)}%` }}
-                        title={`${day.label}: ${day.value} turnos`}
-                      />
-                    </div>
-                    <span className="data text-[9px] text-white/38">{day.label}</span>
-                  </div>
-                ))}
-              </div>
+              <BarChart
+                height={130}
+                seriesLabel="Turnos"
+                formatValue={(value) => `${formatNumber(value)} ${value === 1 ? "turno" : "turnos"}`}
+                ariaLabel="Turnos por día de la semana"
+                data={[1, 2, 3, 4, 5, 6, 0].map((dayIndex) => {
+                  const day = weekdayMetrics[dayIndex];
+
+                  return { key: day.label, label: day.label, value: day.value };
+                })}
+              />
 
               <div className="mt-6 border-t border-white/[.05] pt-5">
                 <div className="text-[11px] font-semibold uppercase tracking-[.14em] text-white/48">
@@ -1615,7 +1582,7 @@ export default function AnalyticsPage() {
               <TrendingUp size={18} className="text-white/20" />
             </div>
 
-            <div className="mt-6 grid grid-cols-6 gap-2">
+            <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-6">
               {(() => {
                 const months = [];
                 const now = new Date();
@@ -1662,7 +1629,6 @@ export default function AnalyticsPage() {
                             (month.revenue / max) * 100
                           )}%`,
                         }}
-                        title={`${month.label}: ${formatMoney(month.revenue)}`}
                       />
                     </div>
                     <div className="mt-2 truncate text-[13px] font-medium text-white/72">

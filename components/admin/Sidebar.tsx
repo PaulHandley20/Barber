@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { manrope as navFont } from "@/components/admin/fonts";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -19,11 +20,6 @@ import {
 import { useAdminShell } from "./AdminShellContext";
 
 // Fuente redondeada solo para los labels de navegación.
-const navFont = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  display: "swap",
-});
 
 const navigation = [
   {
@@ -70,14 +66,62 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { collapsed, toggleSidebar } = useAdminShell();
+  const { collapsed: collapsedSetting, toggleSidebar, mobileOpen, setMobileOpen } = useAdminShell();
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(query.matches);
+
+    update();
+    query.addEventListener("change", update);
+
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  // En celular el menú siempre se muestra completo (nunca contraído).
+  const collapsed = isDesktop && collapsedSetting;
+
+  // Al navegar, el cajón se cierra solo.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen, setMobileOpen]);
 
   return (
-    <aside
+    <>
+    {/* Fondo oscuro detrás del cajón en celular/tablet */}
+    <div
+      aria-hidden="true"
+      onClick={() => setMobileOpen(false)}
       className={[
-        "fixed left-0 top-0 z-40 h-screen",
-        "transition-[width] duration-300 ease-out",
-        collapsed ? "w-[76px]" : "w-[240px]",
+        "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden",
+        mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
+      ].join(" ")}
+    />
+
+    <aside
+      aria-label="Menú del panel"
+      className={[
+        "fixed left-0 top-0 z-50 h-[100dvh] border-r border-white/[0.06] lg:z-40 lg:border-r-0",
+        "transition-[width,transform] duration-300 ease-out",
+        collapsed ? "w-[76px]" : "w-[264px] lg:w-[240px]",
+        mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
       ].join(" ")}
     >
       {/* =========================================================
@@ -88,33 +132,10 @@ export default function Sidebar() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
       >
-        {/* Base */}
-        <div className="absolute inset-0 bg-[#050505]" />
-
-        {/* Orange atmospheric glow */}
-        <div
-          className="
-            absolute
-            -left-[170px]
-            top-[30%]
-            h-[520px]
-            w-[520px]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,90,0,0.055)_0%,rgba(255,90,0,0.018)_35%,transparent_70%)]
-          "
-        />
-
-        <div
-          className="
-            absolute
-            -bottom-[180px]
-            left-[15%]
-            h-[420px]
-            w-[420px]
-            rounded-full
-            bg-[radial-gradient(circle,rgba(255,90,0,0.035)_0%,transparent_70%)]
-          "
-        />
+        {/* En compu el menú no tiene fondo ni línea divisoria: queda
+            integrado al fondo del panel. En celular (menú desplegable)
+            sí lleva fondo para leerse sobre el contenido. */}
+        <div className="absolute inset-0 bg-[#0a0b0d]/95 backdrop-blur-xl lg:hidden" />
       </div>
 
       {/* =========================================================
@@ -271,7 +292,7 @@ export default function Sidebar() {
         >
           <button
             type="button"
-            onClick={toggleSidebar}
+            onClick={() => (isDesktop ? toggleSidebar() : setMobileOpen(false))}
             aria-label={
               collapsed
                 ? "Mostrar navegación"
@@ -329,5 +350,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }
