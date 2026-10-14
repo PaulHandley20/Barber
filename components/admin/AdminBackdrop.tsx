@@ -30,7 +30,10 @@ type Haze = {
   opacity: number;
 };
 
-const ORANGE = "#ff6a1a";
+/* Naranja quemado, más apagado que el de los botones: el fondo
+   acompaña sin cansar la vista. */
+const ORANGE = "#b9500f";
+const ORANGE_PEAK = "#d0601c";
 
 function StreakDefs({ streaks }: { streaks: Streak[] }) {
   return (
@@ -50,7 +53,7 @@ function StreakDefs({ streaks }: { streaks: Streak[] }) {
           >
             <stop offset="0" stopColor={ORANGE} stopOpacity="0" />
             <stop offset={Math.max(0, peak - 0.28)} stopColor={ORANGE} stopOpacity="0.25" />
-            <stop offset={peak} stopColor="#ff8a3d" stopOpacity="1" />
+            <stop offset={peak} stopColor={ORANGE_PEAK} stopOpacity="1" />
             <stop offset={Math.min(1, peak + 0.3)} stopColor={ORANGE} stopOpacity="0.22" />
             <stop offset="1" stopColor={ORANGE} stopOpacity="0" />
           </linearGradient>
@@ -75,7 +78,7 @@ function Streaks({ streaks, filterId }: { streaks: Streak[]; filterId: string })
             stroke={`url(#${streak.id})`}
             strokeWidth={34}
             strokeLinecap="round"
-            opacity={0.16 * streak.strength}
+            opacity={0.12 * streak.strength}
           />
         ))}
       </g>
@@ -92,7 +95,7 @@ function Streaks({ streaks, filterId }: { streaks: Streak[]; filterId: string })
             stroke={`url(#${streak.id})`}
             strokeWidth={5}
             strokeLinecap="round"
-            opacity={0.5 * streak.strength}
+            opacity={0.3 * streak.strength}
           />
         ))}
       </g>
@@ -108,7 +111,7 @@ function Streaks({ streaks, filterId }: { streaks: Streak[]; filterId: string })
           stroke={`url(#${streak.id})`}
           strokeWidth={1.1}
           strokeLinecap="round"
-          opacity={0.9 * streak.strength}
+          opacity={0.55 * streak.strength}
         />
       ))}
     </>
@@ -168,8 +171,8 @@ const BOTTOM_LEFT_STREAKS: Streak[] = [
 ];
 
 const BOTTOM_LEFT_HAZES: Haze[] = [
-  { cx: 150, cy: 640, rx: 470, ry: 120, angle: -35, opacity: 0.11 },
-  { cx: 60, cy: 820, rx: 300, ry: 160, angle: -35, opacity: 0.06 },
+  { cx: 150, cy: 640, rx: 470, ry: 120, angle: -35, opacity: 0.08 },
+  { cx: 60, cy: 820, rx: 300, ry: 160, angle: -35, opacity: 0.045 },
 ];
 
 /* ---------------------------------------------------------
@@ -180,7 +183,7 @@ const TOP_STREAKS: Streak[] = [
   { id: "tc-b", x1: 170, y1: 250, x2: 520, y2: -10, strength: 0.26, peak: 0.6 },
 ];
 
-const TOP_HAZES: Haze[] = [{ cx: 280, cy: 20, rx: 330, ry: 80, angle: -32, opacity: 0.085 }];
+const TOP_HAZES: Haze[] = [{ cx: 280, cy: 20, rx: 330, ry: 80, angle: -32, opacity: 0.06 }];
 
 /* ---------------------------------------------------------
    Esquina inferior derecha
@@ -190,7 +193,7 @@ const BOTTOM_RIGHT_STREAKS: Streak[] = [
   { id: "br-b", x1: 480, y1: 600, x2: 800, y2: 370, strength: 0.32, peak: 0.4 },
 ];
 
-const BOTTOM_RIGHT_HAZES: Haze[] = [{ cx: 620, cy: 520, rx: 380, ry: 110, angle: -32, opacity: 0.085 }];
+const BOTTOM_RIGHT_HAZES: Haze[] = [{ cx: 620, cy: 520, rx: 380, ry: 110, angle: -32, opacity: 0.06 }];
 
 function CornerArt({
   id,
