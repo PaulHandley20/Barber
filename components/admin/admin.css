@@ -235,6 +235,24 @@
   background: transparent !important;
 }
 
-.admin-shell .dashboard-grid-bg {
+.admin-shell .dashboard-grid-bg,
+.admin-shell .dashboard-noise {
   display: none;
+}
+
+/* ---------------------------------------------------------
+   Tarjetas opacas
+   ---------------------------------------------------------
+   Las tarjetas tenían el fondo 86–96 % opaco: los rayos del
+   fondo se veían a través y, al hacer scroll, parecían líneas
+   diagonales moviéndose dentro de cada cuadro. Ahora el color de
+   base es sólido (se conserva el leve degradé de cada sección).
+   --------------------------------------------------------- */
+.admin-shell .panel,
+.admin-shell .panel-surface,
+.admin-shell .panel-hover,
+.admin-shell .metric-card,
+.admin-shell .admin-panel,
+.admin-shell .system-strip {
+  background-color: #0b0c0d !important;
 }
