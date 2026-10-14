@@ -225,11 +225,14 @@ export default function GestionarReservaPage() {
     ? (new Date(reservation.start_at).getTime() - Date.now()) / 36e5
     : 0;
 
+  /* Cancelar: en cualquier momento antes del turno.
+     Cambiar día u horario: hasta X horas antes (Configuración). */
   const withinNoticeWindow =
     reservationIsActive &&
     hoursUntilReservation < config.cancellationNoticeHours;
 
-  const canManage = reservationIsActive && !withinNoticeWindow;
+  const canReschedule = reservationIsActive && !withinNoticeWindow;
+  const canCancel = reservationIsActive;
 
   /* Permite llegar con /gestionar-reserva?codigo=DS-XXXX */
   useEffect(() => {
@@ -921,25 +924,18 @@ export default function GestionarReservaPage() {
                       <ArrowRight size={15} />
                     </Link>
                   </div>
-                ) : withinNoticeWindow ? (
-                  <>
-                    <p className="text-center text-sm leading-7 text-[#8d877e]">
-                      Faltan menos de {config.cancellationNoticeHours} horas
-                      para tu turno, así que ya no se puede modificar online.
-                      Si necesitás cambiarlo o no podés venir, escribinos lo
-                      antes posible.
-                    </p>
-                    <div className="mx-auto mt-2 max-w-md">
-                      <ContactLinks />
-                    </div>
-                  </>
                 ) : (
                   <>
                     <div className="flex flex-col gap-3 sm:flex-row">
                       <button
                         type="button"
                         onClick={openEditReservation}
-                        disabled={loading || !canManage}
+                        disabled={loading || !canReschedule}
+                        title={
+                          canReschedule
+                            ? undefined
+                            : `Solo se puede cambiar hasta ${config.cancellationNoticeHours} h antes`
+                        }
                         className="flex flex-1 items-center justify-center gap-3 border border-white/10 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#ddd6cc] transition-all hover:border-[#b08a5a]/60 hover:bg-white/[0.03] disabled:opacity-50"
                       >
                         <CalendarDays size={15} />
@@ -953,7 +949,7 @@ export default function GestionarReservaPage() {
                           setConfirmingCancel(true);
                           setNotice(null);
                         }}
-                        disabled={loading || !canManage}
+                        disabled={loading || !canCancel}
                         className="flex flex-1 items-center justify-center gap-3 border border-red-900/50 bg-red-950/20 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-red-300 transition-all hover:border-red-500/60 hover:bg-red-950/35 disabled:opacity-50"
                       >
                         <XCircle size={15} />
@@ -1019,10 +1015,27 @@ export default function GestionarReservaPage() {
                     )}
 
                     {!editingReservation && !confirmingCancel && (
-                      <p className="mt-5 text-center text-[10px] leading-6 text-[#625e58]">
-                        Podés modificar o cancelar hasta{" "}
-                        {config.cancellationNoticeHours} horas antes del turno.
-                      </p>
+                      withinNoticeWindow ? (
+                        <div className="mt-5 text-center">
+                          <p className="text-sm leading-7 text-[#8d877e]">
+                            Faltan menos de {config.cancellationNoticeHours}{" "}
+                            {config.cancellationNoticeHours === 1 ? "hora" : "horas"} para tu
+                            turno: ya no se puede cambiar el horario online, pero
+                            todavía podés cancelarlo. Si necesitás cambiarlo,
+                            escribinos.
+                          </p>
+                          <div className="mx-auto mt-2 max-w-md">
+                            <ContactLinks />
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-5 text-center text-[10px] leading-6 text-[#625e58]">
+                          Podés cancelar en cualquier momento antes del turno y
+                          cambiar el día u horario hasta{" "}
+                          {config.cancellationNoticeHours}{" "}
+                          {config.cancellationNoticeHours === 1 ? "hora" : "horas"} antes.
+                        </p>
+                      )
                     )}
                   </>
                 )}

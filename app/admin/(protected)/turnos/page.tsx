@@ -39,6 +39,10 @@ type Appointment = {
   status: string;
   notes: string | null;
   reservation_code: string | null;
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  cancelled_by_email?: string | null;
+  no_show_at?: string | null;
   customer: { full_name: string; phone: string } | null;
   service: { name: string; price: number } | null;
   barber: { name: string } | null;
@@ -91,6 +95,72 @@ const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 function getStatus(status: string) {
   return STATUS[status?.toLowerCase()] ?? STATUS.confirmed;
+}
+
+/* Turno que ya terminó y sigue como confirmado/pendiente: falta marcar
+   si se atendió o si el cliente no vino. */
+function isUnregistered(appointment: { status: string; end_at: string }) {
+  return (
+    ["confirmed", "pending"].includes(appointment.status) &&
+    new Date(appointment.end_at).getTime() < Date.now()
+  );
+}
+
+const UNREGISTERED: StatusMeta = {
+  label: "Sin registrar",
+  dot: "bg-amber-300",
+  badge: "border-amber-300/25 bg-amber-300/[0.10] text-amber-200",
+};
+
+function displayStatus(appointment: { status: string; end_at: string }) {
+  return isUnregistered(appointment) ? UNREGISTERED : getStatus(appointment.status);
+}
+
+function formatAuditDate(value: string | null | undefined) {
+  if (!value) return "";
+
+  return new Date(value).toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+}
+
+/* Quién canceló / cuándo se marcó la ausencia. */
+function auditText(appointment: {
+  status: string;
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  cancelled_by_email?: string | null;
+  no_show_at?: string | null;
+}) {
+  if (appointment.status === "cancelled" || appointment.status === "canceled") {
+    const when = appointment.cancelled_at ? ` · ${formatAuditDate(appointment.cancelled_at)}` : "";
+
+    if (appointment.cancelled_by === "cliente") return `Lo canceló el cliente desde la web${when}`;
+    if (appointment.cancelled_by === "admin") {
+      return `Cancelado desde el panel${appointment.cancelled_by_email ? ` (${appointment.cancelled_by_email})` : ""}${when}`;
+    }
+
+    return "Turno cancelado";
+  }
+
+  if (appointment.status === "no_show") {
+    return `El cliente no asistió${appointment.no_show_at ? ` · registrado ${formatAuditDate(appointment.no_show_at)}` : ""}`;
+  }
+
+  return "";
+}
+
+function shortAudit(appointment: { status: string; cancelled_by?: string | null }) {
+  if (appointment.status === "cancelled" || appointment.status === "canceled") {
+    if (appointment.cancelled_by === "cliente") return "Canceló el cliente";
+    if (appointment.cancelled_by === "admin") return "Cancelado por el panel";
+  }
+
+  return "";
 }
 
 function formatTime(value: string) {
@@ -203,9 +273,7 @@ export default function TurnosPage() {
     else setLoading(true);
     setError("");
 
-    const { data, error: queryError } = await supabase
-      .from("appointments")
-      .select(`
+    const baseColumns = `
         id,
         customer_id,
         service_id,
@@ -225,9 +293,27 @@ export default function TurnosPage() {
         ),
         barber:barbers (
           name
-        )
-      `)
+        )`;
+
+    // Registro de cancelaciones / ausencias (migración 12). Si todavía no
+    // se corrió, se vuelve a pedir sin esas columnas.
+    const withAudit = await supabase
+      .from("appointments")
+      .select(`${baseColumns}, cancelled_at, cancelled_by, cancelled_by_email, no_show_at`)
       .order("start_at", { ascending: true });
+
+    let data: unknown[] | null = withAudit.data;
+    let queryError = withAudit.error;
+
+    if (queryError) {
+      const basic = await supabase
+        .from("appointments")
+        .select(baseColumns)
+        .order("start_at", { ascending: true });
+
+      data = basic.data;
+      queryError = basic.error;
+    }
 
     let list: Appointment[] = [];
 
@@ -664,7 +750,7 @@ export default function TurnosPage() {
                       ))}
                       <div className="absolute inset-y-0 left-[82px] right-0">
                         {dayAppointments.map((appointment) => {
-                          const status = getStatus(appointment.status);
+                          const status = displayStatus(appointment);
                           const cardHeight = appointmentHeight(appointment.start_at, appointment.end_at);
                           const compact = cardHeight < 80;
                           return (
@@ -682,6 +768,7 @@ export default function TurnosPage() {
                                     <span className="shrink-0 text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
                                     <span className="truncate text-[14px] font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</span>
                                     <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/60 md:flex"><Scissors size={11} />{appointment.service?.name ?? "Servicio"}</span>
+                                    {shortAudit(appointment) && <span className="hidden shrink-0 text-[12px] text-red-200/70 lg:inline">· {shortAudit(appointment)}</span>}
                                   </div>
                                   <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
                                 </div>
@@ -696,6 +783,7 @@ export default function TurnosPage() {
                                   <div className="mt-1 flex items-center gap-3 truncate text-[12px] text-white/60">
                                     <span className="flex items-center gap-1"><Scissors size={10} />{appointment.service?.name ?? "Servicio"}</span>
                                     {appointment.barber?.name && <span className="flex items-center gap-1"><UserRound size={10} />{appointment.barber.name}</span>}
+                                    {shortAudit(appointment) && <span className="text-red-200/70">{shortAudit(appointment)}</span>}
                                   </div>
                                 </div>
                                 <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
@@ -746,7 +834,7 @@ export default function TurnosPage() {
                             ) : (
                               <div className="space-y-2">
                                 {items.map((appointment) => {
-                                  const status = getStatus(appointment.status);
+                                  const status = displayStatus(appointment);
                                   return (
                                     <button key={appointment.id} type="button" onClick={() => selectAppointment(appointment)} className="appointment-card w-full rounded-lg border border-white/[0.065] bg-[#111313] p-3 text-left">
                                       <div className="flex items-center justify-between gap-2">
@@ -756,6 +844,7 @@ export default function TurnosPage() {
                                       <p className="mt-2 truncate text-xs font-semibold text-white/90">{appointment.customer?.full_name ?? "Sin nombre"}</p>
                                       <p className="mt-1 truncate text-[14px] text-white/58">{appointment.service?.name ?? "Servicio"}</p>
                                       {appointment.barber?.name && <p className="mt-1 truncate text-[12px] text-white/45">{appointment.barber.name}</p>}
+                                      {(shortAudit(appointment) || isUnregistered(appointment)) && <p className={`mt-1 truncate text-[12px] ${isUnregistered(appointment) ? "text-amber-200/80" : "text-red-200/70"}`}>{isUnregistered(appointment) ? "Sin registrar" : shortAudit(appointment)}</p>}
                                     </button>
                                   );
                                 })}
@@ -845,7 +934,7 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
     );
   }
 
-  const status = getStatus(appointment.status);
+  const status = displayStatus(appointment);
   const completed = appointment.status === "completed";
   const cancelled = appointment.status === "cancelled";
 
@@ -871,6 +960,20 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
           <Info label="Barbero" value={appointment.barber?.name ?? "Sin asignar"} icon={<UserRound size={12} />} />
           <Info label="Importe" value={formatMoney(Number(appointment.service?.price ?? 0))} icon={<span className="text-[13px]">$</span>} />
         </div>
+
+        {auditText(appointment) && (
+          <div className={`mt-4 rounded-xl border px-3.5 py-3 text-[12px] leading-5 ${appointment.status === "no_show" ? "border-orange-300/15 bg-orange-300/[0.05] text-orange-100/85" : "border-red-300/15 bg-red-300/[0.05] text-red-100/85"}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-[.14em] opacity-70">Registro</p>
+            <p className="mt-1">{auditText(appointment)}</p>
+          </div>
+        )}
+
+        {isUnregistered(appointment) && (
+          <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-3.5 py-3 text-[12px] leading-5 text-amber-100/90">
+            <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-amber-200/80">Sin registrar</p>
+            <p className="mt-1">El horario ya pasó. Marcá si el cliente se atendió o si no asistió, así queda registrado.</p>
+          </div>
+        )}
 
         {appointment.notes && <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/48">Observaciones</p><p className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.018] p-3 text-xs leading-5 text-white/64">{appointment.notes}</p></div>}
 

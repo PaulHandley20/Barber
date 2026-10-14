@@ -1328,7 +1328,7 @@ export default function ConfiguracionPage() {
 
                 <SettingRow
                   title="Anticipación mínima"
-                  description="Cantidad mínima de horas antes del turno para permitir una nueva reserva."
+                  description="Horas mínimas antes del turno para poder reservarlo desde la web (ej. 1 = se puede reservar hasta 1 hora antes)."
                 >
                   <NumberInput
                     value={settings.min_booking_notice_hours}
@@ -1353,8 +1353,8 @@ export default function ConfiguracionPage() {
                 </SettingRow>
 
                 <SettingRow
-                  title="Aviso para cancelar"
-                  description="Anticipación mínima requerida para cancelar un turno."
+                  title="Aviso para reprogramar"
+                  description="Horas mínimas antes del turno para que el cliente cambie el día u horario desde la web. Cancelar se puede siempre, hasta la hora del turno."
                 >
                   <NumberInput
                     value={settings.cancellation_notice_hours}
