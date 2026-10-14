@@ -1,10 +1,10 @@
 /*
   Fondo del panel (BarberOS).
 
-  Base gris casi negra, apenas fría, con un detalle sutil de luz
-  naranja en diagonal: un rayo principal abajo a la izquierda (pasa
-  por detrás del menú lateral), uno muy tenue abajo a la derecha y
-  un resplandor suave arriba al centro. Cada rayo es una línea fina + su halo, dibujados en SVG
+  Base gris casi negra, apenas fría, con detalles sutiles de luz
+  naranja en diagonal (4 rayos): dos abajo a la izquierda (pasan por
+  detrás del menú lateral), uno arriba al centro y uno abajo a la
+  derecha, todos tenues. Cada rayo es una línea fina + su halo, dibujados en SVG
   anclados a las esquinas, así se ven igual en cualquier tamaño de
   pantalla y no tapan el contenido.
 */
@@ -165,7 +165,8 @@ function HazeGradient({ id }: { id: string }) {
    Esquina inferior izquierda: el rayo principal
    --------------------------------------------------------- */
 const BOTTOM_LEFT_STREAKS: Streak[] = [
-  { id: "bl-main", x1: -60, y1: 520, x2: 520, y2: 110, strength: 0.85, peak: 0.36 },
+  { id: "bl-main", x1: -60, y1: 520, x2: 520, y2: 110, strength: 0.7, peak: 0.36 },
+  { id: "bl-low", x1: 120, y1: 960, x2: 720, y2: 540, strength: 0.4, peak: 0.28 },
 ];
 
 const BOTTOM_LEFT_HAZES: Haze[] = [
@@ -175,8 +176,9 @@ const BOTTOM_LEFT_HAZES: Haze[] = [
 /* ---------------------------------------------------------
    Arriba al centro: reflejo suave
    --------------------------------------------------------- */
-/* Sin líneas arriba: solo un resplandor muy suave. */
-const TOP_STREAKS: Streak[] = [];
+const TOP_STREAKS: Streak[] = [
+  { id: "tc-a", x1: 40, y1: 230, x2: 380, y2: -20, strength: 0.28, peak: 0.62 },
+];
 
 const TOP_HAZES: Haze[] = [{ cx: 280, cy: 20, rx: 330, ry: 80, angle: -32, opacity: 0.045 }];
 
@@ -184,7 +186,7 @@ const TOP_HAZES: Haze[] = [{ cx: 280, cy: 20, rx: 330, ry: 80, angle: -32, opaci
    Esquina inferior derecha
    --------------------------------------------------------- */
 const BOTTOM_RIGHT_STREAKS: Streak[] = [
-  { id: "br-a", x1: 300, y1: 560, x2: 760, y2: 230, strength: 0.38, peak: 0.45 },
+  { id: "br-a", x1: 300, y1: 560, x2: 760, y2: 230, strength: 0.32, peak: 0.45 },
 ];
 
 const BOTTOM_RIGHT_HAZES: Haze[] = [{ cx: 620, cy: 520, rx: 380, ry: 110, angle: -32, opacity: 0.045 }];
