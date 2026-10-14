@@ -577,32 +577,6 @@ export default function TurnosPage() {
     setShowNewAppointment(true);
   }
 
-  /*
-    Un horario solo puede tener un turno activo (confirmado, pendiente o
-    completado). Los cancelados / no asistió no ocupan el horario. Se
-    consulta la base para no depender de lo que esté cargado en pantalla.
-  */
-  async function findScheduleConflict(startIso: string, endIso: string, excludeId?: string) {
-    let query = supabase
-      .from("appointments")
-      .select("id, start_at, end_at, customer:customers (full_name)")
-      .in("status", ["confirmed", "pending", "completed"])
-      .lt("start_at", endIso)
-      .gt("end_at", startIso)
-      .limit(1);
-
-    if (excludeId) query = query.neq("id", excludeId);
-
-    const { data } = await query;
-    const conflict = (data ?? [])[0] as unknown as
-      | { start_at: string; end_at: string; customer: { full_name: string } | null }
-      | undefined;
-
-    if (!conflict) return null;
-
-    return `Ese horario ya está ocupado por ${conflict.customer?.full_name ?? "otro cliente"} (${formatTime(conflict.start_at)} a ${formatTime(conflict.end_at)}). Elegí otro horario, o cancelá ese turno primero.`;
-  }
-
   async function createAppointment() {
     setCreateError("");
     if (!newCustomerId || !newServiceId || !newStartAt) {
@@ -616,15 +590,6 @@ export default function TurnosPage() {
     const end = new Date(start.getTime() + duration * 60000);
 
     setCreating(true);
-
-    const conflict = await findScheduleConflict(start.toISOString(), end.toISOString());
-
-    if (conflict) {
-      setCreateError(conflict);
-      setCreating(false);
-      return;
-    }
-
     const payload: Record<string, unknown> = {
       customer_id: newCustomerId,
       service_id: newServiceId,
@@ -650,9 +615,7 @@ export default function TurnosPage() {
         insertError?.hint
       );
       setCreateError(
-        insertError?.message?.includes("horario ya está ocupado")
-          ? insertError.message
-          : insertError?.code === "42501"
+        insertError?.code === "42501"
           ? `La base rechazó el turno por permisos (${insertError.message}). Revisá que estén aplicadas las migraciones de Supabase.`
           : `No se pudo crear el turno: ${insertError?.message ?? "error desconocido"}`
       );
@@ -700,16 +663,6 @@ export default function TurnosPage() {
 
   async function saveAppointmentEdit(changes: AppointmentChanges): Promise<string | null> {
     if (!editingAppointment) return "No hay turno seleccionado.";
-
-    if (["confirmed", "pending", "completed"].includes(String(changes.status))) {
-      const conflict = await findScheduleConflict(
-        String(changes.start_at),
-        String(changes.end_at),
-        editingAppointment.id
-      );
-
-      if (conflict) return conflict;
-    }
 
     const { error: updateError } = await supabase
       .from("appointments")
