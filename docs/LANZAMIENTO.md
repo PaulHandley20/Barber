@@ -52,6 +52,8 @@ Revisar especialmente:
 | `…0700_web_booking_functions.sql` | Reescribe `create_web_appointment`, `reschedule_reservation` y `cancel_reservation` para que usen la misma regla de disponibilidad (tablas del panel). Resuelve clientes históricos por teléfono con verificación. Cancelar/reprogramar respeta la anticipación de Configuración |
 | `…0800_security_hardening.sql` | Activa RLS en las tablas de backup (estaban expuestas), cambia las políticas a `is_admin()` y agrega el permiso que faltaba para crear turnos desde la Agenda |
 | `…0900_admin_fixes.sql` | "Crear turno" completa solo barbero y código si faltan; un horario por día (Configuración guarda por día) |
+| `…1000_table_grants.sql` | Permisos de tabla (GRANT) para que el panel pueda leer y escribir con el usuario admin |
+| `…1100_web_booking_notifications.sql` | Marca el origen de cada turno nuevo (`source`: `web` o `panel`) y activa Realtime en `appointments`: la campanita del panel avisa al instante cuando alguien reserva desde la web |
 
 #### Hallazgos del diagnóstico (13/10/2026)
 

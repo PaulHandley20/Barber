@@ -1,5 +1,6 @@
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -636,8 +637,9 @@ export default function TurnosPage() {
               <section className="panel overflow-hidden rounded-2xl">
                 <div className="flex items-center justify-between border-b hairline px-5 py-4">
                   <div>
-                    <p className="text-sm font-semibold text-[#ff6a18]">Timeline operativo</p>
-                    <p className="mt-0.5 text-[14px] text-white/58">{String(visibleHours[0]).padStart(2, "0")}:00 — {String(visibleHours[visibleHours.length - 1] + 1).padStart(2, "0")}:00 · {dayAppointments.length} {dayAppointments.length === 1 ? "turno" : "turnos"}</p>
+                    <div className="eyebrow mb-2 uppercase text-[#ff6a18]">Agenda del día</div>
+                    <h2 className="agenda-display text-[20px] font-semibold tracking-[-.035em] text-white">Timeline operativo</h2>
+                    <p className="mt-1 text-[13px] leading-5 text-white/60">{String(visibleHours[0]).padStart(2, "0")}:00 — {String(visibleHours[visibleHours.length - 1] + 1).padStart(2, "0")}:00 · {dayAppointments.length} {dayAppointments.length === 1 ? "turno" : "turnos"}</p>
                   </div>
                   <div className="flex items-center gap-3 text-[14px] text-white/58">
                     <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-emerald-300" />Confirmado</span>
@@ -812,18 +814,7 @@ export default function TurnosPage() {
 }
 
 function Metric({ label, value, detail, icon, accent = false, className = "" }: { label: string; value: string; detail: string; icon: React.ReactNode; accent?: boolean; className?: string }) {
-  return (
-    <div className={`panel relative min-h-[154px] overflow-hidden rounded-[16px] p-5 ${className}`}>
-      {accent && <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/75 to-transparent" />}
-      <div className="flex items-center justify-between">
-        <span className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.17em] ${accent ? "text-white/64" : "text-white/48"}`}>
-          <span className={accent ? "text-[#ff6a18]" : "text-white/52"}>{icon}</span>{label}
-        </span>
-      </div>
-      <p className="agenda-display mt-7 text-[34px] font-semibold leading-none tracking-[-0.06em] text-white">{value}</p>
-      <p className="mt-3 text-[11px] leading-4 text-white/45">{detail}</p>
-    </div>
-  );
+  return <KpiCard label={label} value={value} detail={detail} icon={icon} accent={accent} className={className} />;
 }
 
 function SkeletonTimeline() {
@@ -848,7 +839,7 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
   if (!appointment) {
     return (
       <aside className="panel hidden h-fit overflow-hidden rounded-[16px] 2xl:block">
-        <div className="border-b hairline px-5 py-4"><p className="text-sm font-semibold text-white">Detalle</p><p className="mt-0.5 text-[13px] text-white/55">Seleccioná un turno para abrir la información del cliente y gestionar el turno.</p></div>
+        <div className="border-b hairline px-5 py-4"><div className="eyebrow mb-2 uppercase text-[#ff6a18]">Turno seleccionado</div><h2 className="agenda-display text-[20px] font-semibold tracking-[-.035em] text-white">Detalle</h2><p className="mt-1 text-[13px] leading-5 text-white/60">Seleccioná un turno para abrir la información del cliente y gestionar el turno.</p></div>
         <div className="flex min-h-[420px] flex-col items-center justify-center px-8 text-center"><div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025]"><Clock3 size={18} className="text-white/42" /></div><p className="mt-4 text-xs font-medium text-white/68">Sin selección</p><p className="mt-1 max-w-[220px] text-[12px] leading-5 text-white/42">Elegí un turno de la agenda para gestionar su estado y consultar la información del cliente.</p></div>
       </aside>
     );
@@ -861,7 +852,7 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
   return (
     <aside id="appointment-detail" className="panel h-fit scroll-mt-20 overflow-hidden rounded-[16px] 2xl:sticky 2xl:top-[118px]">
       <div className="flex items-start justify-between border-b hairline px-5 py-4">
-        <div><p className="text-sm font-semibold text-white">Detalle del turno</p><p className="mt-0.5 text-[12px] text-white/55">Información de la atención</p></div>
+        <div><div className="eyebrow mb-2 uppercase text-[#ff6a18]">Turno seleccionado</div><h2 className="agenda-display text-[20px] font-semibold tracking-[-.035em] text-white">Detalle del turno</h2><p className="mt-1 text-[13px] leading-5 text-white/60">Información de la atención</p></div>
         <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={14} /></button>
       </div>
 
@@ -915,7 +906,7 @@ function NewAppointmentModal({ customers, services, barbers, customerId, service
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:items-center sm:p-4" style={{ fontFamily: "var(--font-barberos-ui), Manrope, sans-serif" }}>
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.09] bg-[#101111] shadow-[0_35px_100px_rgba(0,0,0,.55)]">
-        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.025em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
+        <div className="flex items-start justify-between border-b hairline px-6 py-5"><div><div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Plus size={12} />Nueva atención</div><h2 className="text-lg font-semibold tracking-[-.035em] text-white">Crear turno</h2><p className="mt-1 text-[13px] text-white/55">Agregá una reserva o registrá un turno que ya se hizo.</p></div><button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button></div>
         <div className="space-y-4 p-6">
           <Field label="Cliente" icon={<UserRound size={12} />}><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="field"><option value="">Seleccionar cliente...</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.full_name}{customer.phone ? ` · ${customer.phone}` : ""}</option>)}</select></Field>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Field label="Servicio" icon={<Scissors size={12} />}><select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="field"><option value="">Seleccionar servicio...</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name} · {formatMoney(Number(service.price))}</option>)}</select></Field><Field label="Barbero" icon={<UserRound size={12} />}><select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="field"><option value="">Sin asignar</option>{barbers.map((barber) => <option key={barber.id} value={barber.id}>{barber.name}</option>)}</select></Field></div>
@@ -1009,7 +1000,7 @@ function EditAppointmentModal({ appointment, customers, services, barbers, onClo
         <div className="flex items-start justify-between border-b border-white/[0.06] px-6 py-5">
           <div>
             <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-[#ff6a18]"><Pencil size={12} />Editar atención</div>
-            <h2 className="text-lg font-semibold tracking-[-.025em] text-white">Editar turno</h2>
+            <h2 className="text-lg font-semibold tracking-[-.035em] text-white">Editar turno</h2>
             <p className="mt-1 text-[13px] text-white/55">Corregí horario, servicio, cliente o estado.{appointment.reservation_code ? ` Reserva ${appointment.reservation_code}.` : ""}</p>
           </div>
           <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/48 hover:bg-white/[0.04] hover:text-white"><X size={15} /></button>

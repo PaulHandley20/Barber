@@ -230,10 +230,257 @@
 .admin-shell .barberos-services,
 .admin-shell .barberos-config,
 .admin-shell .barberos-page,
-.admin-shell .clientes-shell {
+.admin-shell .clientes-shell,
+.admin-shell .agenda-shell {
   background: transparent !important;
 }
 
-.admin-shell .dashboard-grid-bg {
+.admin-shell .dashboard-grid-bg,
+.admin-shell .dashboard-noise {
   display: none;
+}
+
+/* ---------------------------------------------------------
+   Tarjetas opacas
+   ---------------------------------------------------------
+   Las tarjetas tenían el fondo 86–96 % opaco: los rayos del
+   fondo se veían a través y, al hacer scroll, parecían líneas
+   diagonales moviéndose dentro de cada cuadro. Ahora el color de
+   base es sólido (se conserva el leve degradé de cada sección).
+   --------------------------------------------------------- */
+.admin-shell .panel,
+.admin-shell .panel-surface,
+.admin-shell .panel-hover,
+.admin-shell .metric-card,
+.admin-shell .admin-panel,
+.admin-shell .system-strip {
+  background-color: #0b0c0d !important;
+}
+
+/* ---------------------------------------------------------
+   Sin "elevación" al pasar el mouse
+   ---------------------------------------------------------
+   Las tarjetas y filas se movían 1px hacia arriba con animación
+   al pasar el mouse. Al hacer scroll lento los cuadros pasan por
+   debajo del cursor, el navegador los dibuja como imagen durante
+   esa animación y el texto se veía borroso un instante. Ahora no
+   se mueven: solo cambia el borde. (Los botones lo conservan.)
+   --------------------------------------------------------- */
+.admin-shell .panel,
+.admin-shell .panel-surface,
+.admin-shell .panel-hover,
+.admin-shell .metric-card,
+.admin-shell .appointment-card,
+.admin-shell .interactive-row,
+.admin-shell .customer-row,
+.admin-shell .service-row,
+.admin-shell .flow-row {
+  transform: none !important;
+  transition-property: border-color, background-color, color, opacity !important;
+}
+
+/* ---------------------------------------------------------
+   Tarjetas de métricas (KpiCard) · iguales en todo el panel
+   --------------------------------------------------------- */
+.admin-shell .bo-kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 150px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent 45%),
+    #0b0c0d;
+  transition: border-color 0.18s ease;
+}
+
+.admin-shell .bo-kpi:hover {
+  border-color: rgba(255, 255, 255, 0.11);
+}
+
+.admin-shell .bo-kpi-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 22px;
+}
+
+.admin-shell .bo-kpi-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-barberos-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.admin-shell .bo-kpi-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.admin-shell .bo-kpi-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.7;
+}
+
+.admin-shell .bo-kpi--accent .bo-kpi-label {
+  color: #ff6a18;
+}
+
+.admin-shell .bo-kpi--accent .bo-kpi-icon {
+  color: #ff6a18;
+}
+
+.admin-shell .bo-kpi-value-row {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 22px;
+}
+
+.admin-shell .bo-kpi-value {
+  min-width: 0;
+  font-family: var(--font-barberos-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  color: #fff;
+  font-variant-numeric: tabular-nums lining-nums;
+  overflow-wrap: break-word;
+}
+
+.admin-shell .bo-kpi-foot {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.admin-shell .bo-kpi-detail {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.6);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.admin-shell .bo-kpi--compact {
+  min-height: 108px;
+}
+
+.admin-shell .bo-kpi--compact .bo-kpi-value-row {
+  padding-top: 18px;
+}
+
+.admin-shell .bo-kpi--compact .bo-kpi-value {
+  font-size: 22px;
+}
+
+.admin-shell .bo-kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-family: var(--font-barberos-display), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-shell .bo-kpi-delta--up {
+  border-color: rgba(110, 231, 183, 0.18);
+  background: rgba(110, 231, 183, 0.05);
+  color: rgba(110, 231, 183, 0.85);
+}
+
+.admin-shell .bo-kpi-delta--down {
+  border-color: rgba(252, 165, 165, 0.18);
+  background: rgba(252, 165, 165, 0.05);
+  color: rgba(252, 165, 165, 0.82);
+}
+
+.admin-shell .bo-kpi-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+@media (max-width: 639px) {
+  .admin-shell .bo-kpi {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .admin-shell .bo-kpi-value-row {
+    padding-top: 16px;
+  }
+
+  .admin-shell .bo-kpi-value {
+    font-size: 22px;
+  }
+
+  .admin-shell .bo-kpi-label {
+    align-items: flex-start;
+    font-size: 10.5px;
+    line-height: 1.3;
+    letter-spacing: 0.1em;
+  }
+
+  /* En celular el rótulo puede ocupar dos líneas en vez de cortarse. */
+  .admin-shell .bo-kpi-label .truncate {
+    overflow: visible;
+    white-space: normal;
+  }
+}
+
+/* ---------------------------------------------------------
+   Rótulos naranjas de los cuadros ("OPERACIÓN DE HOY",
+   "PERFORMANCE", …): mismo tamaño y espaciado en todo el panel.
+   Cada sección los definía entre 8 y 10px.
+   --------------------------------------------------------- */
+.admin-shell .eyebrow,
+.admin-shell .meta-label {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+}
+
+/* Título principal de cada sección: mismo tamaño en todas. */
+.admin-shell main h1 {
+  font-family: var(--font-barberos-display), ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 34px !important;
+  font-weight: 600 !important;
+  line-height: 0.91 !important;
+  letter-spacing: -0.075em !important;
+}
+
+@media (min-width: 640px) {
+  .admin-shell main h1 {
+    font-size: 42px !important;
+  }
 }

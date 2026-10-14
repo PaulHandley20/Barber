@@ -1,5 +1,6 @@
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import {
@@ -205,7 +206,7 @@ function SectionHeader({
         <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">
           {eyebrow}
         </div>
-        <h2 className="display mt-1 text-[20px] font-semibold leading-tight tracking-[-.04em] text-white sm:text-[21px]">
+        <h2 className="display mt-1 text-[20px] font-semibold leading-tight tracking-[-.035em] text-white sm:text-[20px]">
           {title}
         </h2>
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-white/64 sm:text-[14px]">
@@ -316,25 +317,17 @@ function StatusCard({
   accent?: boolean;
 }) {
   return (
-    <div
-      className={`panel-surface min-h-[108px] rounded-[16px] p-4 ${
-        accent ? "border-[#FF5A00]/15" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <span className="data text-[9px] font-bold uppercase tracking-[.16em] text-white/60">
-          {label}
-        </span>
+    <KpiCard
+      compact
+      label={label}
+      value={value}
+      badge={
         <span
-          className={`h-1.5 w-1.5 rounded-full ${
-            accent ? "bg-[#FF5A00]" : "bg-emerald-400"
-          }`}
+          className="bo-kpi-dot"
+          style={{ background: accent ? "#ff5a00" : "#34d399" }}
         />
-      </div>
-      <p className="display mt-5 truncate text-[18px] font-semibold tracking-[-.04em] text-white">
-        {value}
-      </p>
-    </div>
+      }
+    />
   );
 }
 
@@ -1068,7 +1061,7 @@ export default function ConfiguracionPage() {
         </section>
 
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="panel-surface h-fit rounded-[16px] p-2 lg:sticky lg:top-6 lg:-mt-2">
+          <aside className="panel-surface h-fit self-start rounded-[16px] p-2 lg:!sticky lg:top-24">
             <div className="px-3 pb-3 pt-2">
               <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">
                 CONFIGURACIÓN
@@ -1761,7 +1754,7 @@ export default function ConfiguracionPage() {
                   <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">
                     Seguridad
                   </div>
-                  <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">
+                  <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.035em] text-white">
                     Cambiar email
                   </h2>
                   <p className="mt-1 text-[13px] leading-5 text-white/58">
@@ -1842,7 +1835,7 @@ export default function ConfiguracionPage() {
               <div className="flex items-start justify-between border-b border-white/[0.065] p-5">
                 <div>
                   <div className="data text-[9px] font-bold uppercase tracking-[.18em] text-[#FF6A18]">Seguridad</div>
-                  <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">Cambiar contraseña</h2>
+                  <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.035em] text-white">Cambiar contraseña</h2>
                   <p className="mt-1 text-[13px] leading-5 text-white/58">Actualizá la contraseña de la cuenta autenticada.</p>
                 </div>
                 <button type="button" onClick={() => setPasswordOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-[9px] text-white/35 hover:bg-white/[0.04] hover:text-white">×</button>

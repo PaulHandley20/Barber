@@ -141,10 +141,10 @@ function Filters({ id }: { id: string }) {
   return (
     <>
       <filter id={`${id}-wide`} x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="18" />
+        <feGaussianBlur stdDeviation="10" />
       </filter>
       <filter id={`${id}-soft`} x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="3.5" />
+        <feGaussianBlur stdDeviation="1.6" />
       </filter>
     </>
   );
@@ -229,7 +229,12 @@ function CornerArt({
 
 export default function AdminBackdrop() {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    // Capa propia (translateZ): el navegador dibuja el fondo una sola vez
+    // y al hacer scroll no lo vuelve a desenfocar.
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden [contain:strict] [transform:translateZ(0)] [will-change:transform]"
+    >
       {/* Base: gris carbón, apenas frío, con un leve degradé */}
       <div className="absolute inset-0 bg-[linear-gradient(160deg,#0b0c0e_0%,#08090a_45%,#070707_100%)]" />
 

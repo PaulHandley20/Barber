@@ -1,5 +1,6 @@
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -1064,68 +1065,40 @@ export default function ClientesPage() {
             const Icon = item.icon;
 
             return (
-              <div
+              <KpiCard
                 key={item.label}
-                className="metric-card panel-surface clientes-panel clientes-kpi group rounded-[16px] border p-5 transition"
-              >
-                <div className="flex items-center gap-2">
-                  <Icon size={15} strokeWidth={1.7} className="text-white/42" />
-                  <span className="meta-label text-white/68">{item.label}</span>
-                </div>
-
-                <div className="kpi-value mt-7 truncate text-[30px] font-semibold leading-none text-white">
-                  {item.value.toLocaleString("es-AR")}
-                </div>
-
-                <p className="mt-3 truncate text-[12px] leading-5 text-white/60">{item.meta}</p>
-              </div>
+                label={item.label}
+                value={item.value.toLocaleString("es-AR")}
+                detail={item.meta}
+                icon={<Icon size={15} strokeWidth={1.7} />}
+              />
             );
           })}
         </section>
 
         {/* INSIGHT STRIP */}
-        <section className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr]">
-          <div className="panel-surface clientes-panel rounded-[16px] border p-5">
-            <div className="meta-label flex items-center gap-2 text-[#ff6a18]">
-              <TrendingUp size={14} className="text-[#FF6A18]" />
-              Valor medio
-            </div>
-            <p className="kpi-value mt-5 text-[30px] font-semibold leading-none text-white">
-              {formatMoney(averageCustomerValue)}
-            </p>
-            <p className="mt-3 text-[12px] leading-5 text-white/60">
-              facturación histórica / clientes
-            </p>
-          </div>
-
-          <div className="panel-surface clientes-panel rounded-[16px] border p-5">
-            <div className="meta-label flex items-center gap-2 text-[#ff6a18]">
-              <History size={14} />
-              Actividad
-            </div>
-            <p className="kpi-value mt-5 text-[30px] font-semibold leading-none text-white">
-              {totalVisits.toLocaleString("es-AR")}
-            </p>
-            <p className="mt-3 text-[12px] leading-5 text-white/60">
-              visitas no canceladas registradas
-            </p>
-          </div>
-
-          <div className="panel-surface clientes-panel clientes-opportunity rounded-[16px] border border-orange-500/[.16] bg-orange-500/[.035] p-5">
-            <div className="meta-label flex items-center gap-2 text-[#ff6a18]">
-              <Sparkles size={14} />
-              Oportunidad
-            </div>
-            <p className="kpi-value mt-5 text-[30px] font-semibold leading-none text-white">
-              {riskCustomers + inactiveCustomers}
-            </p>
-            <p className="mt-3 text-[12px] leading-5 text-white/60">
-              clientes requieren atención
-            </p>
-            <p className="text-[12px] leading-5 text-white/45">
-              revisar recuperación y reactivación
-            </p>
-          </div>
+        <section className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <KpiCard
+            accent
+            label="Valor medio"
+            value={formatMoney(averageCustomerValue)}
+            detail="facturación histórica / clientes"
+            icon={<TrendingUp size={15} strokeWidth={1.7} />}
+          />
+          <KpiCard
+            accent
+            label="Actividad"
+            value={totalVisits.toLocaleString("es-AR")}
+            detail="visitas no canceladas registradas"
+            icon={<History size={15} strokeWidth={1.7} />}
+          />
+          <KpiCard
+            accent
+            label="Oportunidad"
+            value={(riskCustomers + inactiveCustomers).toLocaleString("es-AR")}
+            detail="clientes para recuperar o reactivar"
+            icon={<Sparkles size={15} strokeWidth={1.7} />}
+          />
         </section>
 
         {/* FILTER / SEARCH BAR */}
@@ -1702,7 +1675,7 @@ export default function ClientesPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#FF6A18]">
                   GESTIÓN
                 </p>
-                <h2 className="mt-1 text-[19px] font-semibold text-white">
+                <h2 className="mt-1 text-[20px] font-semibold text-white">
                   Nuevo cliente
                 </h2>
                 <p className="mt-3 text-[12px] leading-5 text-white/60">
@@ -1967,7 +1940,7 @@ export default function ClientesPage() {
                 Confirmación de administrador
               </p>
 
-              <h2 className="mt-1.5 text-[21px] font-semibold tracking-[-0.025em] text-white">
+              <h2 className="mt-1.5 text-[20px] font-semibold tracking-[-0.025em] text-white">
                 Eliminar perfil
               </h2>
 

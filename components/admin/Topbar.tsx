@@ -89,7 +89,46 @@ type Notification = {
   detail: string;
   time: string;
   unread: boolean;
+  /* Reserva hecha desde la web (se destaca en la lista). */
+  web?: boolean;
 };
+
+/* Hasta cuándo el admin ya vio las notificaciones (por dispositivo). */
+const SEEN_KEY = "barberos:notifications-seen-at";
+
+function readSeenAt() {
+  try {
+    return window.localStorage.getItem(SEEN_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeSeenAt(value: string) {
+  try {
+    window.localStorage.setItem(SEEN_KEY, value);
+  } catch {
+    // Sin almacenamiento (modo privado): solo se pierde el "leído".
+  }
+}
+
+function timeAgo(iso: string) {
+  const minutes = Math.max(
+    0,
+    Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  );
+
+  if (minutes < 1) return "Recién";
+  if (minutes < 60) return `Hace ${minutes} min`;
+
+  const hours = Math.round(minutes / 60);
+
+  if (hours < 24) return `Hace ${hours} h`;
+
+  const days = Math.round(hours / 24);
+
+  return days === 1 ? "Ayer" : `Hace ${days} días`;
+}
 
 function formatWhen(iso: string) {
   const date = new Date(iso);
@@ -107,6 +146,7 @@ function formatWhen(iso: string) {
   const time = date.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
 
   if (sameDay) return `Hoy ${time}`;
@@ -240,10 +280,28 @@ export default function Topbar() {
       const columns =
         "id, start_at, status, customer:customers (full_name), service:services (name)";
 
+      const weekAgo = new Date(
+        now.getTime() - 7 * 24 * 60 * 60 * 1000
+      ).toISOString();
+
       const [
+        webRes,
         pendingRes,
         upcomingRes,
       ] = await Promise.all([
+        // Reservas hechas desde la landing en los últimos 7 días.
+        // Si la migración 11 todavía no corrió (no existe `source`),
+        // la consulta falla y simplemente no se muestran.
+        supabase
+          .from("appointments")
+          .select(`${columns}, created_at`)
+          .eq("source", "web")
+          .gte("created_at", weekAgo)
+          .order("created_at", {
+            ascending: false,
+          })
+          .limit(8),
+
         supabase
           .from("appointments")
           .select(columns)
@@ -280,6 +338,7 @@ export default function Topbar() {
       type Row = {
         id: string;
         start_at: string;
+        created_at?: string;
         customer:
           | {
               full_name: string;
@@ -292,8 +351,36 @@ export default function Topbar() {
           | null;
       };
 
+      const seenAt = readSeenAt();
+
+      const webRows = webRes.error
+        ? []
+        : ((webRes.data ?? []) as unknown as Row[]);
+
+      const webIds = new Set(webRows.map((row) => row.id));
+
+      const web = webRows.map(
+        (row): Notification => ({
+          id: `web-${row.id}`,
+          title: "Nueva reserva web",
+          detail: `${
+            row.customer?.full_name ?? "Cliente"
+          } · ${
+            row.service?.name ?? "Servicio"
+          } · ${formatWhen(row.start_at)}`,
+          time: timeAgo(row.created_at ?? row.start_at),
+          unread:
+            !seenAt ||
+            new Date(row.created_at ?? 0).getTime() >
+              new Date(seenAt).getTime(),
+          web: true,
+        })
+      );
+
       const pending =
-        ((pendingRes.data ?? []) as unknown as Row[]).map(
+        ((pendingRes.data ?? []) as unknown as Row[])
+          .filter((row) => !webIds.has(row.id))
+          .map(
           (row): Notification => ({
             id: `pending-${row.id}`,
             title:
@@ -313,7 +400,9 @@ export default function Topbar() {
         );
 
       const upcoming =
-        ((upcomingRes.data ?? []) as unknown as Row[]).map(
+        ((upcomingRes.data ?? []) as unknown as Row[])
+          .filter((row) => !webIds.has(row.id))
+          .map(
           (row): Notification => ({
             id: `soon-${row.id}`,
             title: "Turno próximo",
@@ -332,15 +421,37 @@ export default function Topbar() {
         );
 
       setNotifications(
-        [...pending, ...upcoming].slice(
+        [...web, ...pending, ...upcoming].slice(
           0,
-          8
+          10
         )
       );
     }
 
     loadWorkspace();
     loadNotifications();
+
+    // Aviso al instante cuando entra un turno nuevo (Supabase Realtime)
+    // y, por las dudas, una revisión cada minuto.
+    const channel = supabase
+      .channel("admin-appointments-notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "appointments",
+        },
+        () => {
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    const refresh = window.setInterval(
+      loadNotifications,
+      60 * 1000
+    );
 
     function onLogoUpdated(
       event: Event
@@ -366,6 +477,9 @@ export default function Topbar() {
 
     return () => {
       active = false;
+
+      window.clearInterval(refresh);
+      supabase.removeChannel(channel);
 
       window.removeEventListener(
         "barberos:workspace-logo-updated",
@@ -465,6 +579,8 @@ export default function Topbar() {
   }
 
   function markNotificationsRead() {
+    writeSeenAt(new Date().toISOString());
+
     setNotifications(
       (current) =>
         current.map(
@@ -490,19 +606,6 @@ export default function Topbar() {
           : "bg-transparent",
       ].join(" ")}
     >
-      {/* Al hacer scroll la barra es sólida (sin desenfoque ni sombra):
-          el contenido que pasa por debajo se desvanece en este degradé
-          corto en lugar de verse borroso. */}
-      <div
-        aria-hidden="true"
-        className={[
-          "pointer-events-none absolute inset-x-0 top-full h-5",
-          "bg-gradient-to-b from-[#08090a] to-transparent",
-          "transition-opacity duration-300",
-          scrolled ? "opacity-100" : "opacity-0",
-        ].join(" ")}
-      />
-
       {/* ========================================================
           CONTENT
       ======================================================== */}
@@ -637,18 +740,29 @@ export default function Topbar() {
 
               {unreadCount > 0 && (
                 <span
+                  aria-label={`${unreadCount} sin leer`}
                   className="
                     absolute
-                    right-[8px]
-                    top-[7px]
+                    -right-[3px]
+                    -top-[3px]
                     flex
-                    h-[6px]
-                    w-[6px]
+                    h-[17px]
+                    min-w-[17px]
+                    items-center
+                    justify-center
                     rounded-full
                     bg-[#ff5a00]
-                    shadow-[0_0_10px_rgba(255,90,0,.65)]
+                    px-1
+                    font-[family:var(--font-barberos-display)]
+                    text-[10px]
+                    font-semibold
+                    leading-none
+                    text-white
+                    tabular-nums
                   "
-                />
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
               )}
             </button>
 
@@ -743,7 +857,14 @@ export default function Topbar() {
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-3">
-                              <p className="font-[family:var(--font-barberos-ui)] text-[11px] font-medium text-white/75">
+                              <p
+                                className={[
+                                  "font-[family:var(--font-barberos-ui)] text-[11px] font-medium",
+                                  notification.web
+                                    ? "text-[#ff8a3d]"
+                                    : "text-white/75",
+                                ].join(" ")}
+                              >
                                 {
                                   notification.title
                                 }
