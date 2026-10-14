@@ -256,3 +256,25 @@
 .admin-shell .system-strip {
   background-color: #0b0c0d !important;
 }
+
+/* ---------------------------------------------------------
+   Sin "elevación" al pasar el mouse
+   ---------------------------------------------------------
+   Las tarjetas y filas se movían 1px hacia arriba con animación
+   al pasar el mouse. Al hacer scroll lento los cuadros pasan por
+   debajo del cursor, el navegador los dibuja como imagen durante
+   esa animación y el texto se veía borroso un instante. Ahora no
+   se mueven: solo cambia el borde. (Los botones lo conservan.)
+   --------------------------------------------------------- */
+.admin-shell .panel,
+.admin-shell .panel-surface,
+.admin-shell .panel-hover,
+.admin-shell .metric-card,
+.admin-shell .appointment-card,
+.admin-shell .interactive-row,
+.admin-shell .customer-row,
+.admin-shell .service-row,
+.admin-shell .flow-row {
+  transform: none !important;
+  transition-property: border-color, background-color, color, opacity !important;
+}
