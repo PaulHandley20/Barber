@@ -225,48 +225,40 @@ function appointmentHeight(startAt: string, endAt: string) {
   return (diff / 60) * HOUR_HEIGHT - 4;
 }
 
-/* Turnos que se superponen en el horario (ej. uno cancelado y otro nuevo
-   a la misma hora) se reparten en columnas, uno al lado del otro, en vez
-   de dibujarse encima. Los activos van primero; los cancelados después. */
-function layoutLanes(items: { id: string; start_at: string; end_at: string; status: string }[]) {
-  const isInactive = (status: string) => ["cancelled", "canceled", "no_show"].includes(status);
-  const sorted = [...items].sort(
-    (a, b) =>
-      new Date(a.start_at).getTime() - new Date(b.start_at).getTime() ||
-      Number(isInactive(a.status)) - Number(isInactive(b.status))
-  );
+const isInactiveStatus = (status: string) => ["cancelled", "canceled", "no_show"].includes(status);
 
-  const result = new Map<string, { lane: number; lanes: number }>();
-  let cluster: { id: string; end: number; lane: number }[] = [];
-  let clusterEnd = -Infinity;
-
-  const closeCluster = () => {
-    const lanes = cluster.reduce((max, item) => Math.max(max, item.lane + 1), 1);
-    for (const item of cluster) result.set(item.id, { lane: item.lane, lanes });
-    cluster = [];
-  };
+/* Agrupa los turnos que se superponen en el horario (ej. uno cancelado y
+   otro nuevo a la misma hora). Cada grupo se dibuja como una sola tarjeta
+   con una fila por turno: primero los activos, después los cancelados. */
+function groupOverlaps<T extends { id: string; start_at: string; end_at: string; status: string }>(items: T[]) {
+  const sorted = [...items].sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+  const groups: { key: string; start: string; end: string; items: T[] }[] = [];
+  let groupEnd = -Infinity;
 
   for (const item of sorted) {
     const start = new Date(item.start_at).getTime();
     const end = Math.max(new Date(item.end_at).getTime(), start + 30 * 60000);
+    const current = groups[groups.length - 1];
 
-    if (start >= clusterEnd) {
-      closeCluster();
-      clusterEnd = -Infinity;
+    if (current && start < groupEnd) {
+      current.items.push(item);
+      if (end > new Date(current.end).getTime()) current.end = new Date(end).toISOString();
+      groupEnd = Math.max(groupEnd, end);
+    } else {
+      groups.push({ key: item.id, start: item.start_at, end: new Date(end).toISOString(), items: [item] });
+      groupEnd = end;
     }
-
-    // Primera columna libre dentro del grupo.
-    const busy = new Set(cluster.filter((other) => other.end > start).map((other) => other.lane));
-    let lane = 0;
-    while (busy.has(lane)) lane += 1;
-
-    cluster.push({ id: item.id, end, lane });
-    clusterEnd = Math.max(clusterEnd, end);
   }
 
-  closeCluster();
+  for (const group of groups) {
+    group.items.sort(
+      (a, b) =>
+        Number(isInactiveStatus(a.status)) - Number(isInactiveStatus(b.status)) ||
+        new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+    );
+  }
 
-  return result;
+  return groups;
 }
 
 /* Rango de horas visible: 08 a 20 por defecto, ampliado si hay turnos
@@ -421,8 +413,8 @@ export default function TurnosPage() {
 
   const visibleHours = useMemo(() => getVisibleHours(dayAppointments), [dayAppointments]);
 
-  // Columnas para turnos superpuestos en la línea de tiempo.
-  const dayLanes = useMemo(() => layoutLanes(dayAppointments), [dayAppointments]);
+  // Turnos superpuestos agrupados en una sola tarjeta.
+  const dayGroups = useMemo(() => groupOverlaps(dayAppointments), [dayAppointments]);
 
   const weekDays = useMemo(() => {
     const start = startOfWeek(selectedDate);
@@ -796,48 +788,44 @@ export default function TurnosPage() {
                         </div>
                       ))}
                       <div className="absolute inset-y-0 left-[82px] right-0">
-                        {dayAppointments.map((appointment) => {
+                        {dayGroups.map((group) => {
+                          if (group.items.length > 1) {
+                            return (
+                              <GroupedAppointmentCard
+                                key={group.key}
+                                items={group.items}
+                                top={appointmentTop(group.start, visibleHours[0])}
+                                height={appointmentHeight(group.start, group.end)}
+                                selectedId={selectedAppointment?.id}
+                                onSelect={selectAppointment}
+                              />
+                            );
+                          }
+
+                          const appointment = group.items[0];
+                          const isSelected = selectedAppointment?.id === appointment.id;
                           const status = displayStatus(appointment);
                           const cardHeight = appointmentHeight(appointment.start_at, appointment.end_at);
                           const compact = cardHeight < 80;
-                          const { lane, lanes } = dayLanes.get(appointment.id) ?? { lane: 0, lanes: 1 };
-                          const narrow = lanes > 1;
-                          const isSelected = selectedAppointment?.id === appointment.id;
                           return (
                             <button
                               type="button"
                               key={appointment.id}
                               onClick={() => selectAppointment(appointment)}
                               aria-pressed={isSelected}
-                              className={`appointment-card absolute overflow-hidden rounded-xl border bg-[#151717] text-left ${narrow ? "px-3" : "px-4"} ${compact ? "py-2" : "py-2.5"} ${isSelected ? "border-[#ff6a18]/60 ring-1 ring-[#ff6a18]/30" : "border-white/[0.09]"} ${appointment.status === "cancelled" && !isSelected ? "opacity-60 hover:opacity-100" : ""}`}
-                              style={{
-                                top: appointmentTop(appointment.start_at, visibleHours[0]),
-                                height: cardHeight,
-                                // 12px de margen a la izquierda, 20px a la derecha y 6px entre columnas.
-                                left: `calc(12px + (100% - 32px) * ${lane} / ${lanes})`,
-                                width: `calc((100% - 32px) / ${lanes} - ${narrow ? 6 : 0}px)`,
-                              }}
+                              className={`appointment-card absolute left-3 right-5 overflow-hidden rounded-xl border bg-[#151717] px-4 text-left ${compact ? "py-2" : "py-2.5"} ${isSelected ? "border-[#ff6a18]/55" : "border-white/[0.09]"} ${appointment.status === "cancelled" && !isSelected ? "opacity-60 hover:opacity-100" : ""}`}
+                              style={{ top: appointmentTop(appointment.start_at, visibleHours[0]), height: cardHeight }}
                             >
                               <div className={`absolute inset-y-0 left-0 w-[3px] ${status.dot}`} />
-                              {narrow && (
-                                // Celular con turnos superpuestos: columnas angostas,
-                                // solo hora, nombre y un punto con el estado.
-                                <div className="flex h-full min-w-0 flex-col justify-center pl-1 pr-3 sm:hidden">
-                                  <span className={`absolute right-2 top-2 h-2 w-2 rounded-full ${status.dot}`} title={status.label} />
-                                  <span className="text-[12px] font-semibold leading-4 tabular-nums text-white">{formatTime(appointment.start_at)}</span>
-                                  <span className="truncate text-[12px] leading-4 text-white/75">{(appointment.customer?.full_name ?? "Cliente").split(" ")[0]}</span>
-                                </div>
-                              )}
-                              <div className={narrow ? "hidden h-full sm:block" : "h-full"}>
                               {compact ? (
                                 <div className="flex h-full items-center justify-between gap-3 pl-1">
                                   <div className="flex min-w-0 items-center gap-3">
                                     <span className="shrink-0 text-[14px] font-semibold tabular-nums text-white">{formatTime(appointment.start_at)}</span>
                                     <span className="truncate text-[14px] font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</span>
-                                    {!narrow && <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/60 md:flex"><Scissors size={11} />{appointment.service?.name ?? "Servicio"}</span>}
-                                    {!narrow && shortAudit(appointment) && <span className="hidden shrink-0 text-[12px] text-red-200/70 lg:inline">· {shortAudit(appointment)}</span>}
+                                    <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/60 md:flex"><Scissors size={11} />{appointment.service?.name ?? "Servicio"}</span>
+                                    {shortAudit(appointment) && <span className="hidden shrink-0 text-[12px] text-red-200/70 lg:inline">· {shortAudit(appointment)}</span>}
                                   </div>
-                                  <span title={status.label} className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.badge}`}><span className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot} ${narrow ? "sm:mr-1.5" : "mr-1.5"}`} /><span className={narrow ? "hidden sm:inline" : ""}>{status.label}</span></span>
+                                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
                                 </div>
                               ) : (
                               <div className="flex items-start justify-between gap-3 pl-1">
@@ -849,14 +837,13 @@ export default function TurnosPage() {
                                   <p className="mt-1 truncate text-sm font-semibold text-white/92">{appointment.customer?.full_name ?? "Cliente sin nombre"}</p>
                                   <div className="mt-1 flex items-center gap-3 truncate text-[12px] text-white/60">
                                     <span className="flex items-center gap-1"><Scissors size={10} />{appointment.service?.name ?? "Servicio"}</span>
-                                    {!narrow && appointment.barber?.name && <span className="flex items-center gap-1"><UserRound size={10} />{appointment.barber.name}</span>}
-                                    {!narrow && shortAudit(appointment) && <span className="text-red-200/70">{shortAudit(appointment)}</span>}
+                                    {appointment.barber?.name && <span className="flex items-center gap-1"><UserRound size={10} />{appointment.barber.name}</span>}
+                                    {shortAudit(appointment) && <span className="text-red-200/70">{shortAudit(appointment)}</span>}
                                   </div>
                                 </div>
-                                <span title={status.label} className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium ${status.badge}`}><span className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot} ${narrow ? "sm:mr-1.5" : "mr-1.5"}`} /><span className={narrow ? "hidden sm:inline" : ""}>{status.label}</span></span>
+                                <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium ${status.badge}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${status.dot}`} />{status.label}</span>
                               </div>
                               )}
-                              </div>
                             </button>
                           );
                         })}
@@ -1060,6 +1047,79 @@ function DetailPanel({ appointment, onClose, onStatus, onEdit, actionLoading }: 
         </div>
       </div>
     </aside>
+  );
+}
+
+/* Tarjeta de un horario con varios turnos: una fila por turno. */
+function GroupedAppointmentCard({
+  items,
+  top,
+  height,
+  selectedId,
+  onSelect,
+}: {
+  items: Appointment[];
+  top: number;
+  height: number;
+  selectedId?: string;
+  onSelect: (appointment: Appointment) => void;
+}) {
+  const rowMin = 30;
+  const cardHeight = Math.max(height, items.length * rowMin + 2);
+  const hasSelected = items.some((item) => item.id === selectedId);
+
+  return (
+    <div
+      className={`absolute left-3 right-5 z-[1] overflow-hidden rounded-xl border bg-[#151717] ${
+        hasSelected ? "border-[#ff6a18]/55" : "border-white/[0.09]"
+      }`}
+      style={{ top, height: cardHeight }}
+    >
+      <div className="flex h-full flex-col divide-y divide-white/[0.06]">
+        {items.map((appointment) => {
+          const status = displayStatus(appointment);
+          const inactive = isInactiveStatus(appointment.status);
+          const selected = appointment.id === selectedId;
+          const audit = shortAudit(appointment);
+
+          return (
+            <button
+              key={appointment.id}
+              type="button"
+              onClick={() => onSelect(appointment)}
+              aria-pressed={selected}
+              className={`relative flex min-h-[30px] min-w-0 flex-1 items-center gap-3 px-4 text-left transition ${
+                selected ? "bg-[#ff5a00]/[0.08]" : "hover:bg-white/[0.035]"
+              }`}
+            >
+              <span className={`absolute inset-y-0 left-0 w-[3px] ${status.dot}`} />
+              <span className={`shrink-0 pl-1 text-[13px] font-semibold tabular-nums ${inactive ? "text-white/45" : "text-white"}`}>
+                {formatTime(appointment.start_at)}
+              </span>
+              <span className={`min-w-0 truncate text-[13px] ${inactive ? "text-white/50" : "font-semibold text-white/92"}`}>
+                {appointment.customer?.full_name ?? "Cliente sin nombre"}
+              </span>
+              {!inactive && (
+                <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/55 md:flex">
+                  <Scissors size={11} />
+                  {appointment.service?.name ?? "Servicio"}
+                </span>
+              )}
+              {inactive && audit && (
+                <span className="hidden min-w-0 truncate text-[12px] text-red-200/60 md:inline">· {audit}</span>
+              )}
+              <span
+                title={status.label}
+                className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.badge} ${inactive ? "opacity-75" : ""}`}
+              >
+                <span className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot} sm:mr-1.5`} />
+                <span className="hidden sm:inline">{status.label}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
