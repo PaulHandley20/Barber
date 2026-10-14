@@ -118,7 +118,7 @@ export default function Sidebar() {
     <aside
       aria-label="Menú del panel"
       className={[
-        "fixed left-0 top-0 z-50 h-[100dvh] border-r border-white/[0.06] lg:z-40",
+        "fixed left-0 top-0 z-50 h-[100dvh] border-r border-white/[0.06] lg:z-40 lg:border-r-0",
         "transition-[width,transform] duration-300 ease-out",
         collapsed ? "w-[76px]" : "w-[264px] lg:w-[240px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
@@ -132,9 +132,10 @@ export default function Sidebar() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
       >
-        {/* Semitransparente: deja ver los rayos del fondo del panel.
-            En celular (menú desplegable) es casi opaco para leerse bien. */}
-        <div className="absolute inset-0 bg-[#0a0b0d]/95 backdrop-blur-xl lg:bg-[#0a0b0d]/45 lg:backdrop-blur-none" />
+        {/* En compu el menú no tiene fondo ni línea divisoria: queda
+            integrado al fondo del panel. En celular (menú desplegable)
+            sí lleva fondo para leerse sobre el contenido. */}
+        <div className="absolute inset-0 bg-[#0a0b0d]/95 backdrop-blur-xl lg:hidden" />
       </div>
 
       {/* =========================================================
