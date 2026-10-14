@@ -13,6 +13,7 @@ import {
   Copy,
   Home,
   Mail,
+  MapPin,
   MessageCircle,
   Pencil,
   Phone,
@@ -20,6 +21,18 @@ import {
   UserRound,
 } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import {
+  BOOKING_BG,
+  BookingHero,
+  BookingTicket,
+  BookingTopBar,
+  TimeSlotGroups,
+  bookingCardClass,
+  bookingInputClass,
+  bookingLabelClass,
+  bookingPrimaryButtonClass,
+  bookingSecondaryButtonClass,
+} from "@/components/booking/kit";
 import { createClient } from "@/lib/supabase/client";
 import {
   BARBERSHOP,
@@ -72,14 +85,9 @@ const MONTHS = [
 
 const DAYS = ["L", "M", "X", "J", "V", "S", "D"];
 
-const inputClass =
-  "w-full border bg-[#141412] px-5 py-4 text-[#F4EEE5] outline-none transition-all duration-300 placeholder:text-[#5f5b55] hover:border-white/20 focus:border-[#b08a5a] focus:bg-[#181715] focus:ring-1 focus:ring-[#b08a5a]/20";
-
-const secondaryButtonClass =
-  "inline-flex items-center justify-center gap-2 border border-white/10 px-6 py-4 text-xs font-semibold uppercase tracking-[0.24em] text-[#aaa198] transition-all duration-300 hover:border-[#b08a5a]/70 hover:bg-white/[0.03] hover:text-[#F4EEE5] disabled:opacity-50";
-
-const primaryButtonClass =
-  "group inline-flex items-center justify-center gap-3 bg-[#b08a5a] px-7 py-4 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#171512] transition-all duration-300 hover:bg-[#c09a6c] hover:shadow-[0_15px_45px_rgba(176,138,90,.18)] active:scale-[0.99] disabled:bg-[#51493e] disabled:text-[#9b9388] disabled:opacity-60 disabled:shadow-none";
+const inputClass = bookingInputClass;
+const secondaryButtonClass = bookingSecondaryButtonClass;
+const primaryButtonClass = bookingPrimaryButtonClass;
 
 const CONFIRMED_RESERVATION_STORAGE_KEY = "don-segundo-reserva-confirmada";
 
@@ -671,136 +679,112 @@ export default function ReservarPage() {
       `Hola! Reservé un turno por la web (código ${code}).`
     );
 
+    const clearConfirmedFlag = () =>
+      sessionStorage.removeItem(CONFIRMED_RESERVATION_STORAGE_KEY);
+
     return (
-      <main className="min-h-screen bg-[#11110f] text-[#F4EEE5]">
-        <section className="relative overflow-hidden border-b border-white/10 px-5 py-12 md:px-10 md:py-20">
-          <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#b08a5a]/[0.045] blur-3xl" />
+      <main className="min-h-screen bg-[#100f0d] text-[#F4EEE5]">
+        <BookingTopBar current="reservar" />
 
-          <div className="relative mx-auto max-w-4xl text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#b08a5a]/50 bg-[#b08a5a]/10 text-[#b08a5a]">
-              <CheckCircle2 size={30} />
-            </div>
-
-            <p className="mt-6 text-xs uppercase tracking-[0.38em] text-[#9b8465]">
-              {BARBERSHOP.name} · Reserva confirmada
-            </p>
-
-            <h1 className="mt-5 font-serif text-4xl leading-tight md:text-7xl">
-              Tu turno está confirmado.
-            </h1>
-
-            <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-[#aaa198] md:text-base">
-              Gracias, {customerName.trim().split(" ")[0]}. Te esperamos el{" "}
-              <span className="text-[#F4EEE5]">
-                {formatArgentinaDate(selectedDate)}
-              </span>{" "}
-              a las{" "}
-              <span className="text-[#F4EEE5]">
-                {formatArgentinaTime(selectedSlot.slot_start)} hs
+        <BookingHero
+          image="/images/hero.jpg"
+          eyebrow="Reserva confirmada"
+          align="center"
+          title={
+            <>
+              <span className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-[#c9a46e]/50 bg-[#b08a5a]/[0.12] text-[#e3c591]">
+                <CheckCircle2 size={30} />
               </span>
-              .
-            </p>
-          </div>
-        </section>
+              ¡Listo, {customerName.trim().split(" ")[0]}! Tu turno está confirmado.
+            </>
+          }
+          subtitle={
+            <>
+              Te esperamos el{" "}
+              <span className="text-[#F4EEE5]">{formatArgentinaDate(selectedDate)}</span> a las{" "}
+              <span className="text-[#F4EEE5]">{formatArgentinaTime(selectedSlot.slot_start)} hs</span>.
+            </>
+          }
+        />
 
         <section
           ref={successRef}
-          className="mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16"
+          className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-10 sm:px-6 md:py-14 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="overflow-hidden border border-[#b08a5a]/40 bg-[#181715] shadow-[0_30px_100px_rgba(0,0,0,.25)]"
-          >
-            {code && (
-              <div className="border-b border-white/10 p-6 text-center md:p-10">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-[#9b8465]">
-                  Tu código de reserva
-                </p>
-
-                <div className="mt-4 inline-flex flex-col items-center gap-3 sm:flex-row">
-                  <span className="border border-white/10 bg-[#141412] px-6 py-4 font-mono text-xl tracking-[0.18em] text-[#b08a5a] md:text-2xl">
-                    {code}
-                  </span>
-
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+            <BookingTicket
+              tone="confirmed"
+              startAt={selectedSlot.slot_start}
+              endAt={selectedSlot.slot_end}
+              serviceName={selectedService.name}
+              durationMinutes={selectedService.duration_minutes}
+              price={selectedService.price}
+              barber={BARBERSHOP.barber}
+              code={code || null}
+              codeAction={
+                code ? (
                   <button
                     type="button"
                     onClick={copyCode}
-                    className={secondaryButtonClass}
+                    aria-label="Copiar código"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#EADFCB]/20 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ddd6cc] transition hover:border-[#EADFCB]/60"
                   >
-                    {codeCopied ? <Check size={15} /> : <Copy size={15} />}
+                    {codeCopied ? <Check size={12} /> : <Copy size={12} />}
                     {codeCopied ? "Copiado" : "Copiar"}
                   </button>
-                </div>
-
-                <p className="mx-auto mt-5 max-w-md text-xs leading-6 text-[#8d877e]">
-                  Guardalo (una captura de pantalla alcanza). Con este código,
-                  o con tu email y teléfono, podés modificar o cancelar el
-                  turno desde <span className="text-[#ddd6cc]">Mi reserva</span>.
-                </p>
-              </div>
-            )}
-
-            <div className="grid gap-px bg-white/10 sm:grid-cols-2">
-              <ReviewItem label="Servicio" value={selectedService.name} />
-              <ReviewItem
-                label="Duración"
-                value={`${selectedService.duration_minutes} minutos`}
-              />
-              <ReviewItem
-                label="Fecha"
-                value={formatArgentinaDate(selectedDate)}
-                
-              />
-              <ReviewItem
-                label="Horario"
-                value={`${formatArgentinaTime(
-                  selectedSlot.slot_start
-                )} → ${formatArgentinaTime(selectedSlot.slot_end)}`}
-              />
-              <ReviewItem label="Barbero" value={BARBERSHOP.barber} />
-              <ReviewItem
-                label="Total (se abona en el local)"
-                value={formatPrice(selectedService.price)}
-                highlight
-              />
-            </div>
-
-            <div className="border-t border-white/10 p-6 md:p-9">
-              <div className="flex items-start gap-4">
-                <Clock3 size={18} className="mt-1 shrink-0 text-[#b08a5a]" />
-
-                <div className="text-sm leading-7 text-[#8d877e]">
-                  <p className="text-xs font-medium text-[#ddd6cc]">
-                    Dónde y cuándo
+                ) : null
+              }
+              footer={
+                <div className="flex items-start gap-3 text-[13px] leading-6 text-[#a39a8e]">
+                  <MapPin size={16} className="mt-0.5 shrink-0 text-[#c9a46e]" />
+                  <p>
+                    <span className="text-[#F4EEE5]">
+                      {BARBERSHOP.address}, {BARBERSHOP.city}.
+                    </span>{" "}
+                    Te pedimos llegar unos minutos antes.{" "}
+                    <a
+                      href={BARBERSHOP.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#e3c591] underline-offset-4 hover:underline"
+                    >
+                      Cómo llegar
+                    </a>
                   </p>
-                  <p className="mt-1">
-                    {BARBERSHOP.address}, {BARBERSHOP.city}. Te pedimos
-                    llegar unos minutos antes. Si no podés venir, cancelá o
-                    reprogramá el turno así se lo podemos dar a otra persona.
-                  </p>
-                  <a
-                    href={BARBERSHOP.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-[#b08a5a] underline-offset-4 hover:underline"
-                  >
-                    Ver en Google Maps
-                  </a>
                 </div>
-              </div>
-            </div>
+              }
+            />
 
-            <div className="grid gap-3 border-t border-white/10 bg-[#141412] p-6 sm:grid-cols-2 md:p-9">
+            <p className="mt-5 text-center text-[13px] leading-6 text-[#8d877e]">
+              Guardá el código (una captura alcanza). Con él, o con tu email y
+              teléfono, podés cambiar o cancelar el turno desde{" "}
+              <span className="text-[#ddd6cc]">Mi reserva</span>.
+            </p>
+          </motion.div>
+
+          <motion.aside
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className={`${bookingCardClass} h-fit p-6`}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#a88d68]">
+              Próximos pasos
+            </p>
+            <h2 className="mt-2 font-serif text-[26px] leading-tight">
+              Dejalo agendado
+            </h2>
+
+            <div className="mt-6 grid gap-3">
               {code && (
                 <a
                   href={getGoogleCalendarUrl(selectedService, selectedSlot, code)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={secondaryButtonClass}
+                  className={primaryButtonClass}
                 >
                   <CalendarPlus size={15} />
-                  Agendar
+                  Agregar al calendario
                 </a>
               )}
 
@@ -810,13 +794,11 @@ export default function ReservarPage() {
                     ? `/gestionar-reserva?codigo=${encodeURIComponent(code)}`
                     : "/gestionar-reserva"
                 }
-                onClick={() =>
-                  sessionStorage.removeItem(CONFIRMED_RESERVATION_STORAGE_KEY)
-                }
+                onClick={clearConfirmedFlag}
                 className={secondaryButtonClass}
               >
                 <Pencil size={15} />
-                Mi reserva
+                Ver mi reserva
               </Link>
 
               {whatsappUrl && (
@@ -827,24 +809,21 @@ export default function ReservarPage() {
                   className={secondaryButtonClass}
                 >
                   <MessageCircle size={15} />
-                  WhatsApp
+                  Escribir por WhatsApp
                 </a>
               )}
 
-              <Link
-                href="/"
-                onClick={() =>
-                  sessionStorage.removeItem(CONFIRMED_RESERVATION_STORAGE_KEY)
-                }
-                className={`${primaryButtonClass} ${
-                  whatsappUrl || !code ? "" : "sm:col-span-2"
-                }`}
-              >
+              <Link href="/" onClick={clearConfirmedFlag} className={secondaryButtonClass}>
                 <Home size={15} />
                 Volver al inicio
               </Link>
             </div>
-          </motion.div>
+
+            <p className="mt-6 border-t border-[#EADFCB]/[0.08] pt-5 text-[12px] leading-6 text-[#7d756a]">
+              ¿No podés venir? Cancelá desde Mi reserva en cualquier momento
+              antes del turno, así lo liberamos para otra persona.
+            </p>
+          </motion.aside>
         </section>
       </main>
     );
@@ -856,108 +835,79 @@ export default function ReservarPage() {
     ============================================================
   */
 
+  const STEP_LABELS = ["Servicio", "Día", "Horario", "Tus datos", "Confirmar"];
+
   return (
-    <main className="min-h-screen bg-[#11110f] text-[#F4EEE5]">
-      <section className="relative overflow-hidden border-b border-white/10 px-5 py-10 md:px-10 md:py-20">
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#b08a5a]/[0.035] blur-3xl" />
+    <main className="min-h-screen bg-[#100f0d] text-[#F4EEE5]">
+      <BookingTopBar current="reservar" />
 
-        <div className="relative mx-auto max-w-7xl">
-          <Link
-            href="/"
-            className="mb-8 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#777169] transition-all duration-300 hover:text-[#b08a5a]"
-          >
-            <ArrowLeft size={14} />
-            Volver al inicio
-          </Link>
+      <BookingHero
+        image="/images/services.jpg"
+        eyebrow={`${BARBERSHOP.name} · Reservas online`}
+        title="Reservá tu turno."
+        subtitle="Elegí el servicio, el día y el horario que te quede mejor. Te lleva menos de un minuto."
+        hoursLabel={hoursSummary.map((item) => `${item.days} · ${item.hours}`).join(" · ")}
+      >
+        {/* Progreso: escritorio */}
+        <ol className="mt-9 hidden items-center gap-2 lg:flex" aria-label="Pasos de la reserva">
+          {STEP_LABELS.map((label, index) => {
+            const step = index + 1;
+            const status = getStepStatus(step);
 
-          <div className="mb-7 h-px w-20 bg-[#b08a5a]" />
+            return (
+              <li key={label} className="flex items-center gap-2">
+                <span
+                  className={`flex items-center gap-2.5 rounded-full border py-1.5 pl-1.5 pr-4 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                    status === "current"
+                      ? "border-[#EADFCB]/60 bg-[#EADFCB]/[0.08] text-[#F4EEE5]"
+                      : status === "complete"
+                        ? "border-[#b08a5a]/40 text-[#e3c591]"
+                        : "border-[#EADFCB]/[0.08] text-[#6f685e]"
+                  }`}
+                >
+                  <span
+                    className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] ${
+                      status === "complete"
+                        ? "bg-[#b08a5a] text-[#1b1915]"
+                        : status === "current"
+                          ? "bg-[#EADFCB] text-[#1b1915]"
+                          : "border border-[#EADFCB]/15"
+                    }`}
+                  >
+                    {status === "complete" ? <Check size={12} /> : step}
+                  </span>
+                  {label}
+                </span>
+                {index < STEP_LABELS.length - 1 && (
+                  <span
+                    className={`h-px w-6 ${
+                      status === "complete" ? "bg-[#b08a5a]/60" : "bg-[#EADFCB]/10"
+                    }`}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ol>
 
-          <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-            <div>
-              <p className="text-xs uppercase tracking-[0.38em] text-[#9b8465]">
-                {BARBERSHOP.name} · Reservas
-              </p>
-
-              <h1 className="mt-4 font-serif text-4xl leading-tight md:text-6xl">
-                Reservá tu momento.
-              </h1>
-
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-[#aaa198] md:text-base">
-                Elegí tu servicio, encontrá el día y horario que mejor te
-                quede y completá tus datos para confirmar.
-              </p>
-            </div>
-
-            <div className="hidden lg:block">
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((step, index) => {
-                  const status = getStepStatus(step);
-
-                  return (
-                    <div key={step} className="flex items-center gap-2">
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full border text-[11px] transition-all duration-300 ${
-                          status === "complete"
-                            ? "border-[#b08a5a] bg-[#b08a5a] text-[#171512]"
-                            : status === "current"
-                              ? "border-[#b08a5a] text-[#b08a5a]"
-                              : "border-white/10 text-[#625e58]"
-                        }`}
-                      >
-                        {status === "complete" ? (
-                          <Check size={13} />
-                        ) : (
-                          String(step).padStart(2, "0")
-                        )}
-                      </div>
-
-                      {index < 4 && (
-                        <div
-                          className={`h-px w-7 ${
-                            status === "complete"
-                              ? "bg-[#b08a5a]/60"
-                              : "bg-white/10"
-                          }`}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <p className="mt-3 text-right text-[10px] uppercase tracking-[0.28em] text-[#625e58]">
-                Paso {String(currentStep).padStart(2, "0")} de 05
-              </p>
-            </div>
+        {/* Progreso: celular y tablet */}
+        <div className="mt-8 lg:hidden">
+          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em]">
+            <span className="text-[#8d877e]">
+              Paso {currentStep} de {STEP_LABELS.length}
+            </span>
+            <span className="text-[#e3c591]">{STEP_LABELS[currentStep - 1]}</span>
           </div>
-
-          {/* Progreso en mobile/tablet */}
-          <div className="mt-8 lg:hidden">
-            <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.25em] text-[#777169]">
-              <span>Paso {currentStep} de 5</span>
-              <span className="text-[#9b8465]">
-                {
-                  [
-                    "Servicio",
-                    "Día",
-                    "Horario",
-                    "Tus datos",
-                    "Confirmación",
-                  ][currentStep - 1]
-                }
-              </span>
-            </div>
-            <div className="mt-3 h-[3px] w-full bg-white/10">
-              <div
-                className="h-full bg-[#b08a5a] transition-all duration-500"
-                style={{ width: `${(currentStep / 5) * 100}%` }}
-              />
-            </div>
+          <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[#EADFCB]/10">
+            <div
+              className="h-full rounded-full bg-[#EADFCB] transition-all duration-500"
+              style={{ width: `${(currentStep / STEP_LABELS.length) * 100}%` }}
+            />
           </div>
         </div>
-      </section>
+      </BookingHero>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-5 md:px-8 md:py-14">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12 lg:px-8">
         {configLoaded && !config.onlineBookingEnabled ? (
           <BookingPaused />
         ) : (
@@ -997,8 +947,8 @@ export default function ReservarPage() {
                   </LockedMessage>
                 ) : (
                   <>
-                    <p className="mb-5 text-xs leading-6 text-[#777169]">
-                      Tocá una tarjeta para seleccionarla.
+                    <p className="mb-5 text-[13px] leading-6 text-[#8d877e]">
+                      Tocá un servicio para elegirlo.
                     </p>
 
                     <div
@@ -1006,7 +956,7 @@ export default function ReservarPage() {
                       aria-label="Servicios"
                       className="grid gap-3 md:grid-cols-2 md:gap-4"
                     >
-                      {services.map((service) => {
+                      {services.map((service, index) => {
                         const selected = selectedService?.id === service.id;
 
                         return (
@@ -1016,46 +966,39 @@ export default function ReservarPage() {
                             role="radio"
                             aria-checked={selected}
                             onClick={() => handleServiceSelect(service)}
-                            className={`group relative overflow-hidden border p-5 text-left transition-all duration-300 md:min-h-[220px] md:p-6 ${
+                            className={`group relative flex flex-col overflow-hidden rounded-[18px] border p-5 text-left transition duration-300 md:min-h-[210px] md:p-6 ${
                               selected
-                                ? "border-[#b08a5a] bg-[#29271f] shadow-[0_20px_60px_rgba(0,0,0,.18)]"
-                                : "border-white/10 bg-[#141412] hover:-translate-y-1 hover:border-[#8a7152] hover:bg-[#1c1b18]"
+                                ? "border-[#EADFCB]/70 bg-[#211f1a] shadow-[0_20px_60px_rgba(0,0,0,.25)]"
+                                : "border-[#EADFCB]/[0.1] bg-[#0f0e0c] hover:border-[#b08a5a]/70 hover:bg-[#1a1815]"
                             }`}
                           >
-                            <div
-                              className={`absolute left-0 top-0 h-full w-[2px] transition-all duration-300 ${
-                                selected
-                                  ? "bg-[#b08a5a]"
-                                  : "bg-transparent group-hover:bg-[#7a6447]"
-                              }`}
-                            />
-
-                            <div className="flex items-start justify-between gap-4">
-                              <h3 className="font-serif text-2xl leading-tight">
-                                {service.name}
-                              </h3>
+                            <div className="relative flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <span className="flex items-center gap-2.5 text-[11px] font-semibold tracking-[0.2em] text-[#a88d68]">
+                                  <span className="h-px w-7 bg-[#b08a5a]" />
+                                  {String(index + 1).padStart(2, "0")}
+                                </span>
+                                <h3 className="mt-3 font-serif text-[24px] leading-tight text-[#F4EEE5]">
+                                  {service.name}
+                                </h3>
+                              </div>
 
                               <SelectionIndicator selected={selected} />
                             </div>
 
                             {service.description && (
-                              <p className="mt-3 text-sm leading-7 text-[#bdb5aa]">
+                              <p className="relative mt-3 text-[14px] leading-6 text-[#b5ada1]">
                                 {service.description}
                               </p>
                             )}
 
-                            <div className="mt-5 flex items-end justify-between border-t border-white/10 pt-4">
-                              <div>
-                                <span className="text-[10px] uppercase tracking-[0.25em] text-[#9b8465]">
-                                  Duración
-                                </span>
+                            <div className="relative mt-auto flex items-center justify-between gap-3 pt-5">
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#EADFCB]/[0.1] px-3 py-1.5 text-[12px] text-[#c2b9ac]">
+                                <Clock3 size={12} className="text-[#c9a46e]" />
+                                {service.duration_minutes} min
+                              </span>
 
-                                <p className="mt-1 text-sm text-[#ddd6cc]">
-                                  {service.duration_minutes} min
-                                </p>
-                              </div>
-
-                              <span className="font-serif text-xl">
+                              <span className="font-serif text-[24px] text-[#F4EEE5]">
                                 {formatPrice(service.price)}
                               </span>
                             </div>
@@ -1092,14 +1035,14 @@ export default function ReservarPage() {
                     onClick={previousMonth}
                     disabled={!canGoPreviousMonth()}
                     aria-label="Mes anterior"
-                    className="flex h-11 w-11 items-center justify-center border border-white/10 transition-all duration-300 hover:border-[#b08a5a] hover:bg-white/[0.03] disabled:opacity-20"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#EADFCB]/15 text-[#ddd6cc] transition hover:border-[#EADFCB]/50 disabled:opacity-20"
                   >
                     <ArrowLeft size={17} />
                   </button>
 
                   <div className="text-center">
-                    <p className="text-[9px] uppercase tracking-[0.3em] text-[#625e58]">
-                      Seleccioná una fecha
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a88d68]">
+                      Elegí una fecha
                     </p>
 
                     <h3 className="mt-2 font-serif text-2xl md:text-3xl">
@@ -1113,17 +1056,17 @@ export default function ReservarPage() {
                     onClick={nextMonth}
                     disabled={!canGoNextMonth()}
                     aria-label="Mes siguiente"
-                    className="flex h-11 w-11 items-center justify-center border border-white/10 transition-all duration-300 hover:border-[#b08a5a] hover:bg-white/[0.03] disabled:opacity-20"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-[#EADFCB]/15 text-[#ddd6cc] transition hover:border-[#EADFCB]/50 disabled:opacity-20"
                   >
                     <ArrowRight size={17} />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-7 gap-1 sm:gap-1.5 md:gap-2">
+                <div className="mx-auto grid max-w-[560px] grid-cols-7 gap-1 sm:gap-2">
                   {DAYS.map((day) => (
                     <div
                       key={day}
-                      className="py-2 text-center text-[10px] uppercase tracking-[0.22em] text-[#625e58]"
+                      className="pb-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d756a]"
                     >
                       {day}
                     </div>
@@ -1138,6 +1081,7 @@ export default function ReservarPage() {
 
                     const disabled = isDateDisabled(date);
                     const selected = isDateSelected(date);
+                    const isToday = date.getTime() === today.getTime();
 
                     return (
                       <button
@@ -1151,31 +1095,32 @@ export default function ReservarPage() {
                           day: "numeric",
                           month: "long",
                         }).format(date)}
-                        className={`group relative aspect-square border text-sm transition-all duration-200 ${
+                        className={`relative mx-auto flex aspect-square w-full max-w-[64px] items-center justify-center rounded-full text-[15px] tabular-nums transition ${
                           selected
-                            ? "border-[#b08a5a] bg-[#b08a5a] text-[#171512] shadow-[0_10px_30px_rgba(176,138,90,.12)]"
+                            ? "bg-[#EADFCB] font-semibold text-[#1b1915] shadow-[0_10px_30px_rgba(234,223,203,.14)]"
                             : disabled
-                              ? "border-transparent text-[#3f3c38] line-through decoration-[#3f3c38]/60"
-                              : "border-white/5 text-[#ddd6cc] hover:-translate-y-0.5 hover:border-[#b08a5a]/70 hover:bg-[#24211d] hover:text-[#c09a6c]"
+                              ? "text-[#3d3a35]"
+                              : "border border-[#EADFCB]/[0.1] text-[#ddd6cc] hover:border-[#b08a5a] hover:text-[#F4EEE5]"
                         }`}
                       >
-                        <span className="relative z-10">{date.getDate()}</span>
-
-                        {!disabled && !selected && (
-                          <span className="absolute bottom-1.5 left-1/2 h-px w-0 -translate-x-1/2 bg-[#b08a5a] transition-all group-hover:w-3 md:bottom-2" />
+                        {date.getDate()}
+                        {isToday && !selected && (
+                          <span className="absolute bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#c9a46e]" />
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/10 pt-5 text-[10px] uppercase tracking-[0.18em] text-[#625e58]">
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2 border-t border-[#EADFCB]/[0.07] pt-5 text-[12px] text-[#8d877e]">
                   {hoursSummary.map((item) => (
-                    <span key={item.days}>
-                      ● {item.days}: {item.hours}
+                    <span key={item.days} className="rounded-full border border-[#EADFCB]/[0.08] px-3 py-1.5">
+                      {item.days} · {item.hours}
                     </span>
                   ))}
-                  <span>● Hasta {config.maxBookingDaysAhead} días</span>
+                  <span className="rounded-full border border-[#EADFCB]/[0.08] px-3 py-1.5">
+                    Reservas hasta {config.maxBookingDaysAhead} días
+                  </span>
                 </div>
               </StepCard>
 
@@ -1202,7 +1147,7 @@ export default function ReservarPage() {
                 {!selectedDate ? null : loadingSlots ? (
                   <LoadingState label="Buscando horarios disponibles..." />
                 ) : slots.length === 0 ? (
-                  <div className="border border-white/10 bg-[#141412] p-6">
+                  <div className="rounded-[18px] border border-[#EADFCB]/[0.1] bg-[#0f0e0c] p-6">
                     <p className="font-serif text-xl">
                       No hay horarios disponibles ese día.
                     </p>
@@ -1222,44 +1167,16 @@ export default function ReservarPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-[#625e58]">
-                        Horarios disponibles
-                      </p>
+                    <p className="mb-5 font-serif text-[20px] text-[#F4EEE5] first-letter:uppercase">
+                      {formatArgentinaDate(selectedDate)}
+                    </p>
 
-                      <p className="text-sm text-[#bdb5aa]">
-                        {formatArgentinaDate(selectedDate)}
-                      </p>
-                    </div>
-
-                    <div
-                      role="radiogroup"
-                      aria-label="Horarios disponibles"
-                      className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 md:grid-cols-5"
-                    >
-                      {slots.map((slot) => {
-                        const selected =
-                          selectedSlot?.slot_start === slot.slot_start;
-
-                        return (
-                          <button
-                            key={slot.slot_start}
-                            type="button"
-                            role="radio"
-                            aria-checked={selected}
-                            onClick={() => setSelectedSlot(slot)}
-                            className={`relative flex min-h-[52px] items-center justify-center gap-1.5 border px-2 py-3 text-sm tracking-[0.08em] transition-all duration-300 ${
-                              selected
-                                ? "border-[#b08a5a] bg-[#b08a5a] font-semibold text-[#171512] shadow-[0_12px_35px_rgba(176,138,90,.14)]"
-                                : "border-white/10 bg-[#141412] text-[#ddd6cc] hover:-translate-y-0.5 hover:border-[#b08a5a] hover:bg-[#211f1a] hover:text-[#c09a6c]"
-                            }`}
-                          >
-                            {selected && <Check size={14} />}
-                            {formatArgentinaTime(slot.slot_start)}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <TimeSlotGroups
+                      slots={slots}
+                      isSelected={(slot) => selectedSlot?.slot_start === slot.slot_start}
+                      onSelect={(slot) => setSelectedSlot(slot)}
+                      formatTime={formatArgentinaTime}
+                    />
 
                     <AnimatePresence>
                       {selectedSlot && (
@@ -1267,11 +1184,11 @@ export default function ReservarPage() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
-                          className="mt-6 border border-[#b08a5a]/25 bg-[#b08a5a]/[0.05] p-5"
+                          className="mt-6 rounded-[18px] border border-[#EADFCB]/20 bg-[#EADFCB]/[0.04] p-5"
                         >
                           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p className="text-[10px] uppercase tracking-[0.25em] text-[#9b8465]">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[#a88d68]">
                                 Horario elegido
                               </p>
 
@@ -1327,7 +1244,7 @@ export default function ReservarPage() {
                     }}
                   >
                     <div className="mb-7 max-w-2xl">
-                      <p className="text-sm leading-7 text-[#aaa198]">
+                      <p className="text-[15px] leading-7 text-[#b5ada1]">
                         Necesitamos estos datos para confirmar tu turno y
                         avisarte si hay algún cambio.
                       </p>
@@ -1364,8 +1281,8 @@ export default function ReservarPage() {
                           aria-invalid={Boolean(showError("name"))}
                           className={`${inputClass} ${
                             showError("name")
-                              ? "border-red-800/70"
-                              : "border-white/10"
+                              ? "!border-red-400/60"
+                              : ""
                           }`}
                         />
                       </Field>
@@ -1389,8 +1306,8 @@ export default function ReservarPage() {
                           aria-invalid={Boolean(showError("phone"))}
                           className={`${inputClass} ${
                             showError("phone")
-                              ? "border-red-800/70"
-                              : "border-white/10"
+                              ? "!border-red-400/60"
+                              : ""
                           }`}
                         />
                       </Field>
@@ -1414,8 +1331,8 @@ export default function ReservarPage() {
                           aria-invalid={Boolean(showError("email"))}
                           className={`${inputClass} ${
                             showError("email")
-                              ? "border-red-800/70"
-                              : "border-white/10"
+                              ? "!border-red-400/60"
+                              : ""
                           }`}
                         />
                       </Field>
@@ -1423,7 +1340,7 @@ export default function ReservarPage() {
                       <div className="md:col-span-2">
                         <label
                           htmlFor="customer-notes"
-                          className="mb-2.5 block text-[10px] uppercase tracking-[0.25em] text-[#9b8465]"
+                          className={bookingLabelClass}
                         >
                           Observaciones{" "}
                           <span className="ml-2 normal-case tracking-normal text-[#625e58]">
@@ -1438,14 +1355,14 @@ export default function ReservarPage() {
                           placeholder="¿Querés dejarnos alguna indicación?"
                           rows={3}
                           maxLength={500}
-                          className={`${inputClass} resize-none border-white/10`}
+                          className={`${inputClass} resize-none`}
                         />
                       </div>
                     </div>
 
                     {/* CONSENTIMIENTO */}
 
-                    <div className="mt-7 space-y-3 border-t border-white/10 pt-6">
+                    <div className="mt-7 space-y-3 rounded-[18px] border border-[#EADFCB]/[0.08] bg-[#0f0e0c] p-5">
                       <ConsentCheckbox
                         id="accept-legal"
                         checked={acceptLegal}
@@ -1492,7 +1409,7 @@ export default function ReservarPage() {
                       </ConsentCheckbox>
                     </div>
 
-                    <div className="mt-7 flex flex-col-reverse gap-3 border-t border-white/10 pt-6 sm:flex-row">
+                    <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row">
                       <button
                         type="button"
                         onClick={() => reopen(3)}
@@ -1514,7 +1431,7 @@ export default function ReservarPage() {
                       </button>
                     </div>
 
-                    <p className="mt-4 text-[10px] leading-6 text-[#625e58]">
+                    <p className="mt-4 text-[12px] leading-6 text-[#7d756a]">
                       * Campos obligatorios. Tu turno todavía no está
                       confirmado.
                     </p>
@@ -1571,7 +1488,7 @@ export default function ReservarPage() {
                       </div>
                     )}
 
-                    <p className="mt-5 text-xs leading-6 text-[#777169]">
+                    <p className="mt-5 text-[13px] leading-6 text-[#8d877e]">
                       Aceptaste la política de privacidad y los términos ·
                       Novedades y promociones:{" "}
                       <span className="text-[#ddd6cc]">
@@ -1579,7 +1496,7 @@ export default function ReservarPage() {
                       </span>
                     </p>
 
-                    <div className="mt-7 flex flex-col-reverse gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <button
                         type="button"
                         onClick={() => reopen(4)}
@@ -1621,7 +1538,7 @@ export default function ReservarPage() {
                   role="alert"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="border border-red-900/50 bg-red-950/20 p-5 text-sm leading-7 text-red-300"
+                  className="rounded-[18px] border border-red-400/25 bg-red-500/[0.07] p-5 text-sm leading-7 text-red-200"
                 >
                   <p className="font-medium">
                     No pudimos completar la operación.
@@ -1633,91 +1550,36 @@ export default function ReservarPage() {
 
             {/* ================= RESUMEN ================= */}
 
-            <aside className="xl:sticky xl:top-8 xl:self-start">
-              <div className="relative overflow-hidden border border-[#8a7152]/35 bg-[#181715] p-6 shadow-[0_25px_80px_rgba(0,0,0,.16)] md:p-8">
-                <div className="absolute right-0 top-0 h-36 w-36 rounded-full bg-[#b08a5a]/[0.04] blur-3xl" />
+            <aside className="xl:sticky xl:top-24 xl:self-start">
+              <p className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#a88d68]">
+                Tu reserva
+              </p>
 
-                <div className="relative">
-                  <div className="mb-6 h-px w-12 bg-[#b08a5a]" />
+              <BookingTicket
+                compact
+                tone="draft"
+                statusLabel={showReview ? "Revisá y confirmá" : "Sin confirmar"}
+                startAt={selectedSlot?.slot_start ?? (selectedDate ? `${selectedDate}T12:00:00-03:00` : null)}
+                endAt={selectedSlot?.slot_end ?? null}
+                serviceName={selectedService?.name ?? null}
+                durationMinutes={selectedService?.duration_minutes ?? null}
+                price={selectedService?.price ?? null}
+                barber={BARBERSHOP.barber}
+                notchColor={BOOKING_BG}
+                timeKnown={Boolean(selectedSlot)}
+              />
 
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-[#9b8465]">
-                    Tu reserva
-                  </p>
-
-                  <div className="mt-2 flex items-end justify-between gap-4">
-                    <h2 className="font-serif text-3xl">Resumen</h2>
-                    <span className="text-[9px] uppercase tracking-[0.2em] text-[#625e58]">
-                      Con {BARBERSHOP.barber}
-                    </span>
-                  </div>
-
-                  <div className="my-6 h-px bg-white/10" />
-
-                  {selectedService ? (
-                    <div>
-                      <SummaryLabel>Servicio</SummaryLabel>
-                      <p className="mt-2 font-serif text-2xl">
-                        {selectedService.name}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between text-sm text-[#aaa198]">
-                        <span>{selectedService.duration_minutes} min</span>
-                        <span>{formatPrice(selectedService.price)}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm leading-6 text-[#777169]">
-                      Seleccioná un servicio para comenzar.
-                    </p>
-                  )}
-
-                  {selectedDate && (
-                    <div className="mt-6">
-                      <SummaryLabel>Fecha</SummaryLabel>
-                      <p className="mt-2 text-[#ddd6cc]">
-                        {formatArgentinaDate(selectedDate)}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedSlot && (
-                    <div className="mt-6">
-                      <SummaryLabel>Horario</SummaryLabel>
-                      <p className="mt-2 font-serif text-3xl text-[#b08a5a]">
-                        {formatArgentinaTime(selectedSlot.slot_start)}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="my-6 h-px bg-white/10" />
-
-                  <div className="flex items-end justify-between gap-4">
-                    <span className="text-[10px] uppercase tracking-[0.25em] text-[#777169]">
-                      Total
-                    </span>
-                    <span className="font-serif text-2xl md:text-3xl">
-                      {selectedService ? formatPrice(selectedService.price) : "$0"}
-                    </span>
-                  </div>
-
-                  <p className="mt-5 text-center text-[10px] leading-6 text-[#625e58]">
-                    {showReview
-                      ? "Revisá todo y confirmá el turno."
-                      : "El turno todavía no está confirmado."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-3 border border-white/5 bg-[#141412] p-5">
+              <div className={`${bookingCardClass} mt-3 p-5`}>
                 <div className="flex items-start gap-3">
-                  <Clock3 size={15} className="mt-0.5 shrink-0 text-[#8d7655]" />
+                  <Clock3 size={15} className="mt-0.5 shrink-0 text-[#c9a46e]" />
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#9b8465]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a88d68]">
                       Horarios
                     </p>
                     {hoursSummary.map((item) => (
                       <p
                         key={item.days}
-                        className="mt-1 text-xs leading-6 text-[#777169]"
+                        className="mt-1 text-[13px] leading-6 text-[#a39a8e]"
                       >
                         {item.days} · {item.hours}
                       </p>
@@ -1726,7 +1588,7 @@ export default function ReservarPage() {
                 </div>
               </div>
 
-              <div className="mt-3 border border-white/5 bg-[#141412] p-5 text-xs leading-6 text-[#777169]">
+              <div className={`${bookingCardClass} mt-3 p-5 text-[13px] leading-6 text-[#a39a8e]`}>
                 ¿Dudas? Escribinos por{" "}
                 <a
                   href={BARBERSHOP.instagramUrl}
@@ -1788,25 +1650,25 @@ function StepCard({
   return (
     <section
       id={id}
-      className={`scroll-mt-4 overflow-hidden border transition-colors duration-500 ${
+      className={`scroll-mt-24 overflow-hidden rounded-[22px] border transition-colors duration-500 ${
         locked
-          ? "border-white/5 bg-[#151513]/60"
+          ? "border-[#EADFCB]/[0.05] bg-[#141311]/60"
           : collapsed
-            ? "border-[#8a7152]/25 bg-[#181715]/75"
-            : "border-[#b08a5a]/35 bg-[#181715]/90 shadow-[0_25px_90px_rgba(0,0,0,.18)]"
+            ? "border-[#EADFCB]/[0.09] bg-[#171613]"
+            : "border-[#EADFCB]/[0.16] bg-[#171613] shadow-[0_25px_80px_rgba(0,0,0,.28)]"
       }`}
     >
       <div
-        className={`flex items-center gap-4 px-5 md:px-8 ${
-          showBody ? "border-b border-white/10 py-6" : "py-5"
+        className={`flex items-center gap-4 px-5 md:px-7 ${
+          showBody ? "border-b border-[#EADFCB]/[0.07] py-5 md:py-6" : "py-4 md:py-5"
         }`}
       >
         <StepBadge number={number} status={status} />
 
         <div className="min-w-0 flex-1">
           <p
-            className={`text-[10px] uppercase tracking-[0.32em] ${
-              locked ? "text-[#4f4b46]" : "text-[#9b8465]"
+            className={`text-[10px] font-semibold uppercase tracking-[0.28em] ${
+              locked ? "text-[#4f4b46]" : "text-[#a88d68]"
             }`}
           >
             {eyebrow}
@@ -1815,21 +1677,21 @@ function StepCard({
           <h2
             className={`mt-1 font-serif leading-tight ${
               locked
-                ? "text-xl text-[#625e58] md:text-2xl"
+                ? "text-[20px] text-[#5f5a52]"
                 : collapsed
-                  ? "text-xl md:text-2xl"
-                  : "text-2xl md:text-4xl"
+                  ? "text-[20px] text-[#F4EEE5] md:text-[22px]"
+                  : "text-[26px] text-[#F4EEE5] md:text-[32px]"
             }`}
           >
             {title}
           </h2>
 
           {collapsed && summary && (
-            <p className="mt-1.5 truncate text-sm">{summary}</p>
+            <p className="mt-1 truncate text-[14px]">{summary}</p>
           )}
 
           {locked && lockedHint && (
-            <p className="mt-1 text-xs text-[#4f4b46]">{lockedHint}</p>
+            <p className="mt-1 text-[12px] text-[#5f5a52]">{lockedHint}</p>
           )}
         </div>
 
@@ -1837,7 +1699,7 @@ function StepCard({
           <button
             type="button"
             onClick={onEdit}
-            className="shrink-0 border border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#aaa198] transition-all hover:border-[#b08a5a]/70 hover:text-[#F4EEE5] md:px-4"
+            className="shrink-0 rounded-full border border-[#EADFCB]/20 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#ddd6cc] transition hover:border-[#EADFCB]/60 hover:text-[#F4EEE5]"
           >
             Cambiar
           </button>
@@ -1853,7 +1715,7 @@ function StepCard({
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="p-5 md:p-8">{children}</div>
+            <div className="p-5 md:p-7">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1864,15 +1726,15 @@ function StepCard({
 function StepBadge({ number, status }: { number: string; status: StepStatus }) {
   return (
     <div
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[11px] transition-all duration-300 ${
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold transition-all duration-300 ${
         status === "complete"
-          ? "border-[#b08a5a] bg-[#b08a5a] text-[#171512]"
+          ? "bg-[#b08a5a] text-[#1b1915]"
           : status === "current"
-            ? "border-[#b08a5a] text-[#b08a5a]"
-            : "border-white/10 text-[#625e58]"
+            ? "bg-[#EADFCB] text-[#1b1915]"
+            : "border border-[#EADFCB]/10 text-[#5f5a52]"
       }`}
     >
-      {status === "complete" ? <Check size={14} /> : number}
+      {status === "complete" ? <Check size={15} /> : Number(number)}
     </div>
   );
 }
@@ -1887,8 +1749,8 @@ function SelectionIndicator({ selected }: { selected: boolean }) {
       aria-hidden="true"
       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
         selected
-          ? "border-[#b08a5a] bg-[#b08a5a] text-[#171512]"
-          : "border-white/25 text-transparent group-hover:border-[#b08a5a]/80"
+          ? "border-[#EADFCB] bg-[#EADFCB] text-[#1b1915]"
+          : "border-[#EADFCB]/25 text-transparent group-hover:border-[#b08a5a]"
       }`}
     >
       <Check size={14} />
@@ -1909,14 +1771,11 @@ function Field({
 }) {
   return (
     <div className={id === "customer-name" ? "md:col-span-2" : undefined}>
-      <label
-        htmlFor={id}
-        className="mb-2.5 block text-[10px] uppercase tracking-[0.25em] text-[#9b8465]"
-      >
+      <label htmlFor={id} className={bookingLabelClass}>
         {label}
       </label>
       {children}
-      {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+      {error && <p className="mt-2 text-[12px] text-red-300">{error}</p>}
     </div>
   );
 }
@@ -1942,11 +1801,11 @@ function ConsentCheckbox({
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         aria-invalid={invalid}
-        className={`mt-1 h-5 w-5 shrink-0 accent-[#b08a5a] ${
-          invalid ? "outline outline-1 outline-red-700" : ""
+        className={`mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded accent-[#c9a46e] ${
+          invalid ? "outline outline-1 outline-red-500" : ""
         }`}
       />
-      <label htmlFor={id} className="text-sm leading-6 text-[#aaa198]">
+      <label htmlFor={id} className="cursor-pointer text-[14px] leading-6 text-[#b5ada1]">
         {children}
       </label>
     </div>
@@ -1965,16 +1824,16 @@ function ReviewItem({
   capitalize?: boolean;
 }) {
   return (
-    <div className="border border-white/10 bg-[#141412] p-4 md:p-5">
-      <p className="text-[9px] uppercase tracking-[0.28em] text-[#777169]">
+    <div className="rounded-[16px] border border-[#EADFCB]/[0.08] bg-[#0f0e0c] p-4 md:p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#7d756a]">
         {label}
       </p>
 
       <p
         className={`mt-2 break-words ${capitalize ? "capitalize" : ""} ${
           highlight
-            ? "font-serif text-2xl text-[#b08a5a]"
-            : "text-sm leading-6 text-[#ddd6cc]"
+            ? "font-serif text-[26px] leading-none text-[#e3c591]"
+            : "text-[15px] leading-6 text-[#F4EEE5]"
         }`}
       >
         {value}
@@ -1983,26 +1842,18 @@ function ReviewItem({
   );
 }
 
-function SummaryLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[9px] uppercase tracking-[0.28em] text-[#777169]">
-      {children}
-    </p>
-  );
-}
-
 function LockedMessage({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border border-white/5 bg-[#141412] p-6">
-      <p className="text-sm leading-7 text-[#777169]">{children}</p>
+    <div className="rounded-[18px] border border-[#EADFCB]/[0.08] bg-[#0f0e0c] p-6">
+      <p className="text-[14px] leading-7 text-[#8d877e]">{children}</p>
     </div>
   );
 }
 
 function LoadingState({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 border border-white/5 bg-[#141412] p-6 text-sm text-[#aaa198]">
-      <span className="h-4 w-4 animate-spin rounded-full border border-[#7a6447] border-t-[#b08a5a]" />
+    <div className="flex items-center gap-3 rounded-[18px] border border-[#EADFCB]/[0.08] bg-[#0f0e0c] p-6 text-[14px] text-[#b5ada1]">
+      <span className="h-4 w-4 animate-spin rounded-full border border-[#7a6447] border-t-[#e3c591]" />
       {label}
     </div>
   );
@@ -2010,8 +1861,8 @@ function LoadingState({ label }: { label: string }) {
 
 function InfoPill({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-2 border border-white/5 bg-[#141412] px-3 py-2 text-[9px] uppercase tracking-[0.18em] text-[#777169]">
-      <span className="text-[#9b8465]">{icon}</span>
+    <div className="flex items-center gap-2 rounded-full border border-[#EADFCB]/[0.1] px-3 py-1.5 text-[11px] text-[#a39a8e]">
+      <span className="text-[#c9a46e]">{icon}</span>
       {label}
     </div>
   );
@@ -2021,14 +1872,14 @@ function BookingPaused() {
   const whatsappUrl = getWhatsappUrl("Hola! Quería sacar un turno.");
 
   return (
-    <div className="mx-auto max-w-2xl border border-[#8a7152]/30 bg-[#181715] p-8 text-center md:p-12">
-      <p className="text-[10px] uppercase tracking-[0.3em] text-[#9b8465]">
+    <div className={`${bookingCardClass} mx-auto max-w-2xl p-8 text-center md:p-12`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#a88d68]">
         Reservas online pausadas
       </p>
       <h2 className="mt-3 font-serif text-3xl md:text-4xl">
         Por ahora tomamos turnos por mensaje.
       </h2>
-      <p className="mt-4 text-sm leading-7 text-[#aaa198]">
+      <p className="mt-4 text-[15px] leading-7 text-[#b5ada1]">
         Escribinos y te damos el próximo horario disponible.
       </p>
       <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">

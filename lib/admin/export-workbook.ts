@@ -55,6 +55,10 @@ type Appointment = {
   reservation_code: string | null;
   created_at: string | null;
   source?: string | null;
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  cancelled_by_email?: string | null;
+  no_show_at?: string | null;
 };
 
 type LoyaltyAccount = {
@@ -216,6 +220,7 @@ const GROUP_COLORS: Record<string, string> = {
   Detalle: "FF1E3A8A",
   Importe: "FF14532D",
   Seguimiento: "FF374151",
+  "Cancelación / ausencia": "FF7F1D1D",
 };
 
 const MONEY = '"$" #,##0';
@@ -406,12 +411,20 @@ export async function exportBarbershopWorkbook(
     ),
     fetchAll<Service>(supabase, "services", "id,name,price,duration_minutes,active", "name"),
     fetchAll<Barber>(supabase, "barbers", "id,name,active", "name", true),
+    // Con registro de cancelaciones (migración 12) → con origen (11) → básico.
     fetchWithFallback<Appointment>(
       supabase,
       "appointments",
+      "id,customer_id,service_id,barber_id,start_at,status,notes,reservation_code,created_at,source,cancelled_at,cancelled_by,cancelled_by_email,no_show_at",
       "id,customer_id,service_id,barber_id,start_at,status,notes,reservation_code,created_at,source",
-      "id,customer_id,service_id,barber_id,start_at,status,notes,reservation_code,created_at",
       "start_at"
+    ).catch(() =>
+      fetchAll<Appointment>(
+        supabase,
+        "appointments",
+        "id,customer_id,service_id,barber_id,start_at,status,notes,reservation_code,created_at",
+        "start_at"
+      )
     ),
     fetchAll<LoyaltyAccount>(
       supabase,
@@ -643,6 +656,14 @@ export async function exportBarbershopWorkbook(
             : appointment.source === "panel"
               ? "Panel"
               : null,
+        cancelledBy:
+          appointment.cancelled_by === "cliente"
+            ? "Cliente (web)"
+            : appointment.cancelled_by === "admin"
+              ? `Panel${appointment.cancelled_by_email ? ` (${appointment.cancelled_by_email})` : ""}`
+              : null,
+        cancelledAt: excelDate(appointment.cancelled_at),
+        noShowAt: excelDate(appointment.no_show_at),
         code: appointment.reservation_code,
         created: excelDate(appointment.created_at),
         notes: appointment.notes,
@@ -660,6 +681,9 @@ export async function exportBarbershopWorkbook(
     { header: "Estado", key: "status", width: 12, group: "Detalle" },
     { header: "Precio del servicio", key: "price", width: 13, group: "Importe", format: MONEY },
     { header: "Facturado", key: "charged", width: 13, group: "Importe", format: MONEY },
+    { header: "Cancelado por", key: "cancelledBy", width: 22, group: "Cancelación / ausencia" },
+    { header: "Cancelado el", key: "cancelledAt", width: 16, group: "Cancelación / ausencia", format: "dd/mm/yyyy hh:mm" },
+    { header: "No asistió (registrado)", key: "noShowAt", width: 16, group: "Cancelación / ausencia", format: "dd/mm/yyyy hh:mm" },
     { header: "Origen", key: "source", width: 9, group: "Seguimiento", align: "center" },
     { header: "Código de reserva", key: "code", width: 16, group: "Seguimiento" },
     { header: "Registrado el", key: "created", width: 13, group: "Seguimiento", format: DATE },

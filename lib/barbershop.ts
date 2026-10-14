@@ -56,8 +56,8 @@ export function getWhatsappUrl(message?: string) {
   exactamente qué texto aceptó. Si se modifica el contenido legal,
   hay que actualizar esta fecha.
 */
-export const LEGAL_VERSION = "2026-10-13";
-export const LEGAL_LAST_UPDATE = "13 de octubre de 2026";
+export const LEGAL_VERSION = "2026-10-14";
+export const LEGAL_LAST_UPDATE = "14 de octubre de 2026";
 
 /*
   Reglas de reserva por defecto. Los valores reales se leen de
@@ -66,7 +66,8 @@ export const LEGAL_LAST_UPDATE = "13 de octubre de 2026";
 */
 export const DEFAULT_BOOKING_RULES = {
   maxBookingDaysAhead: 30,
-  cancellationNoticeHours: 3,
+  /* Cambiar día u horario online (cancelar se puede hasta la hora del turno). */
+  cancellationNoticeHours: 1,
   lateToleranceMinutes: 10,
 };
 

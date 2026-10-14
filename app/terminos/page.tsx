@@ -42,13 +42,20 @@ export default function TerminosPage() {
         <LegalList
           items={[
             <>
-              Podés reprogramar o cancelar tu turno desde{" "}
+              Podés cancelar tu turno en cualquier momento antes del horario
+              reservado desde{" "}
               <Link href="/gestionar-reserva" className={linkClass}>
                 Gestionar mi reserva
               </Link>
-              , con al menos {cancellationNoticeHours} horas de anticipación.
+              . Las cancelaciones quedan registradas.
             </>,
-            "Si necesitás cancelar con menos anticipación, avisanos por Instagram, WhatsApp o email lo antes posible, así liberamos el horario para otra persona.",
+            <>
+              Para cambiar el día u horario necesitás al menos{" "}
+              {cancellationNoticeHours}{" "}
+              {cancellationNoticeHours === 1 ? "hora" : "horas"} de anticipación.
+              Si falta menos, escribinos por Instagram, WhatsApp o email.
+            </>,
+            "Si no podés venir, cancelá el turno aunque sea con poco tiempo: así liberamos el horario para otra persona. Las ausencias sin aviso también quedan registradas.",
             "Si no te presentás sin avisar en reiteradas oportunidades, podemos limitar la posibilidad de reservar online y pedirte que coordines tus próximos turnos directamente con la barbería.",
           ]}
         />

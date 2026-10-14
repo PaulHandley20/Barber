@@ -19,6 +19,20 @@ import {
   XCircle,
 } from "lucide-react";
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
+import {
+  BOOKING_BG,
+  BookingHero,
+  BookingTicket,
+  BookingTopBar,
+  TimeSlotGroups,
+  bookingCardClass,
+  bookingDangerButtonClass,
+  bookingInputClass,
+  bookingLabelClass,
+  bookingPrimaryButtonClass,
+  bookingSecondaryButtonClass,
+  type TicketTone,
+} from "@/components/booking/kit";
 import { createClient } from "@/lib/supabase/client";
 import { BARBERSHOP, getWhatsappUrl } from "@/lib/barbershop";
 import {
@@ -60,11 +74,9 @@ type SearchMode = "code" | "contact";
 
 const TIME_ZONE = "America/Argentina/Buenos_Aires";
 
-const primaryButtonClass =
-  "group flex w-full items-center justify-center gap-3 bg-[#b08a5a] px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#171512] transition-all duration-300 hover:bg-[#c09a6c] hover:shadow-[0_15px_45px_rgba(176,138,90,.15)] active:scale-[0.99] disabled:opacity-60";
+const primaryButtonClass = `${bookingPrimaryButtonClass} w-full`;
 
-const inputClass =
-  "w-full border border-white/10 bg-[#141412] px-5 py-4 text-sm text-[#F4EEE5] outline-none transition-all duration-300 placeholder:text-[#514d47] hover:border-white/20 focus:border-[#b08a5a] focus:bg-[#181715] focus:ring-1 focus:ring-[#b08a5a]/20";
+const inputClass = bookingInputClass;
 
 function formatReservationCode(value: string) {
   return value.toUpperCase().replace(/\s/g, "");
@@ -127,6 +139,12 @@ function formatArgentinaTime(dateString: string) {
     minute: "2-digit",
     hour12: false,
   }).format(date);
+}
+
+function getTicketTone(status: string): TicketTone {
+  if (status === "confirmed" || status === "pending") return "confirmed";
+  if (status === "cancelled" || status === "canceled") return "cancelled";
+  return "neutral";
 }
 
 function getStatusLabel(status: string) {
@@ -225,11 +243,14 @@ export default function GestionarReservaPage() {
     ? (new Date(reservation.start_at).getTime() - Date.now()) / 36e5
     : 0;
 
+  /* Cancelar: en cualquier momento antes del turno.
+     Cambiar día u horario: hasta X horas antes (Configuración). */
   const withinNoticeWindow =
     reservationIsActive &&
     hoursUntilReservation < config.cancellationNoticeHours;
 
-  const canManage = reservationIsActive && !withinNoticeWindow;
+  const canReschedule = reservationIsActive && !withinNoticeWindow;
+  const canCancel = reservationIsActive;
 
   /* Permite llegar con /gestionar-reserva?codigo=DS-XXXX */
   useEffect(() => {
@@ -502,73 +523,47 @@ export default function GestionarReservaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#11110f] text-[#F4EEE5]">
-      {/* HEADER */}
+    <main className="min-h-screen bg-[#100f0d] text-[#F4EEE5]">
+      <BookingTopBar current="mi-reserva" />
 
-      <section className="relative overflow-hidden border-b border-white/10 px-5 py-10 md:px-10 md:py-20">
-        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#b08a5a]/[0.04] blur-3xl" />
+      <BookingHero
+        image="/images/cta.jpg"
+        eyebrow={`${BARBERSHOP.name} · Mi reserva`}
+        title="Tu turno, a mano."
+        subtitle="Consultá tu reserva, cambiá el día u horario o cancelala si no podés venir."
+      />
 
-        <div className="relative mx-auto max-w-5xl">
-          <Link
-            href="/"
-            className="mb-8 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#777169] transition-all duration-300 hover:text-[#b08a5a]"
-          >
-            <ArrowLeft size={14} />
-            Volver al inicio
-          </Link>
-
-          <div className="mb-7 h-px w-20 bg-[#b08a5a]" />
-
-          <p className="text-xs uppercase tracking-[0.38em] text-[#9b8465]">
-            {BARBERSHOP.name} · Reservas
-          </p>
-
-          <h1 className="mt-4 font-serif text-4xl leading-tight md:text-6xl">
-            Gestioná tu reserva.
-          </h1>
-
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-[#aaa198] md:text-base">
-            Consultá tu turno, cambiá el día u horario o cancelalo si no
-            podés venir.
-          </p>
-        </div>
-      </section>
-
-      {/* CONTENIDO */}
-
-      <section className="mx-auto max-w-5xl px-4 py-8 sm:px-5 md:px-8 md:py-16">
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8">
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-12 lg:px-8">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
           {/* BUSCADOR */}
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="overflow-hidden border border-[#8a7152]/30 bg-[#181715]"
+            className={`${bookingCardClass} overflow-hidden`}
           >
-            <div className="border-b border-white/10 px-5 py-6 md:px-9">
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#b08a5a]/40 bg-[#b08a5a]/10 text-[#b08a5a]">
-                  <Search size={17} />
-                </div>
+            <div className="flex items-center gap-4 border-b border-[#EADFCB]/[0.07] px-5 py-5 md:px-7 md:py-6">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EADFCB] text-[#1b1915]">
+                <Search size={17} />
+              </div>
 
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-[#9b8465]">
-                    Gestionar reserva
-                  </p>
-                  <h2 className="mt-1 font-serif text-3xl">
-                    Encontrá tu turno
-                  </h2>
-                </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a88d68]">
+                  Buscar reserva
+                </p>
+                <h2 className="mt-1 font-serif text-[26px] leading-tight md:text-[30px]">
+                  Encontrá tu turno
+                </h2>
               </div>
             </div>
 
-            <div className="p-5 md:p-9">
+            <div className="p-5 md:p-7">
               {/* Modo de búsqueda */}
               <div
                 role="tablist"
                 aria-label="Forma de búsqueda"
-                className="grid grid-cols-2 border border-white/10 bg-[#141412] p-1"
+                className="grid grid-cols-2 gap-1 rounded-full border border-[#EADFCB]/[0.1] bg-[#0f0e0c] p-1"
               >
                 <ModeTab
                   active={mode === "code"}
@@ -598,14 +593,11 @@ export default function GestionarReservaPage() {
                     loadReservationByCode(reservationCode);
                   }}
                 >
-                  <p className="text-sm leading-7 text-[#aaa198]">
+                  <p className="text-[15px] leading-7 text-[#b5ada1]">
                     Ingresá el código que te mostramos al confirmar el turno.
                   </p>
 
-                  <label
-                    htmlFor="reservation-code"
-                    className="mb-2.5 mt-5 block text-[10px] uppercase tracking-[0.25em] text-[#9b8465]"
-                  >
+                  <label htmlFor="reservation-code" className={`${bookingLabelClass} mt-5`}>
                     Código de reserva
                   </label>
 
@@ -621,7 +613,7 @@ export default function GestionarReservaPage() {
                     autoComplete="off"
                     autoCapitalize="characters"
                     spellCheck={false}
-                    className={`${inputClass} font-mono tracking-[0.12em]`}
+                    className={`${inputClass} font-mono tracking-[0.14em]`}
                   />
 
                   <button
@@ -631,7 +623,7 @@ export default function GestionarReservaPage() {
                   >
                     {loading ? (
                       <>
-                        <span className="h-4 w-4 animate-spin rounded-full border border-[#171512]/30 border-t-[#171512]" />
+                        <span className="h-4 w-4 animate-spin rounded-full border border-[#1b1915]/30 border-t-[#1b1915]" />
                         Buscando...
                       </>
                     ) : (
@@ -653,17 +645,14 @@ export default function GestionarReservaPage() {
                     searchByContact();
                   }}
                 >
-                  <p className="text-sm leading-7 text-[#aaa198]">
+                  <p className="text-[15px] leading-7 text-[#b5ada1]">
                     Ingresá el email y el teléfono que usaste al reservar.
                     Por seguridad, tienen que coincidir los dos.
                   </p>
 
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label
-                        htmlFor="contact-email"
-                        className="mb-2.5 block text-[10px] uppercase tracking-[0.25em] text-[#9b8465]"
-                      >
+                      <label htmlFor="contact-email" className={bookingLabelClass}>
                         Email
                       </label>
                       <input
@@ -682,10 +671,7 @@ export default function GestionarReservaPage() {
                     </div>
 
                     <div>
-                      <label
-                        htmlFor="contact-phone"
-                        className="mb-2.5 block text-[10px] uppercase tracking-[0.25em] text-[#9b8465]"
-                      >
+                      <label htmlFor="contact-phone" className={bookingLabelClass}>
                         Teléfono
                       </label>
                       <input
@@ -711,7 +697,7 @@ export default function GestionarReservaPage() {
                   >
                     {loading ? (
                       <>
-                        <span className="h-4 w-4 animate-spin rounded-full border border-[#171512]/30 border-t-[#171512]" />
+                        <span className="h-4 w-4 animate-spin rounded-full border border-[#1b1915]/30 border-t-[#1b1915]" />
                         Buscando...
                       </>
                     ) : (
@@ -727,19 +713,19 @@ export default function GestionarReservaPage() {
                 </form>
               )}
 
-              {error && (
+              {error && !reservation && (
                 <div
                   role="alert"
-                  className="mt-6 border border-red-900/50 bg-red-950/20 p-4"
+                  className="mt-6 rounded-[16px] border border-red-400/25 bg-red-500/[0.07] p-4"
                 >
-                  <p className="text-sm leading-6 text-red-300">{error}</p>
+                  <p className="text-[14px] leading-6 text-red-200">{error}</p>
                 </div>
               )}
 
               {/* Varios turnos encontrados */}
               {matches && matches.length > 1 && !reservation && (
                 <div className="mt-6">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#9b8465]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[#a88d68]">
                     Encontramos {matches.length} turnos
                   </p>
 
@@ -751,19 +737,19 @@ export default function GestionarReservaPage() {
                           onClick={() =>
                             loadReservationByCode(match.reservation_code)
                           }
-                          className="flex w-full items-center justify-between gap-4 border border-white/10 bg-[#141412] p-4 text-left transition-all hover:border-[#b08a5a]/60 hover:bg-[#1d1c19]"
+                          className="flex w-full items-center justify-between gap-4 rounded-[16px] border border-[#EADFCB]/[0.1] bg-[#0f0e0c] p-4 text-left transition hover:border-[#b08a5a]/70"
                         >
                           <span>
-                            <span className="block text-sm text-[#ddd6cc]">
+                            <span className="block text-[15px] text-[#F4EEE5] first-letter:uppercase">
                               {formatArgentinaDate(match.start_at)} ·{" "}
                               {formatArgentinaTime(match.start_at)} hs
                             </span>
-                            <span className="mt-1 block text-xs text-[#777169]">
+                            <span className="mt-1 block text-[13px] text-[#8d877e]">
                               {match.service_name ?? "Servicio"} ·{" "}
                               {getStatusLabel(match.status)}
                             </span>
                           </span>
-                          <ArrowRight size={15} className="shrink-0 text-[#b08a5a]" />
+                          <ArrowRight size={15} className="shrink-0 text-[#e3c591]" />
                         </button>
                       </li>
                     ))}
@@ -779,19 +765,17 @@ export default function GestionarReservaPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className={`h-fit border border-white/5 bg-[#141412] p-6 md:p-8 ${
+            className={`${bookingCardClass} h-fit p-6 md:p-7 ${
               reservation ? "hidden lg:block" : ""
             }`}
           >
-            <div className="mb-6 h-px w-12 bg-[#b08a5a]" />
-
-            <p className="text-[10px] uppercase tracking-[0.3em] text-[#9b8465]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a88d68]">
               ¿No encontrás tu turno?
             </p>
 
-            <h2 className="mt-2 font-serif text-3xl">Escribinos.</h2>
+            <h2 className="mt-2 font-serif text-[28px] leading-tight">Escribinos.</h2>
 
-            <p className="mt-3 text-sm leading-6 text-[#777169]">
+            <p className="mt-2 text-[14px] leading-6 text-[#8d877e]">
               Te ayudamos a encontrarlo, cambiarlo o cancelarlo.
             </p>
 
@@ -809,233 +793,216 @@ export default function GestionarReservaPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
-              className="mt-8 scroll-mt-4 overflow-hidden border border-[#b08a5a]/40 bg-[#181715]"
+              className="mt-8 scroll-mt-24"
             >
-              <div className="border-b border-white/10 p-6 text-center md:p-10">
-                <div
-                  className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full border ${
-                    reservation.status === "cancelled"
-                      ? "border-red-900/60 bg-red-950/30 text-red-300"
-                      : "border-[#b08a5a]/50 bg-[#b08a5a]/10 text-[#b08a5a]"
-                  }`}
-                >
-                  {reservation.status === "cancelled" ? (
-                    <XCircle size={26} />
-                  ) : (
-                    <CheckCircle2 size={26} />
-                  )}
-                </div>
-
-                <p className="mt-5 text-[10px] uppercase tracking-[0.3em] text-[#9b8465]">
-                  Reserva {getStatusLabel(reservation.status).toLowerCase()}
-                </p>
-
-                <h2 className="mt-3 font-serif text-3xl md:text-4xl">
-                  Tu turno en {BARBERSHOP.name}
-                </h2>
-
-                <div className="mt-5 inline-flex flex-col items-center border border-white/10 bg-[#141412] px-6 py-3">
-                  <span className="text-[9px] uppercase tracking-[0.28em] text-[#625e58]">
-                    Código de reserva
-                  </span>
-                  <span className="mt-1 font-mono text-lg tracking-[0.18em] text-[#b08a5a]">
-                    {reservation.reservation_code}
-                  </span>
-                </div>
-              </div>
-
               {notice && (
                 <div
                   role="status"
-                  className="border-b border-white/10 bg-[#b08a5a]/[0.06] p-5 text-center text-sm leading-6 text-[#ddd6cc]"
+                  className="mb-5 flex items-start gap-3 rounded-[18px] border border-[#EADFCB]/20 bg-[#EADFCB]/[0.05] p-4 text-[14px] leading-6 text-[#ddd6cc]"
                 >
+                  <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#e3c591]" />
                   {notice}
                 </div>
               )}
 
-              <div className="grid gap-px bg-white/10 sm:grid-cols-2">
-                <ReservationItem label="Servicio" value={reservation.service_name} />
-                <ReservationItem
-                  label="Duración"
-                  value={`${reservation.service_duration_minutes} minutos`}
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
+                <BookingTicket
+                  tone={getTicketTone(reservation.status)}
+                  statusLabel={getStatusLabel(reservation.status)}
+                  startAt={reservation.start_at}
+                  endAt={reservation.end_at}
+                  serviceName={reservation.service_name}
+                  durationMinutes={reservation.service_duration_minutes}
+                  price={reservation.service_price}
+                  barber={reservation.barber_name || BARBERSHOP.barber}
+                  code={reservation.reservation_code}
+                  notchColor={BOOKING_BG}
+                  footer={
+                    reservation.customer_name ? (
+                      <div className="grid gap-2 text-[13px] text-[#a39a8e] sm:grid-cols-3">
+                        <span className="truncate">
+                          <span className="text-[#7d756a]">Cliente · </span>
+                          {reservation.customer_name}
+                        </span>
+                        <span className="truncate">
+                          <span className="text-[#7d756a]">Tel · </span>
+                          {maskPhone(reservation.customer_phone)}
+                        </span>
+                        <span className="truncate">
+                          <span className="text-[#7d756a]">Email · </span>
+                          {maskEmail(reservation.customer_email)}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3 text-[13px] leading-6 text-[#a39a8e]">
+                        <MapPin size={16} className="mt-0.5 shrink-0 text-[#c9a46e]" />
+                        <p>
+                          <span className="text-[#F4EEE5]">
+                            {BARBERSHOP.address}, {BARBERSHOP.city}.
+                          </span>{" "}
+                          <a
+                            href={BARBERSHOP.mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#e3c591] underline-offset-4 hover:underline"
+                          >
+                            Cómo llegar
+                          </a>
+                        </p>
+                      </div>
+                    )
+                  }
                 />
-                <ReservationItem
-                  label="Fecha"
-                  value={formatArgentinaDate(reservation.start_at)}
-                />
-                <ReservationItem
-                  label="Horario"
-                  value={`${formatArgentinaTime(
-                    reservation.start_at
-                  )} → ${formatArgentinaTime(reservation.end_at)}`}
-                />
-                <ReservationItem
-                  label="Barbero"
-                  value={reservation.barber_name || BARBERSHOP.barber}
-                />
-                <ReservationItem
-                  label="Estado"
-                  value={getStatusLabel(reservation.status)}
-                  highlight
-                />
-              </div>
 
-              {/* La base no devuelve datos personales al buscar por código
-                  (por privacidad). Si algún día los devuelve, se muestran
-                  enmascarados. */}
-              {reservation.customer_name && (
-              <div className="border-t border-white/10 p-5 md:p-9">
-                <p className="text-[9px] uppercase tracking-[0.28em] text-[#625e58]">
-                  Datos de contacto
-                </p>
+                {/* ACCIONES */}
 
-                <div className="mt-4 grid gap-3 md:grid-cols-3 md:gap-4">
-                  <ReservationItem label="Cliente" value={reservation.customer_name} />
-                  <ReservationItem
-                    label="Teléfono"
-                    value={maskPhone(reservation.customer_phone)}
-                  />
-                  <ReservationItem
-                    label="Email"
-                    value={maskEmail(reservation.customer_email)}
-                  />
+                <div className={`${bookingCardClass} h-fit p-6 md:p-7`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a88d68]">
+                    Gestionar
+                  </p>
+                  <h2 className="mt-2 font-serif text-[26px] leading-tight">
+                    {reservationIsActive ? "¿Necesitás un cambio?" : "Reserva cerrada"}
+                  </h2>
+
+                  {!reservationIsActive ? (
+                    <div className="mt-4">
+                      <p className="text-[14px] leading-6 text-[#8d877e]">
+                        {reservation.status === "cancelled"
+                          ? "Esta reserva está cancelada."
+                          : "Esta reserva ya no se puede modificar."}
+                      </p>
+                      <Link
+                        href="/reservar"
+                        className={`${bookingPrimaryButtonClass} mt-5 w-full`}
+                      >
+                        Reservar un nuevo turno
+                        <ArrowRight size={15} />
+                      </Link>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-5 grid gap-3">
+                        <button
+                          type="button"
+                          onClick={openEditReservation}
+                          disabled={loading || !canReschedule}
+                          title={
+                            canReschedule
+                              ? undefined
+                              : `Solo se puede cambiar hasta ${config.cancellationNoticeHours} h antes`
+                          }
+                          className={bookingSecondaryButtonClass}
+                        >
+                          <CalendarDays size={15} />
+                          Cambiar día u horario
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingReservation(false);
+                            setConfirmingCancel(true);
+                            setNotice(null);
+                          }}
+                          disabled={loading || !canCancel}
+                          className={bookingDangerButtonClass}
+                        >
+                          <XCircle size={15} />
+                          Cancelar reserva
+                        </button>
+                      </div>
+
+                      {confirmingCancel && (
+                        <div className="mt-5 rounded-[18px] border border-red-400/25 bg-red-500/[0.06] p-5">
+                          <p className="font-serif text-[20px] text-[#F4EEE5]">
+                            ¿Seguro que querés cancelar?
+                          </p>
+                          <p className="mt-2 text-[14px] leading-6 text-[#b5ada1]">
+                            El horario va a quedar libre para otra persona.
+                            Esta acción no se puede deshacer.
+                          </p>
+                          <div className="mt-5 grid gap-2">
+                            <button
+                              type="button"
+                              onClick={cancelReservation}
+                              disabled={loading}
+                              className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-red-500/80 px-6 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-red-500 disabled:opacity-60"
+                            >
+                              {loading ? "Cancelando..." : "Sí, cancelar"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingCancel(false)}
+                              disabled={loading}
+                              className={bookingSecondaryButtonClass}
+                            >
+                              No, mantener turno
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {!editingReservation && !confirmingCancel && (
+                        withinNoticeWindow ? (
+                          <div className="mt-5 border-t border-[#EADFCB]/[0.08] pt-5">
+                            <p className="text-[13px] leading-6 text-[#8d877e]">
+                              Faltan menos de {config.cancellationNoticeHours}{" "}
+                              {config.cancellationNoticeHours === 1 ? "hora" : "horas"} para
+                              tu turno: ya no se puede cambiar el horario online,
+                              pero todavía podés cancelarlo. Si necesitás
+                              cambiarlo, escribinos.
+                            </p>
+                            <ContactLinks />
+                          </div>
+                        ) : (
+                          <p className="mt-5 border-t border-[#EADFCB]/[0.08] pt-5 text-[13px] leading-6 text-[#7d756a]">
+                            Podés cancelar en cualquier momento antes del turno
+                            y cambiar el día u horario hasta{" "}
+                            {config.cancellationNoticeHours}{" "}
+                            {config.cancellationNoticeHours === 1 ? "hora" : "horas"} antes.
+                          </p>
+                        )
+                      )}
+                    </>
+                  )}
+
+                  {error && reservation && (
+                    <div
+                      role="alert"
+                      className="mt-5 rounded-[16px] border border-red-400/25 bg-red-500/[0.07] p-4"
+                    >
+                      <p className="text-[14px] text-red-200">{error}</p>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {reservationIsActive && editingReservation && (
+                <RescheduleCalendar
+                  currentMonth={currentMonth}
+                  setCurrentMonth={setCurrentMonth}
+                  todayKey={todayKey}
+                  lastBookableKey={lastBookableKey}
+                  selectedDate={selectedDate}
+                  isDateAvailable={isDateAvailable}
+                  onSelectDate={(dateKey) => {
+                    setSelectedDate(dateKey);
+                    setNewStartAt("");
+                    fetchAvailableSlots(dateKey);
+                  }}
+                  loadingSlots={loadingSlots}
+                  availableSlots={availableSlots}
+                  newStartAt={newStartAt}
+                  onSelectSlot={setNewStartAt}
+                  serviceName={reservation.service_name}
+                  loading={loading}
+                  onCancel={() => {
+                    resetManagement();
+                    setError(null);
+                  }}
+                  onConfirm={confirmReschedule}
+                />
               )}
-
-              {/* ACCIONES */}
-
-              <div className="border-t border-white/10 bg-[#141412] p-5 md:p-9">
-                {!reservationIsActive ? (
-                  <div className="text-center">
-                    <p className="text-sm leading-7 text-[#8d877e]">
-                      {reservation.status === "cancelled"
-                        ? "Esta reserva está cancelada."
-                        : "Esta reserva ya no se puede modificar."}
-                    </p>
-                    <Link
-                      href="/reservar"
-                      className="mt-4 inline-flex items-center gap-2 bg-[#b08a5a] px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#171512] transition-all hover:bg-[#c09a6c]"
-                    >
-                      Reservar un nuevo turno
-                      <ArrowRight size={15} />
-                    </Link>
-                  </div>
-                ) : withinNoticeWindow ? (
-                  <>
-                    <p className="text-center text-sm leading-7 text-[#8d877e]">
-                      Faltan menos de {config.cancellationNoticeHours} horas
-                      para tu turno, así que ya no se puede modificar online.
-                      Si necesitás cambiarlo o no podés venir, escribinos lo
-                      antes posible.
-                    </p>
-                    <div className="mx-auto mt-2 max-w-md">
-                      <ContactLinks />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={openEditReservation}
-                        disabled={loading || !canManage}
-                        className="flex flex-1 items-center justify-center gap-3 border border-white/10 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#ddd6cc] transition-all hover:border-[#b08a5a]/60 hover:bg-white/[0.03] disabled:opacity-50"
-                      >
-                        <CalendarDays size={15} />
-                        Cambiar día u horario
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingReservation(false);
-                          setConfirmingCancel(true);
-                          setNotice(null);
-                        }}
-                        disabled={loading || !canManage}
-                        className="flex flex-1 items-center justify-center gap-3 border border-red-900/50 bg-red-950/20 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-red-300 transition-all hover:border-red-500/60 hover:bg-red-950/35 disabled:opacity-50"
-                      >
-                        <XCircle size={15} />
-                        Cancelar reserva
-                      </button>
-                    </div>
-
-                    {confirmingCancel && (
-                      <div className="mt-5 border border-red-900/40 bg-red-950/15 p-5 md:p-6">
-                        <p className="font-serif text-xl text-[#F4EEE5]">
-                          ¿Seguro que querés cancelar?
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-[#aaa198]">
-                          El horario va a quedar libre para otra persona. Esta
-                          acción no se puede deshacer.
-                        </p>
-                        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                          <button
-                            type="button"
-                            onClick={() => setConfirmingCancel(false)}
-                            disabled={loading}
-                            className="flex-1 border border-white/10 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#aaa198] transition-all hover:border-white/20 hover:bg-white/[0.03] disabled:opacity-50"
-                          >
-                            No, mantener turno
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelReservation}
-                            disabled={loading}
-                            className="flex-1 bg-red-800/80 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-red-50 transition-all hover:bg-red-700 disabled:opacity-60"
-                          >
-                            {loading ? "Cancelando..." : "Sí, cancelar"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {editingReservation && (
-                      <RescheduleCalendar
-                        currentMonth={currentMonth}
-                        setCurrentMonth={setCurrentMonth}
-                        todayKey={todayKey}
-                        lastBookableKey={lastBookableKey}
-                        selectedDate={selectedDate}
-                        isDateAvailable={isDateAvailable}
-                        onSelectDate={(dateKey) => {
-                          setSelectedDate(dateKey);
-                          setNewStartAt("");
-                          fetchAvailableSlots(dateKey);
-                        }}
-                        loadingSlots={loadingSlots}
-                        availableSlots={availableSlots}
-                        newStartAt={newStartAt}
-                        onSelectSlot={setNewStartAt}
-                        serviceName={reservation.service_name}
-                        loading={loading}
-                        onCancel={() => {
-                          resetManagement();
-                          setError(null);
-                        }}
-                        onConfirm={confirmReschedule}
-                      />
-                    )}
-
-                    {!editingReservation && !confirmingCancel && (
-                      <p className="mt-5 text-center text-[10px] leading-6 text-[#625e58]">
-                        Podés modificar o cancelar hasta{" "}
-                        {config.cancellationNoticeHours} horas antes del turno.
-                      </p>
-                    )}
-                  </>
-                )}
-
-                {error && reservation && (
-                  <div
-                    role="alert"
-                    className="mt-5 border border-red-900/50 bg-red-950/20 p-4"
-                  >
-                    <p className="text-sm text-red-300">{error}</p>
-                  </div>
-                )}
-              </div>
             </motion.section>
           )}
         </AnimatePresence>
@@ -1089,21 +1056,21 @@ function RescheduleCalendar({
     lastMonth.getFullYear() * 12 + lastMonth.getMonth();
 
   return (
-    <div className="mt-6 border border-[#b08a5a]/20 bg-[#181715] p-4 md:p-8">
-      <p className="text-[9px] uppercase tracking-[0.28em] text-[#9b8465]">
-        Modificar reserva
+    <div className={`${bookingCardClass} mt-6 p-5 md:p-7`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#a88d68]">
+        Cambiar turno
       </p>
 
-      <h3 className="mt-2 font-serif text-2xl text-[#F4EEE5] md:text-3xl">
+      <h3 className="mt-2 font-serif text-[26px] text-[#F4EEE5] md:text-[30px]">
         Elegí un nuevo horario
       </h3>
 
-      <p className="mt-2 max-w-xl text-xs leading-6 text-[#777169]">
+      <p className="mt-2 max-w-xl text-[14px] leading-6 text-[#8d877e]">
         Primero el día y después uno de los horarios disponibles.
       </p>
 
-      <div className="mt-6 border border-white/10 bg-[#141412]">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 md:px-7">
+      <div className="mx-auto mt-6 max-w-[620px]">
+        <div className="flex items-center justify-between pb-4">
           <button
             type="button"
             disabled={!canGoBack}
@@ -1113,13 +1080,13 @@ function RescheduleCalendar({
                   new Date(current.getFullYear(), current.getMonth() - 1, 1)
               )
             }
-            className="flex h-9 w-9 items-center justify-center border border-white/10 text-[#aaa198] transition-all hover:border-[#b08a5a]/50 hover:text-[#b08a5a] disabled:opacity-20"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#EADFCB]/15 text-[#ddd6cc] transition hover:border-[#EADFCB]/50 disabled:opacity-20"
             aria-label="Mes anterior"
           >
             <ArrowLeft size={14} />
           </button>
 
-          <p className="font-serif text-xl text-[#F4EEE5] first-letter:uppercase">
+          <p className="font-serif text-[22px] text-[#F4EEE5] first-letter:uppercase">
             {formatMonthTitle(currentMonth)}
           </p>
 
@@ -1132,26 +1099,33 @@ function RescheduleCalendar({
                   new Date(current.getFullYear(), current.getMonth() + 1, 1)
               )
             }
-            className="flex h-9 w-9 items-center justify-center border border-white/10 text-[#aaa198] transition-all hover:border-[#b08a5a]/50 hover:text-[#b08a5a] disabled:opacity-20"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#EADFCB]/15 text-[#ddd6cc] transition hover:border-[#EADFCB]/50 disabled:opacity-20"
             aria-label="Mes siguiente"
           >
             <ArrowRight size={14} />
           </button>
         </div>
 
-        <div className="grid grid-cols-7 border-b border-white/10">
+        <div className="grid grid-cols-7">
           {["D", "L", "M", "X", "J", "V", "S"].map((day) => (
             <div
               key={day}
-              className="py-3 text-center text-[9px] font-semibold uppercase tracking-[0.2em] text-[#625e58]"
+              className="pb-2 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7d756a]"
             >
               {day}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-px bg-white/10">
-          {getCalendarDays(currentMonth).map((date) => {
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          {getCalendarDays(currentMonth)
+            // Sin semanas que sean enteras del mes siguiente.
+            .filter((_, index, all) =>
+              all
+                .slice(index - (index % 7), index - (index % 7) + 7)
+                .some((day) => day.getMonth() === currentMonth.getMonth())
+            )
+            .map((date) => {
             const dateKey = formatDateKey(date);
             const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
             const isToday = dateKey === todayKey;
@@ -1166,24 +1140,19 @@ function RescheduleCalendar({
                 onClick={() => onSelectDate(dateKey)}
                 aria-pressed={isSelected}
                 className={[
-                  "relative min-h-[48px] bg-[#141412] px-1 py-2 text-center transition-all md:min-h-[58px]",
-                  !isCurrentMonth ? "text-[#292825]" : "",
-                  isCurrentMonth && !isAvailable ? "text-[#393632]" : "",
-                  isAvailable ? "hover:bg-[#1d1c19]" : "",
+                  "relative mx-auto flex aspect-square w-full max-w-[64px] items-center justify-center rounded-full text-[15px] tabular-nums transition",
+                  !isCurrentMonth ? "invisible" : "",
                   isSelected
-                    ? "bg-[#b08a5a]/15 text-[#b08a5a] ring-1 ring-inset ring-[#b08a5a]/50"
-                    : "",
+                    ? "bg-[#EADFCB] font-semibold text-[#1b1915]"
+                    : isAvailable
+                      ? "border border-[#EADFCB]/[0.1] text-[#ddd6cc] hover:border-[#b08a5a]"
+                      : "text-[#3d3a35]",
                 ].join(" ")}
               >
-                <span
-                  className={[
-                    "mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm",
-                    isToday ? "border border-[#b08a5a]/50" : "",
-                    isSelected ? "bg-[#b08a5a] font-semibold text-[#171512]" : "",
-                  ].join(" ")}
-                >
-                  {date.getDate()}
-                </span>
+                {date.getDate()}
+                {isToday && !isSelected && (
+                  <span className="absolute bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#c9a46e]" />
+                )}
               </button>
             );
           })}
@@ -1193,7 +1162,7 @@ function RescheduleCalendar({
       {selectedDate && (
         <div className="mt-6">
           <div className="flex items-center justify-between">
-            <p className="font-serif text-xl text-[#F4EEE5] first-letter:uppercase">
+            <p className="font-serif text-[20px] text-[#F4EEE5] first-letter:uppercase">
               {new Intl.DateTimeFormat("es-AR", {
                 weekday: "long",
                 day: "numeric",
@@ -1210,7 +1179,7 @@ function RescheduleCalendar({
           </div>
 
           {!loadingSlots && availableSlots.length === 0 && (
-            <div className="mt-4 border border-white/10 bg-[#141412] p-6 text-center">
+            <div className="mt-4 rounded-[16px] border border-[#EADFCB]/[0.08] bg-[#0f0e0c] p-6 text-center">
               <Clock3 size={18} className="mx-auto text-[#625e58]" />
               <p className="mt-3 text-xs text-[#777169]">
                 No hay horarios disponibles para este día.
@@ -1219,41 +1188,27 @@ function RescheduleCalendar({
           )}
 
           {!loadingSlots && availableSlots.length > 0 && (
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-              {availableSlots.map((slot) => {
-                const isSelectedSlot = newStartAt === slot.slot_start;
-
-                return (
-                  <button
-                    key={slot.slot_start}
-                    type="button"
-                    onClick={() => onSelectSlot(slot.slot_start)}
-                    aria-pressed={isSelectedSlot}
-                    className={[
-                      "border px-2 py-3 text-center text-sm font-medium transition-all",
-                      isSelectedSlot
-                        ? "border-[#b08a5a] bg-[#b08a5a] text-[#171512]"
-                        : "border-white/10 bg-[#141412] text-[#ddd6cc] hover:border-[#b08a5a]/60 hover:bg-[#1d1c19] hover:text-[#b08a5a]",
-                    ].join(" ")}
-                  >
-                    {formatArgentinaTime(slot.slot_start)}
-                  </button>
-                );
-              })}
+            <div className="mt-4">
+              <TimeSlotGroups
+                slots={availableSlots}
+                isSelected={(slot) => newStartAt === slot.slot_start}
+                onSelect={(slot) => onSelectSlot(slot.slot_start)}
+                formatTime={formatArgentinaTime}
+              />
             </div>
           )}
         </div>
       )}
 
       {newStartAt && (
-        <div className="mt-6 border border-[#b08a5a]/20 bg-[#141412] p-5">
-          <p className="text-[9px] uppercase tracking-[0.25em] text-[#625e58]">
+        <div className="mt-6 rounded-[18px] border border-[#EADFCB]/20 bg-[#EADFCB]/[0.04] p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[#a88d68]">
             Nuevo horario
           </p>
-          <p className="mt-1 font-serif text-xl text-[#F4EEE5]">
+          <p className="mt-1 font-serif text-[22px] text-[#F4EEE5] first-letter:uppercase">
             {formatArgentinaDate(newStartAt)}
           </p>
-          <p className="mt-1 text-sm text-[#b08a5a]">
+          <p className="mt-1 text-[14px] text-[#e3c591]">
             {formatArgentinaTime(newStartAt)} hs · {serviceName}
           </p>
         </div>
@@ -1264,7 +1219,7 @@ function RescheduleCalendar({
           type="button"
           onClick={onCancel}
           disabled={loading}
-          className="flex-1 border border-white/10 px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#aaa198] transition-all hover:border-white/20 hover:bg-white/[0.03] disabled:opacity-50"
+          className={`${bookingSecondaryButtonClass} flex-1`}
         >
           Volver
         </button>
@@ -1273,7 +1228,7 @@ function RescheduleCalendar({
           type="button"
           disabled={!newStartAt || loading}
           onClick={onConfirm}
-          className="flex-1 bg-[#b08a5a] px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#171512] transition-all hover:bg-[#c09a6c] disabled:opacity-50"
+          className={`${bookingPrimaryButtonClass} flex-1`}
         >
           {loading ? "Guardando..." : "Confirmar cambio"}
         </button>
@@ -1299,10 +1254,10 @@ function ModeTab({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`flex items-center justify-center gap-2 px-2 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] transition-all sm:tracking-[0.2em] ${
+      className={`flex min-h-[42px] items-center justify-center gap-2 rounded-full px-2 text-[10px] font-semibold uppercase tracking-[0.14em] transition sm:tracking-[0.18em] ${
         active
-          ? "bg-[#b08a5a] text-[#171512]"
-          : "text-[#8d877e] hover:bg-white/[0.04] hover:text-[#ddd6cc]"
+          ? "bg-[#EADFCB] text-[#1b1915]"
+          : "text-[#8d877e] hover:text-[#ddd6cc]"
       }`}
     >
       {icon}
@@ -1361,16 +1316,16 @@ function ContactLinks() {
             href={item.href}
             target={item.external ? "_blank" : undefined}
             rel={item.external ? "noopener noreferrer" : undefined}
-            className="flex items-center gap-4 border border-white/5 bg-[#181715] p-3 transition-all hover:border-[#b08a5a]/50 hover:bg-[#1d1c19]"
+            className="flex items-center gap-4 rounded-[16px] border border-[#EADFCB]/[0.08] bg-[#0f0e0c] p-3 transition hover:border-[#b08a5a]/60"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/10 text-[#b08a5a]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#EADFCB]/[0.12] text-[#e3c591]">
               {item.icon}
             </span>
             <span className="min-w-0">
-              <span className="block text-xs font-medium text-[#ddd6cc]">
+              <span className="block text-[13px] font-medium text-[#F4EEE5]">
                 {item.title}
               </span>
-              <span className="mt-0.5 block truncate text-[11px] text-[#777169]">
+              <span className="mt-0.5 block truncate text-[12px] text-[#8d877e]">
                 {item.text}
               </span>
             </span>
@@ -1378,35 +1333,5 @@ function ContactLinks() {
         </li>
       ))}
     </ul>
-  );
-}
-
-function ReservationItem({
-  label,
-  value,
-  highlight = false,
-  capitalize = false,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-  capitalize?: boolean;
-}) {
-  return (
-    <div className="border border-white/10 bg-[#141412] p-4 md:p-5">
-      <p className="text-[9px] uppercase tracking-[0.28em] text-[#777169]">
-        {label}
-      </p>
-
-      <p
-        className={`mt-2 break-words ${capitalize ? "capitalize" : ""} ${
-          highlight
-            ? "font-serif text-2xl text-[#b08a5a]"
-            : "text-sm leading-6 text-[#ddd6cc]"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
   );
 }
