@@ -55,6 +55,7 @@ Revisar especialmente:
 | `…1000_table_grants.sql` | Permisos de tabla (GRANT) para que el panel pueda leer y escribir con el usuario admin |
 | `…1100_web_booking_notifications.sql` | Marca el origen de cada turno nuevo (`source`: `web` o `panel`) y activa Realtime en `appointments`: la campanita del panel avisa al instante cuando alguien reserva desde la web |
 | `…1200_cancel_anytime_and_audit.sql` | Reservar y reprogramar online hasta **1 hora antes**; cancelar online **en cualquier momento antes del turno**. Cada turno guarda quién lo canceló (cliente o panel, con el email del admin), cuándo, y cuándo se marcó "No asistió". Los cancelados no se borran |
+| `…1300_one_active_appointment_per_slot.sql` | **Un solo turno activo por horario**: la base rechaza crear o mover un turno (también desde el panel) a un horario que ya tiene otro confirmado, pendiente o completado. Los cancelados no ocupan el horario |
 
 #### Hallazgos del diagnóstico (13/10/2026)
 
