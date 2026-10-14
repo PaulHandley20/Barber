@@ -1,6 +1,7 @@
 // app/admin/fidelizacion/page.tsx
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Award,
@@ -164,31 +165,12 @@ function MetricCard({
   accent?: boolean;
 }) {
   return (
-    <div className="metric-card panel">
-      <div className="flex items-center gap-3">
-        <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
-            accent
-              ? "border-[#ff5a00]/25 bg-[#ff5a00]/[0.08] text-[#ff6a18]"
-              : "border-white/[0.08] bg-white/[0.035] text-white/55"
-          }`}
-        >
-          {icon}
-        </div>
-
-        <p
-          className={`meta-label ${
-            accent ? "text-[#ff6a18]" : "text-white/62"
-          }`}
-        >
-          {label}
-        </p>
-      </div>
-
-      <p className="page-number mt-7 text-[32px] font-semibold leading-none tracking-[-.06em] text-white">
-        {value.toLocaleString("es-AR")}
-      </p>
-    </div>
+    <KpiCard
+      icon={icon}
+      label={label}
+      value={value.toLocaleString("es-AR")}
+      accent={accent}
+    />
   );
 }
 
@@ -716,7 +698,7 @@ export default function FidelizacionPage() {
                         Programa activo
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">
+                        <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
                           {activeProgram.name}
                         </h2>
                         <span className="rounded-full border border-[#ff5a00]/25 bg-[#ff5a00]/[0.08] px-2.5 py-1 data text-[9px] font-bold uppercase tracking-[.12em] text-[#ff7a36]">
@@ -787,7 +769,7 @@ export default function FidelizacionPage() {
                     <div className="meta-label mb-2 text-[#ff6a18]">
                       Próximo beneficio
                     </div>
-                    <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">
+                    <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
                       Escalera de recompensas
                     </h2>
                     <p className="mt-1 text-[14px] text-white/70">
@@ -835,7 +817,7 @@ export default function FidelizacionPage() {
                     <div className="meta-label text-[#ff6a18]">
                       Seguimiento de clientes
                     </div>
-                    <h2 className="display mt-2 text-[22px] font-semibold tracking-[-.04em] text-white">
+                    <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                       Puntos y progreso
                     </h2>
                     <p className="mt-1 text-[14px] text-white/68">
@@ -1036,7 +1018,7 @@ export default function FidelizacionPage() {
                     <div className="meta-label mb-2 text-[#ff6a18]">
                       Configuración
                     </div>
-                    <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">
+                    <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
                       Puntos por servicio
                     </h2>
                     <p className="mt-1 text-[14px] text-white/70">
@@ -1101,7 +1083,7 @@ export default function FidelizacionPage() {
                     <div className="meta-label mb-2 text-[#ff6a18]">
                       Beneficios
                     </div>
-                    <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">
+                    <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
                       Catálogo de recompensas
                     </h2>
                     <p className="mt-1 text-[14px] text-white/70">
@@ -1165,7 +1147,7 @@ export default function FidelizacionPage() {
                 <div className="meta-label mb-2 text-[#ff6a18]">
                   Actividad
                 </div>
-                <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
                   Movimiento reciente
                 </h2>
                 <p className="mt-1 text-[14px] text-white/70">
@@ -1368,7 +1350,7 @@ function CustomerDrawer({
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[.06] bg-[#0b0b0b]/95 px-6 py-5 backdrop-blur">
           <div>
             <p className="meta-label text-[#ff6a18]">Cliente 360</p>
-            <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+            <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
               {item.customer.full_name}
             </h2>
           </div>
@@ -1578,7 +1560,7 @@ function EmptyProgram({
           <Award size={27} />
         </div>
 
-        <h2 className="display mt-6 text-[24px] font-semibold tracking-[-.04em] text-white">
+        <h2 className="display mt-6 text-[24px] font-semibold tracking-[-.035em] text-white">
           Activá tu programa de fidelización
         </h2>
 

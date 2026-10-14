@@ -1,6 +1,7 @@
 // app/admin/page.tsx
 "use client";
 
+import KpiCard, { KpiDelta } from "@/components/admin/ui/KpiCard";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { manrope, sora, dataFont } from "@/components/admin/fonts";
@@ -332,7 +333,7 @@ function SectionHeader({
     <div className="flex items-start justify-between gap-4">
       <div>
         <div className="meta-label text-[#ff6a18]">{eyebrow}</div>
-        <h2 className="display mt-2 text-[21px] font-semibold tracking-[-.04em] text-white">
+        <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
           {title}
         </h2>
         {description ? (
@@ -372,41 +373,14 @@ function MetricCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`metric-card panel ${accent ? "metric-accent" : ""}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div
-          className={`flex h-9 w-9 items-center justify-center rounded-[11px] border ${
-            accent
-              ? "border-[#ff5a00]/25 bg-[#ff5a00]/[.08] text-[#ff6a18]"
-              : "border-white/[.08] bg-white/[.025] text-white/55"
-          }`}
-        >
-          {icon}
-        </div>
-        {typeof delta === "number" ? (
-          <span
-            className={`data rounded-full border px-2 py-1 text-[9px] ${
-              delta >= 0
-                ? "border-emerald-300/15 bg-emerald-300/[.035] text-emerald-300/80"
-                : "border-red-300/15 bg-red-300/[.035] text-red-300/75"
-            }`}
-          >
-            {delta >= 0 ? "+" : ""}
-            {delta.toFixed(0)}%
-          </span>
-        ) : null}
-      </div>
-
-      <div className="mt-6">
-        <div className={`meta-label ${accent ? "text-[#ff6a18]" : "text-white/58"}`}>
-          {label}
-        </div>
-        <div className="page-number mt-2 text-[30px] font-semibold leading-none tracking-[-.055em] text-white">
-          {value}
-        </div>
-        <div className="mt-2 text-[11px] leading-5 text-white/48">{detail}</div>
-      </div>
-    </div>
+    <KpiCard
+      icon={icon}
+      label={label}
+      value={value}
+      detail={detail}
+      accent={accent}
+      trend={typeof delta === "number" ? <KpiDelta value={delta} /> : null}
+    />
   );
 }
 
@@ -1251,11 +1225,16 @@ export default function AdminDashboardPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-[1580px] px-4 py-5 sm:px-6 lg:px-8 xl:px-10">
+      <div className="mx-auto max-w-[1680px] px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
         <header className="mb-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="meta-label text-[#ff6a18]">CENTRO DE MANDO</div>
-            <h1 className="page-display mt-3 text-white">Dashboard</h1>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/82">BarberOS</span>
+              <span className="text-white/10">/</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#ff6a18]">Centro de mando</span>
+              <span className="ml-1 hidden h-px w-10 bg-gradient-to-r from-orange-500/55 to-transparent sm:block" />
+            </div>
+            <h1 className="page-display text-white">Dashboard</h1>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
               <p className="text-[13px] text-white/72 first-letter:uppercase">
                 {formatDate(now)}
@@ -1986,7 +1965,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="meta-label text-[#ff6a18]">PRÓXIMA ACCIÓN</div>
-                <h2 className="display mt-2 text-[19px] font-semibold text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold text-white">
                   Recuperar clientes
                 </h2>
               </div>
@@ -2010,7 +1989,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="meta-label text-[#ff6a18]">DEMANDA</div>
-                <h2 className="display mt-2 text-[19px] font-semibold text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold text-white">
                   Día de mayor carga
                 </h2>
               </div>
@@ -2038,7 +2017,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="meta-label text-[#ff6a18]">FIDELIZACIÓN</div>
-                <h2 className="display mt-2 text-[19px] font-semibold text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold text-white">
                   Oportunidad de retorno
                 </h2>
               </div>

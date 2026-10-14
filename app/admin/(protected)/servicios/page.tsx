@@ -1,5 +1,6 @@
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import { manrope, sora, dataFont } from "@/components/admin/fonts";
@@ -131,29 +132,13 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className="metric-card panel-surface group relative min-h-[154px] p-5">
-      {accent ? (
-        <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/75 to-transparent" />
-      ) : null}
-
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className={accent ? "text-[#ff6a18]" : "text-white/42"}>
-            <Icon size={15} strokeWidth={1.7} />
-          </span>
-          <span className="meta-label text-white/68">{label}</span>
-        </div>
-
-      </div>
-
-      <div className="display mt-7 truncate text-[30px] font-semibold leading-none tracking-[-.065em] text-white">
-        {value}
-      </div>
-
-      <div className="mt-3 truncate text-[12px] leading-5 text-white/60">
-        {helper}
-      </div>
-    </div>
+    <KpiCard
+      label={label}
+      value={value}
+      detail={helper}
+      icon={<Icon size={15} strokeWidth={1.7} />}
+      accent={accent}
+    />
   );
 }
 
@@ -1162,7 +1147,7 @@ export default function ServiciosPage() {
                 <div className="eyebrow mb-2 text-[#ff6a18]">
                   INTELIGENCIA DE SERVICIOS
                 </div>
-                <h2 className="display text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
                   Actividad del catálogo
                 </h2>
                 <p className="mt-1 text-[13px] leading-5 text-white/62">
@@ -1214,7 +1199,7 @@ export default function ServiciosPage() {
             <div className="eyebrow mb-2 text-[#ff6a18]">
               OPORTUNIDADES
             </div>
-            <h2 className="display text-[20px] font-semibold tracking-[-.04em] text-white">
+            <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
               Lo que mueve el catálogo
             </h2>
             <p className="mt-1 text-[13px] leading-5 text-white/62">
@@ -1312,7 +1297,7 @@ export default function ServiciosPage() {
                 <div className="eyebrow mb-2 text-[#ff6a18]">
                   DIRECTORIO OPERATIVO
                 </div>
-                <h2 className="display text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">
                   Catálogo de servicios
                 </h2>
                 <p className="mt-1 text-[13px] leading-5 text-white/62">
@@ -1433,7 +1418,7 @@ export default function ServiciosPage() {
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#0b0b0b]/95 px-6 py-5 backdrop-blur-xl">
               <div>
                 <div className="eyebrow text-[#ff6a18]">SERVICIO 360</div>
-                <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Detalle del servicio
                 </h2>
               </div>
@@ -1622,7 +1607,7 @@ export default function ServiciosPage() {
                 <div className="eyebrow text-[#ff6a18]">
                   {editingService ? "EDITAR CATÁLOGO" : "NUEVO CATÁLOGO"}
                 </div>
-                <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-1 text-[20px] font-semibold tracking-[-.035em] text-white">
                   {editingService ? "Editar servicio" : "Crear servicio"}
                 </h2>
               </div>

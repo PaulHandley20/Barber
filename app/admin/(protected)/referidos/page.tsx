@@ -1,5 +1,6 @@
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import {
   ArrowUpRight,
   Gift,
@@ -263,7 +264,7 @@ export default function ReferidosPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="eyebrow text-[#ff6a18]">Programa</p>
-                  <h2 className="mt-2 text-[21px] font-semibold tracking-[-.035em] text-white">
+                  <h2 className="mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                     Programa de referidos
                   </h2>
                   <p className="mt-2 max-w-2xl text-[13px] leading-5 text-white/68">
@@ -287,7 +288,7 @@ export default function ReferidosPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="eyebrow text-[#ff6a18]">Flujo</p>
-                <h2 className="mt-2 text-[20px] font-semibold tracking-[-.03em] text-white">Cómo funciona</h2>
+                <h2 className="mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">Cómo funciona</h2>
               </div>
               <Users size={17} className="text-white/62" />
             </div>
@@ -306,7 +307,7 @@ export default function ReferidosPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow text-[#ff6a18]">Reglas</p>
-                <h2 className="mt-2 text-[20px] font-semibold tracking-[-.03em] text-white">Decisiones del programa</h2>
+                <h2 className="mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">Decisiones del programa</h2>
                 <p className="mt-2 text-[13px] leading-5 text-white/68">
                   Estos puntos definen la mecánica comercial antes de activarla.
                 </p>
@@ -326,7 +327,7 @@ export default function ReferidosPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow text-[#ff6a18]">Integración</p>
-                <h2 className="mt-2 text-[20px] font-semibold tracking-[-.03em] text-white">Conectado con BarberOS</h2>
+                <h2 className="mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">Conectado con BarberOS</h2>
                 <p className="mt-2 text-[13px] leading-5 text-white/68">
                   La estructura está pensada para compartir información con Clientes, Fidelización y Analytics.
                 </p>
@@ -347,20 +348,7 @@ export default function ReferidosPage() {
 }
 
 function MetricCard({ icon, label, value, detail }: { icon: ReactNode; label: string; value: string | number; detail: string }) {
-  return (
-    <div className="panel relative min-h-[154px] overflow-hidden rounded-[16px] p-5">
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.17em] text-white/52">
-          <span className="text-white/52">{icon}</span>
-          {label}
-        </span>
-        <span className="text-[9px] font-medium uppercase tracking-[0.15em] text-white/28">datos</span>
-      </div>
-      <p className="display mt-7 truncate text-[30px] font-semibold leading-none tracking-[-.065em] text-white">{value}</p>
-      <p className="mt-3 truncate text-[12px] leading-5 text-white/62">{detail}</p>
-      <span className="absolute bottom-0 left-5 h-px w-16 bg-gradient-to-r from-[#ff5a00]/50 to-transparent" />
-    </div>
-  );
+  return <KpiCard icon={icon} label={label} value={value} detail={detail} />;
 }
 
 function InfoBlock({ icon, label, title, text }: { icon: ReactNode; label: string; title: string; text: string }) {

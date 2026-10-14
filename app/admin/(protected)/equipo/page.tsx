@@ -1,6 +1,7 @@
 // app/admin/equipo/page.tsx
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import { formatMoney } from "@/components/admin/format";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -405,7 +406,7 @@ export default function EquipoPage() {
               <div className="relative mb-6 flex items-end justify-between gap-4">
                 <div>
                   <div className="data mb-2 text-[10px] font-extrabold uppercase tracking-[.18em] text-[#ff6a18]">Performance</div>
-                  <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">Rendimiento del equipo</h2>
+                  <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">Rendimiento del equipo</h2>
                   <p className="mt-1 text-[14px] text-white/70">Ingresos y volumen de trabajo por profesional.</p>
                 </div>
                 <div className="hidden items-center gap-2 data text-[10px] uppercase tracking-[.12em] text-white/60 sm:flex">
@@ -451,7 +452,7 @@ export default function EquipoPage() {
             <div className="panel p-5 sm:p-6">
               <div className="relative mb-6">
                 <div className="data mb-2 text-[10px] font-extrabold uppercase tracking-[.18em] text-[#ff6a18]">Indicadores</div>
-                <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">Estado operativo</h2>
+                <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">Estado operativo</h2>
                 <p className="mt-1 text-[14px] text-white/70">Lectura rápida de capacidad y evolución.</p>
               </div>
 
@@ -483,7 +484,7 @@ export default function EquipoPage() {
               <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
                   <div className="data mb-2 text-[10px] font-extrabold uppercase tracking-[.18em] text-[#ff6a18]">Directorio</div>
-                  <h2 className="display text-[22px] font-semibold tracking-[-.04em] text-white">Profesionales</h2>
+                  <h2 className="display text-[20px] font-semibold tracking-[-.035em] text-white">Profesionales</h2>
                   <p className="mt-1 text-[14px] text-white/70">Accedé al perfil, rendimiento y acciones de cada miembro.</p>
                 </div>
 
@@ -572,7 +573,7 @@ export default function EquipoPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="data text-[8px] font-bold uppercase tracking-[.18em] text-[#ff6a18]">TEAM 360</div>
-                  <h2 className="display mt-2 text-[22px] font-semibold tracking-[-.05em] text-white">{selected.name}</h2>
+                  <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">{selected.name}</h2>
                   <p className="mt-1 text-[11px] text-white/64">Perfil operativo y rendimiento del profesional.</p>
                 </div>
                 <button type="button" onClick={() => setSelected(null)} className="control flex h-9 w-9 items-center justify-center rounded-[10px] text-white/48"><X size={15} /></button>
@@ -691,17 +692,7 @@ export default function EquipoPage() {
 }
 
 function Metric({ label, value, detail, icon, accent = false }: { label: string; value: string; detail: string; icon: ReactNode; accent?: boolean }) {
-  return (
-    <div className="panel relative min-h-[150px] p-5">
-      {accent && <div className="absolute left-0 top-0 h-px w-1/2 bg-gradient-to-r from-[#ff5a00]/75 to-transparent" />}
-      <div className="flex items-start justify-between gap-3">
-        <span className="data flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.16em] text-white/64"><span className={accent ? "text-[#ff6a18]" : "text-white/30"}>{icon}</span>{label}</span>
-        <span className="data text-[7px] uppercase tracking-[.12em] text-white/27">01</span>
-      </div>
-      <div className="display mt-7 truncate text-[30px] font-semibold leading-none tracking-[-.065em] text-white">{value}</div>
-      <div className="mt-3 truncate text-[10px] text-white/60">{detail}</div>
-    </div>
-  );
+  return <KpiCard label={label} value={value} detail={detail} icon={icon} accent={accent} />;
 }
 
 function Operational({ label, value, percent }: { label: string; value: string; percent: number }) {
@@ -729,7 +720,7 @@ function Modal({ title, eyebrow, description, onClose, children }: { title: stri
     <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto sm:items-center bg-black/75 p-4 backdrop-blur-sm">
       <div className="w-full max-w-[440px] overflow-hidden rounded-[16px] border border-white/[.075] bg-[#0b0b0b] p-6 shadow-[0_30px_100px_rgba(0,0,0,.5)]">
         <div className="flex items-start justify-between gap-4">
-          <div><div className="data text-[8px] font-bold uppercase tracking-[.16em] text-white/36">{eyebrow}</div><h2 className="display mt-2 text-[22px] font-semibold tracking-[-.04em] text-white">{title}</h2><p className="mt-1 text-[10px] text-white/64">{description}</p></div>
+          <div><div className="data text-[8px] font-bold uppercase tracking-[.16em] text-white/36">{eyebrow}</div><h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">{title}</h2><p className="mt-1 text-[10px] text-white/64">{description}</p></div>
           <button type="button" onClick={onClose} className="control flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-white/44 hover:text-white"><X size={15} /></button>
         </div>
         <div className="mt-6">{children}</div>

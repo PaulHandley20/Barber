@@ -1,5 +1,6 @@
 "use client";
 
+import KpiCard from "@/components/admin/ui/KpiCard";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   BarChart3,
@@ -250,24 +251,13 @@ function MetricCard({
   accent?: boolean;
 }) {
   return (
-    <article className={`panel-surface rounded-2xl p-5 ${accent ? "border-[#ff5a00]/15" : ""}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className={`text-[11px] font-semibold ${accent ? "text-[#ff6a18]" : "text-white/72"}`}>
-          {label}
-        </div>
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg border ${
-          accent
-            ? "border-[#ff5a00]/20 bg-[#ff5a00]/[0.07] text-[#ff6a18]"
-            : "border-white/[0.07] bg-white/[0.025] text-white/42"
-        }`}>
-          <Icon size={15} strokeWidth={1.7} />
-        </div>
-      </div>
-      <div className="display mt-7 text-[30px] font-semibold leading-none tracking-[-.055em] text-white">
-        {value}
-      </div>
-      <div className="mt-3 text-[12px] text-white/58">{helper}</div>
-    </article>
+    <KpiCard
+      label={label}
+      value={value}
+      detail={helper}
+      icon={<Icon size={15} strokeWidth={1.7} />}
+      accent={accent}
+    />
   );
 }
 
@@ -1143,7 +1133,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <SectionLabel>INGRESOS</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Evolución de facturación
                 </h2>
                 <p className="mt-1 text-[13px] text-white/60">
@@ -1199,7 +1189,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>SALUD OPERATIVA</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Rendimiento del período
                 </h2>
               </div>
@@ -1249,7 +1239,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>SERVICIOS</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Rendimiento por servicio
                 </h2>
                 <p className="mt-1 text-[13px] text-white/60">
@@ -1306,7 +1296,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>EQUIPO</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Performance del equipo
                 </h2>
                 <p className="mt-1 text-[13px] text-white/60">
@@ -1361,7 +1351,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>CLIENTES</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Comportamiento
                 </h2>
               </div>
@@ -1402,7 +1392,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>DEMANDA</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Días y horarios
                 </h2>
               </div>
@@ -1463,7 +1453,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>FIDELIZACIÓN</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Puntos y beneficios
                 </h2>
                 <p className="mt-1 text-[12px] text-white/55">
@@ -1514,7 +1504,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>RESUMEN</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Lectura ejecutiva
                 </h2>
               </div>
@@ -1554,7 +1544,7 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <SectionLabel>COMPARACIÓN</SectionLabel>
-                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.04em] text-white">
+                <h2 className="display mt-2 text-[20px] font-semibold tracking-[-.035em] text-white">
                   Últimos 6 meses
                 </h2>
                 <p className="mt-1 text-[12px] text-white/55">
