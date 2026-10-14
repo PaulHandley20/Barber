@@ -23,9 +23,10 @@ import {
   RefreshCw,
   Check,
   Archive,
+  ChevronDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import BarChart, { compactNumber } from "@/components/admin/ui/BarChart";
+import BarChart, { compactNumber, type BarDatum } from "@/components/admin/ui/BarChart";
 
 
 
@@ -143,28 +144,131 @@ function StatCard({
 }
 
 function MiniRevenueChart({
-  values,
-  labels,
+  data,
+  ariaLabel,
 }: {
-  values: number[];
-  labels: string[];
+  data: BarDatum[];
+  ariaLabel: string;
 }) {
   return (
     <div className="rounded-[14px] border border-white/[0.055] bg-[#080808] p-4">
       <BarChart
-        height={180}
+        height={200}
         seriesLabel="Ingresos"
         formatValue={formatMoney}
         formatAxis={(value) => `$${compactNumber(value)}`}
-        ariaLabel="Ingresos diarios del catálogo"
-        data={values.map((value, index) => ({
-          key: `${labels[index]}-${index}`,
-          label: labels[index],
-          value,
-        }))}
+        ariaLabel={ariaLabel}
+        maxXLabels={12}
+        highlightKey={data[data.length - 1]?.key}
+        data={data}
       />
     </div>
   );
+}
+
+type ChartPeriod = "day" | "week" | "month" | "year";
+
+const CHART_PERIODS: { value: ChartPeriod; label: string; window: string }[] = [
+  { value: "day", label: "Día", window: "últimos 14 días" },
+  { value: "week", label: "Semana", window: "últimas 12 semanas" },
+  { value: "month", label: "Mes", window: "últimos 12 meses" },
+  { value: "year", label: "Año", window: "por año" },
+];
+
+type ChartBucket = {
+  key: string;
+  label: string;
+  fullLabel: string;
+  start: Date;
+  end: Date;
+};
+
+/* Arma los tramos del gráfico según el período elegido. */
+function buildBuckets(period: ChartPeriod, firstDate: Date | null): ChartBucket[] {
+  const now = new Date();
+  const buckets: ChartBucket[] = [];
+
+  if (period === "day") {
+    for (let offset = 13; offset >= 0; offset -= 1) {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+      const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
+
+      buckets.push({
+        key: start.toISOString(),
+        label: String(start.getDate()),
+        fullLabel: new Intl.DateTimeFormat("es-AR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }).format(start),
+        start,
+        end,
+      });
+    }
+  }
+
+  if (period === "week") {
+    // Semanas de lunes a domingo.
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+
+    for (let offset = 11; offset >= 0; offset -= 1) {
+      const start = new Date(monday);
+      start.setDate(monday.getDate() - offset * 7);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+
+      buckets.push({
+        key: start.toISOString(),
+        label: `${start.getDate()}/${start.getMonth() + 1}`,
+        fullLabel: `Semana del ${new Intl.DateTimeFormat("es-AR", {
+          day: "numeric",
+          month: "long",
+        }).format(start)}`,
+        start,
+        end,
+      });
+    }
+  }
+
+  if (period === "month") {
+    for (let offset = 11; offset >= 0; offset -= 1) {
+      const start = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+
+      buckets.push({
+        key: start.toISOString(),
+        label: new Intl.DateTimeFormat("es-AR", { month: "short" })
+          .format(start)
+          .replace(".", ""),
+        fullLabel: new Intl.DateTimeFormat("es-AR", {
+          month: "long",
+          year: "numeric",
+        }).format(start),
+        start,
+        end,
+      });
+    }
+  }
+
+  if (period === "year") {
+    const firstYear = Math.min(
+      firstDate ? firstDate.getFullYear() : now.getFullYear(),
+      now.getFullYear() - 2
+    );
+
+    for (let year = Math.max(firstYear, now.getFullYear() - 5); year <= now.getFullYear(); year += 1) {
+      buckets.push({
+        key: String(year),
+        label: String(year),
+        fullLabel: `Año ${year}`,
+        start: new Date(year, 0, 1),
+        end: new Date(year + 1, 0, 1),
+      });
+    }
+  }
+
+  return buckets;
 }
 
 function EmptyState({
@@ -258,14 +362,14 @@ function ServiceRow({
               </span>
             </div>
 
-            <div className="mt-1 flex items-center gap-3 text-[12px] leading-5 text-white/58">
-              <span className="inline-flex items-center gap-1.5">
+            <div className="mt-1 flex min-w-0 items-center gap-3 text-[12px] leading-5 text-white/58">
+              <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
                 <Clock3 size={12} />
                 {formatDuration(service.duration_minutes)}
               </span>
 
               {service.description ? (
-                <span className="hidden truncate lg:block">
+                <span className="hidden min-w-0 truncate lg:block">
                   {service.description}
                 </span>
               ) : null}
@@ -532,16 +636,6 @@ export default function ServiciosPage() {
     );
   }, [services]);
 
-  const mostPopularService = useMemo(() => {
-    return services.reduce<Service | null>((winner, service) => {
-      if (!winner) return service;
-
-      return (serviceUsage[service.id] ?? 0) >
-        (serviceUsage[winner.id] ?? 0)
-        ? service
-        : winner;
-    }, null);
-  }, [services, serviceUsage]);
 
   const filteredServices = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -569,67 +663,99 @@ export default function ServiciosPage() {
     );
   }, [services, serviceRevenue, serviceUsage]);
 
-  const chartData = useMemo(() => {
-    const now = new Date();
-    const labels: string[] = [];
-    const values: number[] = [];
+  const [chartService, setChartService] = useState<string>("all");
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("day");
 
-    for (let offset = 6; offset >= 0; offset -= 1) {
-      const day = new Date(now);
-      day.setHours(0, 0, 0, 0);
-      day.setDate(now.getDate() - offset);
-
-      labels.push(
-        new Intl.DateTimeFormat("es-AR", {
-          weekday: "short",
-        })
-          .format(day)
-          .replace(".", "")
+  const chart = useMemo(() => {
+    const priceOf = (appointment: Appointment) =>
+      Number(
+        appointment.service?.price ??
+          services.find((service) => service.id === appointment.service_id)?.price ??
+          0
       );
 
-      const value = appointments.reduce((sum, appointment) => {
-        if (
-          appointment.status === "cancelled" ||
-          appointment.status === "no_show"
-        ) {
-          return sum;
-        }
+    // Mismo criterio que el resto de Servicios: turnos no cancelados.
+    const counted = appointments.filter(
+      (appointment) =>
+        appointment.status !== "cancelled" && appointment.status !== "no_show"
+    );
 
-        const appointmentDate = new Date(appointment.start_at);
+    const firstDate = counted.reduce<Date | null>((first, appointment) => {
+      const date = new Date(appointment.start_at);
+      return !first || date < first ? date : first;
+    }, null);
 
-        if (
-          appointmentDate.getFullYear() === day.getFullYear() &&
-          appointmentDate.getMonth() === day.getMonth() &&
-          appointmentDate.getDate() === day.getDate()
-        ) {
-          return (
-            sum +
-            Number(
-              appointment.service?.price ??
-                services.find(
-                  (service) => service.id === appointment.service_id
-                )?.price ??
-                0
-            )
-          );
-        }
+    const buckets = buildBuckets(chartPeriod, firstDate);
+    const windowStart = buckets[0]?.start ?? new Date();
+    const windowEnd = buckets[buckets.length - 1]?.end ?? new Date();
 
-        return sum;
-      }, 0);
+    const inWindow = counted.filter((appointment) => {
+      const date = new Date(appointment.start_at);
+      return date >= windowStart && date < windowEnd;
+    });
 
-      values.push(value);
+    const selected =
+      chartService === "all"
+        ? inWindow
+        : inWindow.filter((appointment) => appointment.service_id === chartService);
+
+    const data: BarDatum[] = buckets.map((bucket) => {
+      const inBucket = selected.filter((appointment) => {
+        const date = new Date(appointment.start_at);
+        return date >= bucket.start && date < bucket.end;
+      });
+
+      return {
+        key: bucket.key,
+        label: bucket.label,
+        fullLabel: bucket.fullLabel,
+        value: inBucket.reduce((sum, appointment) => sum + priceOf(appointment), 0),
+        detail: `${inBucket.length} ${inBucket.length === 1 ? "turno" : "turnos"}`,
+      };
+    });
+
+    const windowRevenue = inWindow.reduce((sum, appointment) => sum + priceOf(appointment), 0);
+    const selectedRevenue = selected.reduce((sum, appointment) => sum + priceOf(appointment), 0);
+
+    // Servicio líder del período (por ingresos).
+    const revenueByService = new Map<string, { revenue: number; count: number }>();
+
+    for (const appointment of inWindow) {
+      if (!appointment.service_id) continue;
+      const current = revenueByService.get(appointment.service_id) ?? { revenue: 0, count: 0 };
+      current.revenue += priceOf(appointment);
+      current.count += 1;
+      revenueByService.set(appointment.service_id, current);
     }
 
-    return { labels, values };
-  }, [appointments, services]);
+    let leaderId: string | null = null;
 
-  const leadingServiceShare = useMemo(() => {
-    if (!mostPopularService || totalUsage === 0) return "—";
+    for (const [id, value] of revenueByService) {
+      if (!leaderId || value.revenue > (revenueByService.get(leaderId)?.revenue ?? 0)) {
+        leaderId = id;
+      }
+    }
 
-    return `${Math.round(
-      ((serviceUsage[mostPopularService.id] ?? 0) / totalUsage) * 100
-    )}%`;
-  }, [mostPopularService, serviceUsage, totalUsage]);
+    const focusId = chartService === "all" ? leaderId : chartService;
+    const focus = focusId ? revenueByService.get(focusId) : undefined;
+
+    return {
+      data,
+      hasData: data.some((item) => item.value > 0),
+      windowRevenue,
+      selectedRevenue,
+      selectedCount: selected.length,
+      focusName: focusId
+        ? services.find((service) => service.id === focusId)?.name ?? "Servicio"
+        : null,
+      focusShare: windowRevenue && focus ? (focus.revenue / windowRevenue) * 100 : 0,
+      focusCount: focus?.count ?? 0,
+    };
+  }, [appointments, services, chartService, chartPeriod]);
+
+  const chartPeriodInfo =
+    CHART_PERIODS.find((item) => item.value === chartPeriod) ?? CHART_PERIODS[0];
+
 
   function openCreate() {
     setEditingService(null);
@@ -1142,8 +1268,8 @@ export default function ServiciosPage() {
 
         <section className="mb-7 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(330px,.75fr)]">
           <div className="panel-surface p-5 sm:p-6">
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
+            <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0">
                 <div className="eyebrow mb-2 text-[#ff6a18]">
                   INTELIGENCIA DE SERVICIOS
                 </div>
@@ -1151,45 +1277,101 @@ export default function ServiciosPage() {
                   Actividad del catálogo
                 </h2>
                 <p className="mt-1 text-[13px] leading-5 text-white/62">
-                  Evolución diaria de los ingresos de los servicios.
+                  {chartService === "all"
+                    ? "Ingresos de todos los servicios"
+                    : `Ingresos de ${chart.focusName ?? "el servicio"}`}{" "}
+                  · {chartPeriodInfo.window}.
                 </p>
               </div>
 
-              <div className="hidden items-center gap-2 text-[10px] font-medium uppercase tracking-[.14em] text-white/58 sm:flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#ff5a00]" />
-                Ingresos
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="relative">
+                  <span className="sr-only">Servicio</span>
+                  <select
+                    value={chartService}
+                    onChange={(event) => setChartService(event.target.value)}
+                    className="h-9 max-w-[220px] cursor-pointer appearance-none rounded-[10px] border border-white/[0.08] bg-white/[0.025] pl-3 pr-8 text-[12px] font-semibold text-white/85 outline-none transition hover:border-white/[0.14] focus:border-[#ff5a00]/40"
+                  >
+                    <option value="all">Todos los servicios</option>
+                    {services.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-white/50"
+                  />
+                </label>
+
+                <div
+                  role="group"
+                  aria-label="Período del gráfico"
+                  className="inline-flex rounded-[10px] border border-white/[0.07] bg-white/[0.02] p-[3px]"
+                >
+                  {CHART_PERIODS.map((item) => {
+                    const active = chartPeriod === item.value;
+
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setChartPeriod(item.value)}
+                        className={`h-[30px] rounded-[8px] px-3 text-[12px] font-semibold transition ${
+                          active
+                            ? "bg-[#ff5a00]/[0.14] text-white shadow-[inset_0_0_0_1px_rgba(255,90,0,.22)]"
+                            : "text-white/55 hover:text-white/85"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {chartData.values.some((value) => value > 0) ? (
+            {chart.hasData ? (
               <MiniRevenueChart
-                values={chartData.values}
-                labels={chartData.labels}
+                data={chart.data}
+                ariaLabel={`Ingresos por ${chartPeriodInfo.label.toLowerCase()}`}
               />
             ) : (
-              <div className="flex h-[220px] items-center justify-center rounded-[14px] border border-dashed border-white/[0.07] bg-white/[0.012] text-[13px] text-white/58">
-                Todavía no hay suficiente actividad para mostrar la evolución.
+              <div className="flex h-[232px] items-center justify-center rounded-[14px] border border-dashed border-white/[0.07] bg-white/[0.012] px-6 text-center text-[13px] text-white/58">
+                No hay turnos {chartService === "all" ? "" : `de ${chart.focusName ?? "este servicio"} `}
+                en este período.
               </div>
             )}
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-[12px] border border-white/[0.055] bg-white/[0.012] p-4">
-                <div className="meta-label text-white/58">Servicio líder</div>
-                <div className="display mt-2 text-[17px] font-semibold tracking-[-.035em] text-white">
-                  {mostPopularService?.name ?? "Sin datos"}
+                <div className="meta-label text-white/58">
+                  {chartService === "all" ? "Servicio líder" : "Participación"}
+                </div>
+                <div className="mt-2 flex items-baseline justify-between gap-3">
+                  <div className="display truncate text-[17px] font-semibold tracking-[-.035em] text-white">
+                    {chart.focusName ?? "Sin datos"}
+                  </div>
+                  <div className="display shrink-0 text-[17px] font-semibold tracking-[-.035em] text-[#ff7a22]">
+                    {chart.focusName ? `${chart.focusShare.toFixed(chart.focusShare < 10 ? 1 : 0)}%` : "—"}
+                  </div>
                 </div>
                 <div className="mt-1 text-[12px] text-white/58">
-                  {leadingServiceShare} de las atenciones
+                  de los ingresos del período · {chart.focusCount}{" "}
+                  {chart.focusCount === 1 ? "turno" : "turnos"}
                 </div>
               </div>
 
               <div className="rounded-[12px] border border-white/[0.055] bg-white/[0.012] p-4">
                 <div className="meta-label text-white/58">Revenue registrado</div>
                 <div className="display mt-2 text-[17px] font-semibold tracking-[-.035em] text-[#ff7a22]">
-                  {formatCompactPrice(totalRevenue)}
+                  {formatMoney(chart.selectedRevenue)}
                 </div>
                 <div className="mt-1 text-[12px] text-white/58">
-                  Sobre turnos no cancelados
+                  {chartService === "all" ? "Todos los servicios" : chart.focusName} ·{" "}
+                  {chartPeriodInfo.window}
                 </div>
               </div>
             </div>
