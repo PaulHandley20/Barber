@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BARBERSHOP, getWhatsappUrl, summarizeHours } from "@/lib/barbershop";
 import { usePublicBookingConfig } from "@/lib/public-config";
@@ -134,15 +135,100 @@ export default function Footer() {
             <Link href="/terminos" className="transition hover:text-[#C29A62]">
               Términos
             </Link>
-            <a
-              href="mailto:paulhandley2001@gmail.com"
-              className="transition hover:text-[#C29A62]"
-            >
-              Web por Paul Handley
-            </a>
+            <DeveloperCredit />
           </div>
         </div>
       </div>
     </footer>
+  );
+}
+
+const DEVELOPER_EMAIL = "paulhandley2001@gmail.com";
+
+/* "Web hecha por Paul Handley": al tocar el nombre aparece el mail,
+   con opción de copiarlo o escribir. (Un mailto solo no muestra nada
+   si la persona no tiene una app de correo configurada.) */
+function DeveloperCredit() {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const ref = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointer = (event: PointerEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  async function copyEmail() {
+    try {
+      await navigator.clipboard.writeText(DEVELOPER_EMAIL);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Sin permiso de portapapeles: el mail igual queda a la vista.
+    }
+  }
+
+  return (
+    <span ref={ref} className="relative inline-flex items-center gap-1.5">
+      <span>Web hecha por</span>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls="developer-contact"
+        className="cursor-pointer uppercase tracking-[inherit] text-[#C29A62] underline decoration-[#C29A62]/40 underline-offset-4 transition hover:text-[#EADFCB] hover:decoration-[#EADFCB]/60"
+      >
+        Paul Handley
+      </button>
+
+      {open ? (
+        <span
+          id="developer-contact"
+          role="dialog"
+          aria-label="Contacto de Paul Handley"
+          className="absolute bottom-full right-1/2 z-20 mb-3 w-max max-w-[86vw] translate-x-1/2 border border-[#2a2622] bg-[#0d0c0b] px-4 py-3.5 text-left normal-case tracking-normal shadow-[0_18px_50px_rgba(0,0,0,.6)] md:right-0 md:translate-x-0"
+        >
+          <span className="block text-[10px] uppercase tracking-[0.22em] text-[#6F675F]">
+            Contacto
+          </span>
+          <a
+            href={`mailto:${DEVELOPER_EMAIL}`}
+            className="mt-1.5 block break-all text-[14px] text-[#F3EBDD] transition hover:text-[#C29A62]"
+          >
+            {DEVELOPER_EMAIL}
+          </a>
+          <span className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={copyEmail}
+              className="cursor-pointer rounded-full border border-[#3a342d] px-3 py-1.5 text-[11px] text-[#ddd6cc] transition hover:border-[#C29A62] hover:text-[#C29A62]"
+            >
+              {copied ? "¡Copiado!" : "Copiar mail"}
+            </button>
+            <a
+              href={`mailto:${DEVELOPER_EMAIL}`}
+              className="rounded-full bg-[#EADFCB] px-3 py-1.5 text-[11px] text-[#1b1915] transition hover:bg-[#F4ECDD]"
+            >
+              Escribir
+            </a>
+          </span>
+        </span>
+      ) : null}
+    </span>
   );
 }

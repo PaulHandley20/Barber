@@ -200,21 +200,18 @@ export default function Services() {
 
                   <div className="mb-5 h-px w-full bg-white/10" />
 
-                  <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-[0.35em] text-[#9b8465]">
+                    {service.duration_minutes} MIN
+                  </p>
 
-                    <div>
+                  {/* Precio y "Reservar" en la misma línea */}
+                  <div className="mt-2 flex items-center justify-between gap-4">
 
-                      <p className="text-xs uppercase tracking-[0.35em] text-[#9b8465]">
-                        {service.duration_minutes} MIN
-                      </p>
+                    <p className="font-serif text-lg text-[#F3EBDD]">
+                      ${service.price.toLocaleString("es-AR")}
+                    </p>
 
-                      <p className="mt-2 font-serif text-lg text-[#F3EBDD]">
-                        ${service.price.toLocaleString("es-AR")}
-                      </p>
-
-                    </div>
-
-                    <span className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-[#b08a5a]">
+                    <span className="flex shrink-0 items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-[#b08a5a]">
                       Reservar
                       <ArrowUpRight
                         size={20}
