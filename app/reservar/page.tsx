@@ -682,9 +682,18 @@ export default function ReservarPage() {
     const clearConfirmedFlag = () =>
       sessionStorage.removeItem(CONFIRMED_RESERVATION_STORAGE_KEY);
 
+    /*
+      Ya estamos en /reservar, así que el Link no haría nada:
+      se recarga la página para arrancar una reserva nueva desde cero.
+    */
+    const startNewReservation = () => {
+      clearConfirmedFlag();
+      window.location.assign("/reservar");
+    };
+
     return (
       <main className="min-h-screen bg-[#100f0d] text-[#F4EEE5]">
-        <BookingTopBar current="reservar" />
+        <BookingTopBar current="reservar" onReserveClick={startNewReservation} />
 
         <BookingHero
           image="/images/hero.jpg"
