@@ -227,41 +227,70 @@ function appointmentHeight(startAt: string, endAt: string) {
 
 const isInactiveStatus = (status: string) => ["cancelled", "canceled", "no_show"].includes(status);
 
-/* Los turnos cancelados / no asistió que coinciden con un turno activo
-   no ocupan lugar propio en la línea de tiempo: quedan "detrás" del
-   activo y se despliegan al pasar el mouse (o con "+1" en celular).
-   Si en ese horario no hay ningún turno activo, se muestran normal. */
-function buildTimeline<T extends { id: string; start_at: string; end_at: string; status: string }>(items: T[]) {
+/* Turnos del mismo horario (confirmados, cancelados, no asistió, en
+   cualquier combinación) se apilan: uno queda al frente y el resto
+   "detrás"; se despliegan al pasar el mouse (o con "+N" en celular).
+   Al frente va el turno activo; si todos están cancelados, el último
+   que se canceló. Turnos que no se cruzan con nada se ven normal. */
+function buildTimeline<
+  T extends { id: string; start_at: string; end_at: string; status: string; cancelled_at?: string | null }
+>(items: T[]) {
   const range = (item: T) => {
     const start = new Date(item.start_at).getTime();
     return [start, Math.max(new Date(item.end_at).getTime(), start + 30 * 60000)] as const;
   };
+  const overlap = (a: T, b: T) => {
+    const [aStart, aEnd] = range(a);
+    const [bStart, bEnd] = range(b);
+    return Math.min(aEnd, bEnd) - Math.max(aStart, bStart);
+  };
+  const byStart = (a: T, b: T) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+  const recency = (item: T) => new Date(item.cancelled_at ?? item.start_at).getTime();
 
-  const active = items.filter((item) => !isInactiveStatus(item.status));
-  const hiddenBy = new Map<string, T[]>();
-  const standalone: T[] = [];
+  const leads: { lead: T; hidden: T[] }[] = [];
 
-  for (const item of items.filter((entry) => isInactiveStatus(entry.status))) {
-    const [start, end] = range(item);
-    let best: T | null = null;
-    let bestOverlap = 0;
+  // 1) Activos: el primero de cada horario va al frente; si hay otro
+  //    activo en el mismo horario (doble turno), queda detrás.
+  for (const item of items.filter((entry) => !isInactiveStatus(entry.status)).sort(byStart)) {
+    const owner = leads.find((entry) => overlap(entry.lead, item) > 0);
+    if (owner) owner.hidden.push(item);
+    else leads.push({ lead: item, hidden: [] });
+  }
 
-    for (const candidate of active) {
-      const [cStart, cEnd] = range(candidate);
-      const overlap = Math.min(end, cEnd) - Math.max(start, cStart);
-      if (overlap > bestOverlap) {
-        best = candidate;
-        bestOverlap = overlap;
+  // 2) Cancelados / no asistió: detrás del activo con el que más se
+  //    cruzan; si no hay activo, se apilan entre ellos (al frente el
+  //    último cancelado).
+  const inactive = items
+    .filter((entry) => isInactiveStatus(entry.status))
+    .sort((a, b) => recency(b) - recency(a));
+
+  for (const item of inactive) {
+    let owner: { lead: T; hidden: T[] } | null = null;
+    let best = 0;
+
+    for (const entry of leads) {
+      const value = overlap(entry.lead, item);
+      const activeLead = !isInactiveStatus(entry.lead.status);
+      // Preferimos un turno activo como "dueño" del horario.
+      const score = value > 0 ? value + (activeLead ? 1e12 : 0) : 0;
+      if (score > best) {
+        owner = entry;
+        best = score;
       }
     }
 
-    if (best) hiddenBy.set(best.id, [...(hiddenBy.get(best.id) ?? []), item]);
-    else standalone.push(item);
+    if (owner) owner.hidden.push(item);
+    else leads.push({ lead: item, hidden: [] });
   }
 
-  return [...active, ...standalone]
-    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
-    .map((appointment) => ({ appointment, hidden: hiddenBy.get(appointment.id) ?? [] }));
+  return leads
+    .map(({ lead, hidden }) => ({
+      appointment: lead,
+      hidden: hidden.sort(
+        (a, b) => Number(isInactiveStatus(a.status)) - Number(isInactiveStatus(b.status)) || byStart(a, b)
+      ),
+    }))
+    .sort((a, b) => byStart(a.appointment, b.appointment));
 }
 
 /* Rango de horas visible: 08 a 20 por defecto, ampliado si hay turnos
@@ -1049,7 +1078,11 @@ function TimelineEntry({
         <div
           key={index}
           aria-hidden="true"
-          className="absolute inset-x-0 rounded-xl border border-red-300/20 bg-[#1b1515] transition-all duration-200 group-hover/entry:opacity-0"
+          className={`absolute inset-x-0 rounded-xl border transition-all duration-200 group-hover/entry:opacity-0 ${
+            hidden.every((item) => isInactiveStatus(item.status))
+              ? "border-red-300/20 bg-[#1b1515]"
+              : "border-amber-300/20 bg-[#1b1912]"
+          }`}
           style={{
             top: 4 * (index + 1),
             bottom: -4 * (index + 1),
@@ -1105,9 +1138,20 @@ function TimelineEntry({
             type="button"
             onClick={onToggle}
             aria-expanded={open}
-            className="absolute -bottom-2 right-3 z-10 rounded-full border border-red-300/25 bg-[#1b1515] px-2 py-[1px] text-[10px] font-semibold text-red-200/85 transition hover:border-red-300/50"
+            className={`absolute -bottom-2 right-3 z-10 rounded-full border px-2 py-[1px] text-[10px] font-semibold transition ${
+              hidden.every((item) => isInactiveStatus(item.status))
+                ? "border-red-300/25 bg-[#1b1515] text-red-200/85 hover:border-red-300/50"
+                : "border-amber-300/30 bg-[#1b1912] text-amber-200/90 hover:border-amber-300/60"
+            }`}
           >
-            +{hidden.length} {hidden.length === 1 ? (hidden[0].status === "no_show" ? "no asistió" : "cancelado") : "más"}
+            +{hidden.length}{" "}
+            {hidden.length === 1
+              ? hidden[0].status === "no_show"
+                ? "no asistió"
+                : isInactiveStatus(hidden[0].status)
+                  ? "cancelado"
+                  : "turno"
+              : "turnos"}
           </button>
 
           {/* Lista desplegable con los turnos de detrás */}
@@ -1137,8 +1181,9 @@ function TimelineEntry({
                     }`}
                   >
                     <span className={`absolute inset-y-0 left-0 w-[3px] ${itemStatus.dot}`} />
-                    <span className="shrink-0 pl-1 text-[13px] font-semibold tabular-nums text-white/60">{formatTime(item.start_at)}</span>
-                    <span className="min-w-0 truncate text-[13px] text-white/70">{item.customer?.full_name ?? "Cliente sin nombre"}</span>
+                    <span className={`shrink-0 pl-1 text-[13px] font-semibold tabular-nums ${isInactiveStatus(item.status) ? "text-white/55" : "text-white"}`}>{formatTime(item.start_at)}</span>
+                    <span className={`min-w-0 truncate text-[13px] ${isInactiveStatus(item.status) ? "text-white/65" : "font-semibold text-white/92"}`}>{item.customer?.full_name ?? "Cliente sin nombre"}</span>
+                    {!isInactiveStatus(item.status) && <span className="hidden shrink-0 items-center gap-1 text-[12px] text-white/55 md:flex"><Scissors size={11} />{item.service?.name ?? "Servicio"}</span>}
                     {shortAudit(item) && <span className="hidden min-w-0 truncate text-[12px] text-red-200/60 md:inline">· {shortAudit(item)}</span>}
                     <span className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${itemStatus.badge}`}>
                       <span className={`inline-block h-1.5 w-1.5 rounded-full ${itemStatus.dot} sm:mr-1.5`} />
