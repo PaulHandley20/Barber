@@ -819,47 +819,28 @@ export default function AnalyticsPage() {
     ? services.find((service) => service.id === selectedService.id)
     : null;
 
-  const exportCSV = () => {
-    const rows = [
-      ["Métrica", "Valor"],
-      ["Período", periodLabel(range, dates.start, dates.end)],
-      ["Ingresos", periodRevenue],
-      ["Turnos", bookableAppointments.length],
-      ["Completados", completedAppointments.length],
-      ["Cancelados", cancelledAppointments.length],
-      ["No-show", noShowAppointments.length],
-      ["Ticket promedio", averageTicket],
-      ["Clientes activos", activeCustomers],
-      ["Clientes nuevos", periodNewCustomers.length],
-      ["Clientes recurrentes", returningCustomers],
-      ["Puntos generados", loyaltyTrend.earned],
-      ["Puntos canjeados", loyaltyTrend.redeemed],
-      ["Puntos en circulación", loyaltyStats.balance],
-      [],
-      ["Servicio", "Turnos", "Completados", "Ingresos", "Participación"],
-      ...serviceMetrics.map((item) => [
-        item.name,
-        item.appointments,
-        item.completed,
-        item.revenue,
-        `${item.share.toFixed(1)}%`,
-      ]),
-    ];
+  const [exporting, setExporting] = useState(false);
 
-    const csv = rows
-      .map((row) =>
-        row.map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")
-      )
-      .join("\n");
+  // Excel completo de la barbería (todas las fechas, no solo el período
+  // elegido): clientes, turnos, servicios, equipo, meses y puntos.
+  const exportExcel = async () => {
+    if (exporting) return;
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `barberOS-analytics-${range.toLowerCase()}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    setToast("Reporte exportado correctamente.");
+    setExporting(true);
+
+    try {
+      const { exportBarbershopWorkbook } = await import("@/lib/admin/export-workbook");
+      const result = await exportBarbershopWorkbook(supabase);
+
+      setToast(
+        `Excel descargado: ${result.customers} clientes y ${result.appointments} turnos.`
+      );
+    } catch (error) {
+      console.error("Export error", error);
+      setToast("No se pudo generar el Excel. Probá de nuevo.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const resetFilters = () => {
@@ -980,11 +961,12 @@ export default function AnalyticsPage() {
 
               <button
                 type="button"
-                onClick={exportCSV}
-                className="flex h-10 items-center gap-2 rounded-[11px] bg-[#ff5a00] px-4 text-[11px] font-semibold text-white shadow-[0_10px_35px_rgba(255,90,0,.16)] transition hover:bg-[#ff6a18]"
+                onClick={exportExcel}
+                disabled={exporting}
+                className="flex h-10 items-center gap-2 rounded-[11px] bg-[#ff5a00] px-4 text-[11px] font-semibold text-white shadow-[0_10px_35px_rgba(255,90,0,.16)] transition hover:bg-[#ff6a18] disabled:cursor-wait disabled:opacity-70"
               >
-                <Download size={14} />
-                Exportar reporte
+                {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                {exporting ? "Generando Excel…" : "Exportar Excel"}
               </button>
             </div>
           </div>
