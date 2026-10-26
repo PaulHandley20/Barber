@@ -56,6 +56,7 @@ Revisar especialmente:
 | `…1100_web_booking_notifications.sql` | Marca el origen de cada turno nuevo (`source`: `web` o `panel`) y activa Realtime en `appointments`: la campanita del panel avisa al instante cuando alguien reserva desde la web |
 | `…1200_cancel_anytime_and_audit.sql` | Reservar y reprogramar online hasta **1 hora antes**; cancelar online **en cualquier momento antes del turno**. Cada turno guarda quién lo canceló (cliente o panel, con el email del admin), cuándo, y cuándo se marcó "No asistió". Los cancelados no se borran |
 | `…1300_panel_services_and_barbers.sql` | **Servicios "solo panel"** (ej. Kids): no aparecen ni se pueden reservar en la web, pero se usan en la Agenda. **Varios barberos**: los horarios libres se calculan por barbero; la web deja elegir barbero o "Sin preferencia" (con un solo barbero activo no muestra la elección); reprogramar mantiene el barbero del turno |
+| `…1400_email_notifications_and_calendar.sql` | **Emails automáticos y Google Calendar**: cola de envíos (`notification_jobs`) que se llena sola al reservar, cambiar o cancelar un turno; recordatorio configurable (horas antes); sincronización con el calendario de la barbería. Ver sección 7 |
 
 #### Hallazgos del diagnóstico (13/10/2026)
 
@@ -206,10 +207,18 @@ puede, que un abogado revise los textos.
 | `NEXT_PUBLIC_SITE_URL` | `https://<dominio final>` |
 | `NEXT_PUBLIC_BARBERSHOP_WHATSAPP` | Ej. `5493442123456` (opcional) |
 | `ADMIN_EMAILS` | Email(s) de Manu, separados por coma |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave **service_role** (Supabase → Project Settings → API). **Solo servidor**: nunca con `NEXT_PUBLIC_` |
+| `GMAIL_USER` | `barberia.donsegundo@gmail.com` |
+| `GMAIL_APP_PASSWORD` | Contraseña de aplicación de Gmail (sección 7.1) |
+| `NOTIFICATIONS_CRON_SECRET` | Un texto largo al azar (sección 7.3) |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email de la cuenta de servicio (sección 7.2) |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | `private_key` del JSON de la cuenta de servicio, tal cual (con los `\n`) |
+| `GOOGLE_CALENDAR_ID` | `barberia.donsegundo@gmail.com` |
 
-✅ Verificado: el código no usa ninguna clave secreta. Lo único que llega
-al navegador es la URL y la clave publicable, que son públicas por diseño.
-`.env*` está en `.gitignore`.
+✅ Lo único que llega al navegador es la URL y la clave publicable, que
+son públicas por diseño. Las claves secretas (service_role, Gmail, Google,
+secreto del cron) solo se usan en las rutas `/api/notifications/*`, que
+corren en el servidor. `.env*` está en `.gitignore`.
 
 ☐ Confirmar que la URL de Supabase es la de **producción** (la de
 `next.config.ts` → `images.remotePatterns` también debe coincidir).
@@ -274,18 +283,112 @@ de Manu.
 
 ---
 
-## 7. Próximo: emails desde el Gmail de la barbería
+## 7. Emails automáticos y Google Calendar
 
-Pendiente para el final (pedido de Paul): enviar un email al reservar con
-la confirmación del turno, los puntos acumulados y los premios
-disponibles. Opciones: Gmail con contraseña de aplicación (SMTP) para
-volúmenes chicos, o un servicio como Resend con el dominio propio (mejor
-entregabilidad). Se dispara desde una Supabase Edge Function o una ruta
-de Next.js.
+Con la migración 14, cada vez que se crea, cambia o cancela un turno (en
+la web, en Mi reserva o en la Agenda) la base anota una tarea en la
+"cola de envíos". El sitio la procesa al instante y, cada 5 minutos, un
+cron de Supabase manda los **recordatorios** y reintenta lo que haya
+fallado. Todo se prende y apaga desde **Configuración → Notificaciones**,
+donde también está el estado de los envíos, un botón para mandar un
+**email de prueba** y otro para **procesar pendientes**.
+
+Qué recibe el cliente (si dejó email):
+- **Confirmación** al reservar, con un archivo para agendar el turno.
+- **Cambio de turno** si se mueve de día u hora, o cambia el barbero o el
+  servicio (desde Mi reserva o desde la Agenda). Cambiar solo las notas
+  no manda email.
+- **Cancelación**: distinta si canceló el cliente o la barbería.
+- **Recordatorio** X horas antes (2 a 48, por defecto 24). Si reservó con
+  menos anticipación, alcanza con la confirmación.
+
+### 7.1 Gmail de la barbería (contraseña de aplicación)
+
+1. Entrar a la cuenta `barberia.donsegundo@gmail.com` →
+   https://myaccount.google.com/security → activar **Verificación en 2
+   pasos**.
+2. Ir a https://myaccount.google.com/apppasswords → nombre "BarberOS" →
+   **Crear**. Google muestra 16 letras: esa es `GMAIL_APP_PASSWORD`.
+3. Cargar `GMAIL_USER` y `GMAIL_APP_PASSWORD` en Vercel.
+
+Gmail permite unos 500 emails por día: de sobra para la barbería. Si un
+cliente responde un email, le llega a esa misma casilla.
+
+### 7.2 Google Calendar (cuenta de servicio)
+
+1. https://console.cloud.google.com → crear un proyecto ("BarberOS").
+2. **APIs y servicios → Biblioteca** → buscar **Google Calendar API** →
+   **Habilitar**.
+3. **IAM y administración → Cuentas de servicio → Crear cuenta de
+   servicio** (nombre "barberos", sin roles) → entrar → **Claves →
+   Agregar clave → JSON**. Se descarga un archivo: `client_email` es
+   `GOOGLE_SERVICE_ACCOUNT_EMAIL` y `private_key` es
+   `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`. Guardarlo en un lugar seguro y
+   **no subirlo al repo**.
+4. En https://calendar.google.com con la cuenta de la barbería →
+   **Configuración** → el calendario → **Compartir con personas
+   específicas** → agregar el `client_email` con permiso **"Hacer cambios
+   en eventos"**.
+5. `GOOGLE_CALENDAR_ID` = `barberia.donsegundo@gmail.com` (el calendario
+   principal de la cuenta).
+6. En el panel: **Configuración → Notificaciones → Google Calendar** =
+   activado.
+
+Los eventos muestran servicio, cliente, teléfono, barbero, precio y
+código. Si el turno se cancela, el evento se borra; si el cliente no
+asistió, queda en rojo. Es en un solo sentido: lo que se agregue a mano
+en el calendario no bloquea horarios en la web.
+
+### 7.3 Cron de Supabase (recordatorios y reintentos)
+
+1. Generar un secreto (por ejemplo con https://1password.com/password-generator
+   o cualquier texto largo al azar) y cargarlo en Vercel como
+   `NOTIFICATIONS_CRON_SECRET`.
+2. Con el sitio ya publicado, en **Supabase → SQL Editor** (cambiando el
+   dominio y el secreto):
+
+```sql
+create extension if not exists pg_net;
+create extension if not exists pg_cron;
+
+select cron.schedule(
+  'barberos-notificaciones',
+  '*/5 * * * *',
+  $$
+  select net.http_post(
+    url     := 'https://TU-DOMINIO/api/notifications/process',
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer TU_SECRETO',
+      'Content-Type',  'application/json'
+    ),
+    body    := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Para cambiarlo más adelante: `select cron.unschedule('barberos-notificaciones');`
+y volver a crearlo.
+
+### 7.4 Probar en local sin mandar emails
+
+Con `NOTIFICATIONS_DRY_RUN=1` en `.env.local` los emails no se envían: se
+muestran en la consola de `npm run dev`. También hace falta
+`SUPABASE_SERVICE_ROLE_KEY` para que el servidor pueda leer la cola.
 
 ---
 
 ## 8. Cómo se probó
+
+Automático en cada PR (GitHub Actions, `.github/workflows/ci.yml`):
+- `npm run lint`, `npm run typecheck`, `npm test` (emails, archivo .ics,
+  eventos y firma de Google Calendar) y `npm run build`.
+- `npm run test:db`: crea una base PostgreSQL 16 vacía con un esquema
+  equivalente al de producción, aplica **cada migración dos veces** y corre
+  `supabase/tests/*.test.sql` (reservas web, cancelaciones, barberos,
+  servicios solo panel, cola de envíos, recordatorios y permisos).
+
+Además:
 
 - `npm run build` sin errores (TypeScript incluido).
 - Migraciones aplicadas dos veces seguidas sobre PostgreSQL 16 con un

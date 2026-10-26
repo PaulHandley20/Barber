@@ -34,6 +34,9 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import DateTimeField from "@/components/admin/ui/DateTimeField";
+import NotificationsStatus from "@/components/admin/NotificationsStatus";
+
+const REMINDER_OPTIONS = [2, 3, 6, 12, 24, 48];
 
 
 
@@ -54,6 +57,9 @@ type Settings = {
   notifications_enabled: boolean;
   appointment_confirmation_enabled: boolean;
   appointment_reminder_enabled: boolean;
+  /* Migración 14 (pueden faltar si todavía no se corrió). */
+  reminder_hours_before?: number;
+  calendar_sync_enabled?: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -500,6 +506,12 @@ export default function ConfiguracionPage() {
           settings.appointment_confirmation_enabled,
         appointment_reminder_enabled:
           settings.appointment_reminder_enabled,
+        ...("reminder_hours_before" in settings
+          ? { reminder_hours_before: settings.reminder_hours_before }
+          : {}),
+        ...("calendar_sync_enabled" in settings
+          ? { calendar_sync_enabled: settings.calendar_sync_enabled }
+          : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", settings.id)
@@ -1477,8 +1489,8 @@ export default function ConfiguracionPage() {
 
               <div className="p-5 sm:p-6">
                 <SettingRow
-                  title="Notificaciones"
-                  description="Activa o desactiva las comunicaciones automáticas."
+                  title="Emails automáticos"
+                  description="Interruptor general: si está apagado no se manda ningún email a los clientes."
                 >
                   <Toggle
                     checked={settings.notifications_enabled}
@@ -1489,8 +1501,8 @@ export default function ConfiguracionPage() {
                 </SettingRow>
 
                 <SettingRow
-                  title="Confirmación de turno"
-                  description="Enviar una confirmación cuando se genere una reserva."
+                  title="Confirmación, cambios y cancelaciones"
+                  description="Email al reservar (con el turno para agendar), cuando el turno cambia de día, hora, barbero o servicio, y cuando se cancela."
                 >
                   <Toggle
                     checked={settings.appointment_confirmation_enabled}
@@ -1505,53 +1517,59 @@ export default function ConfiguracionPage() {
 
                 <SettingRow
                   title="Recordatorio"
-                  description="Enviar un recordatorio previo al turno."
+                  description={
+                    "reminder_hours_before" in settings
+                      ? `Email ${settings.reminder_hours_before ?? 24} h antes del turno. Si se reserva con menos anticipación, alcanza con la confirmación.`
+                      : "Email antes del turno."
+                  }
                 >
-                  <Toggle
-                    checked={settings.appointment_reminder_enabled}
-                    onChange={(value) =>
-                      updateSetting("appointment_reminder_enabled", value)
-                    }
-                  />
+                  <div className="flex items-center gap-3">
+                    {"reminder_hours_before" in settings && (
+                      <select
+                        value={settings.reminder_hours_before ?? 24}
+                        onChange={(event) =>
+                          updateSetting(
+                            "reminder_hours_before",
+                            Number(event.target.value)
+                          )
+                        }
+                        disabled={!settings.appointment_reminder_enabled}
+                        aria-label="Horas de anticipación del recordatorio"
+                        className="h-9 rounded-[10px] border border-white/[0.08] bg-[#0b0b0b] px-2.5 text-[12px] text-white/80 outline-none disabled:opacity-40"
+                      >
+                        {REMINDER_OPTIONS.map((hoursBefore) => (
+                          <option key={hoursBefore} value={hoursBefore}>
+                            {hoursBefore} h antes
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <Toggle
+                      checked={settings.appointment_reminder_enabled}
+                      onChange={(value) =>
+                        updateSetting("appointment_reminder_enabled", value)
+                      }
+                    />
+                  </div>
                 </SettingRow>
 
-                <div className="mt-6 grid gap-3 md:grid-cols-3">
-                  {[
-                    [
-                      "Confirmación",
-                      settings.appointment_confirmation_enabled,
-                    ],
-                    ["Recordatorio", settings.appointment_reminder_enabled],
-                    ["Canal automático", settings.notifications_enabled],
-                  ].map(([label, enabled]) => {
-                    const active = Boolean(enabled);
+                {"calendar_sync_enabled" in settings && (
+                  <SettingRow
+                    title="Google Calendar de la barbería"
+                    description="Cada turno se agenda en el calendario de Google de la barbería; si cambia se actualiza y si se cancela se borra."
+                  >
+                    <Toggle
+                      checked={Boolean(settings.calendar_sync_enabled)}
+                      onChange={(value) =>
+                        updateSetting("calendar_sync_enabled", value)
+                      }
+                    />
+                  </SettingRow>
+                )}
 
-                    return (
-                      <div
-                        key={String(label)}
-                        className="rounded-[12px] border border-white/[0.065] bg-white/[0.018] p-4"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              active ? "bg-emerald-400" : "bg-white/20"
-                            }`}
-                          />
-                          <span className="text-[12px] font-semibold text-white/62">
-                            {label}
-                          </span>
-                        </div>
-                        <div
-                          className={`display mt-3 text-[17px] font-semibold tracking-[-.035em] ${
-                            active ? "text-white" : "text-white/38"
-                          }`}
-                        >
-                          {active ? "Activo" : "Inactivo"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <NotificationsStatus
+                  calendarEnabled={Boolean(settings.calendar_sync_enabled)}
+                />
               </div>
             </section>
 

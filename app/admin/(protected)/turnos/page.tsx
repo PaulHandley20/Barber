@@ -27,6 +27,7 @@ import {
 import { manrope, sora, dataFont } from "@/components/admin/fonts";
 import { createClient } from "@/lib/supabase/client";
 import DateTimeField from "@/components/admin/ui/DateTimeField";
+import { kickNotifications } from "@/lib/notifications/kick";
 
 
 type Appointment = {
@@ -603,6 +604,7 @@ export default function TurnosPage() {
     }
 
     console.log("=== BARBEROS · UPDATE ENVIADO CORRECTAMENTE ===");
+    kickNotifications();
 
     // Actualizamos la interfaz inmediatamente
     setAppointments((current) =>
@@ -719,6 +721,7 @@ export default function TurnosPage() {
       }
     }
 
+    kickNotifications();
     setCreating(false);
     setShowNewAppointment(false);
     setSelectedDate(start);
@@ -748,6 +751,8 @@ export default function TurnosPage() {
       console.error("Error editing appointment:", updateError.code, updateError.message, updateError.details);
       return `No se pudo guardar: ${updateError.message}`;
     }
+
+    kickNotifications();
 
     const fresh = await loadAppointments(true);
     const updated = fresh.find((item) => item.id === editingAppointment.id) ?? null;

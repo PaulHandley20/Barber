@@ -34,6 +34,7 @@ import {
   type TicketTone,
 } from "@/components/booking/kit";
 import { createClient } from "@/lib/supabase/client";
+import { kickNotifications } from "@/lib/notifications/kick";
 import { BARBERSHOP, getWhatsappUrl } from "@/lib/barbershop";
 import {
   isBlockedDate,
@@ -470,6 +471,8 @@ export default function GestionarReservaPage() {
       return;
     }
 
+    kickNotifications();
+
     const updatedReservation = Array.isArray(data) ? data[0] : data;
 
     if (!updatedReservation) {
@@ -521,6 +524,8 @@ export default function GestionarReservaPage() {
       );
       return;
     }
+
+    kickNotifications();
 
     setReservation((current) =>
       current ? { ...current, status: "cancelled" } : current
