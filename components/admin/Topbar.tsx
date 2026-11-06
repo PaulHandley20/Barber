@@ -91,6 +91,10 @@ type Notification = {
   unread: boolean;
   /* Reserva hecha desde la web (se destaca en la lista). */
   web?: boolean;
+  /* Turno cancelado por el cliente desde Mi reserva. */
+  cancelled?: boolean;
+  /* Para ordenar las novedades de la más nueva a la más vieja. */
+  at?: number;
 };
 
 /* Hasta cuándo el admin ya vio las notificaciones (por dispositivo). */
@@ -288,6 +292,7 @@ export default function Topbar() {
         webRes,
         pendingRes,
         upcomingRes,
+        cancelledRes,
       ] = await Promise.all([
         // Reservas hechas desde la landing en los últimos 7 días.
         // Si la migración 11 todavía no corrió (no existe `source`),
@@ -331,6 +336,18 @@ export default function Topbar() {
             ascending: true,
           })
           .limit(5),
+
+        // Turnos que el cliente canceló desde Mi reserva (últimos 7 días).
+        // Sin la migración 12 (no existe `cancelled_by`) no se muestran.
+        supabase
+          .from("appointments")
+          .select(`${columns}, cancelled_at`)
+          .eq("cancelled_by", "cliente")
+          .gte("cancelled_at", weekAgo)
+          .order("cancelled_at", {
+            ascending: false,
+          })
+          .limit(8),
       ]);
 
       if (!active) return;
@@ -339,6 +356,7 @@ export default function Topbar() {
         id: string;
         start_at: string;
         created_at?: string;
+        cancelled_at?: string;
         customer:
           | {
               full_name: string;
@@ -374,7 +392,36 @@ export default function Topbar() {
             new Date(row.created_at ?? 0).getTime() >
               new Date(seenAt).getTime(),
           web: true,
+          at: new Date(row.created_at ?? row.start_at).getTime(),
         })
+      );
+
+      const cancelled = (
+        cancelledRes.error
+          ? []
+          : ((cancelledRes.data ?? []) as unknown as Row[])
+      ).map(
+        (row): Notification => ({
+          id: `cancel-${row.id}`,
+          title: "Turno cancelado por el cliente",
+          detail: `${
+            row.customer?.full_name ?? "Cliente"
+          } · ${
+            row.service?.name ?? "Servicio"
+          } · ${formatWhen(row.start_at)}`,
+          time: timeAgo(row.cancelled_at ?? row.start_at),
+          unread:
+            !seenAt ||
+            new Date(row.cancelled_at ?? 0).getTime() >
+              new Date(seenAt).getTime(),
+          cancelled: true,
+          at: new Date(row.cancelled_at ?? row.start_at).getTime(),
+        })
+      );
+
+      // Novedades (reservas y cancelaciones) de la más nueva a la más vieja.
+      const news = [...web, ...cancelled].sort(
+        (a, b) => (b.at ?? 0) - (a.at ?? 0)
       );
 
       const pending =
@@ -421,7 +468,7 @@ export default function Topbar() {
         );
 
       setNotifications(
-        [...web, ...pending, ...upcoming].slice(
+        [...news, ...pending, ...upcoming].slice(
           0,
           10
         )
@@ -431,14 +478,26 @@ export default function Topbar() {
     loadWorkspace();
     loadNotifications();
 
-    // Aviso al instante cuando entra un turno nuevo (Supabase Realtime)
-    // y, por las dudas, una revisión cada minuto.
+    // Aviso al instante cuando entra o cambia un turno (Supabase
+    // Realtime: reservas y cancelaciones) y, por las dudas, una revisión
+    // cada minuto.
     const channel = supabase
       .channel("admin-appointments-notifications")
       .on(
         "postgres_changes",
         {
           event: "INSERT",
+          schema: "public",
+          table: "appointments",
+        },
+        () => {
+          loadNotifications();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
           schema: "public",
           table: "appointments",
         },
@@ -850,7 +909,9 @@ export default function Topbar() {
                             className={[
                               "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
                               notification.unread
-                                ? "bg-[#ff5a00]"
+                                ? notification.cancelled
+                                  ? "bg-red-400"
+                                  : "bg-[#ff5a00]"
                                 : "bg-white/15",
                             ].join(" ")}
                           />
@@ -860,9 +921,11 @@ export default function Topbar() {
                               <p
                                 className={[
                                   "font-[family:var(--font-barberos-ui)] text-[11px] font-medium",
-                                  notification.web
-                                    ? "text-[#ff8a3d]"
-                                    : "text-white/75",
+                                  notification.cancelled
+                                    ? "text-red-300/90"
+                                    : notification.web
+                                      ? "text-[#ff8a3d]"
+                                      : "text-white/75",
                                 ].join(" ")}
                               >
                                 {
