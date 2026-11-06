@@ -70,15 +70,31 @@ export async function checkServiceKey(): Promise<{ ok: boolean; hint: string }> 
   const client = createServiceClient();
   if (!client) return { ok: false, hint: "Falta NEXT_PUBLIC_SUPABASE_URL." };
 
-  const { error } = await client.from("notification_jobs").select("id", { count: "exact", head: true });
+  // GET (no HEAD): así Supabase devuelve el detalle del error.
+  const { error, status } = await client.from("notification_jobs").select("id").limit(1);
   const notes = raw !== key ? " (tenía espacios o comillas de más: se ignoraron)" : "";
 
   if (!error) return { ok: true, hint: `Configurada y aceptada por Supabase (${kind})${notes}.` };
-  if (/invalid api key|jwt|unauthorized/i.test(error.message)) {
+
+  const detail = [error.code, error.message].filter(Boolean).join(" · ") || `HTTP ${status}`;
+
+  if (status === 401 || /invalid api key|jwt|unauthorized/i.test(error.message ?? "")) {
     return {
       ok: false,
-      hint: `Supabase rechaza la clave (${kind}, ${key.length} caracteres). Revisá que esté completa y sea de este proyecto${projectRef(url) ? ` (${projectRef(url)})` : ""}; si es la nueva, probá con la service_role de Legacy API Keys.`,
+      hint: `Supabase rechaza la clave (${kind}, ${key.length} caracteres): ${detail}. Revisá que esté completa y sea de este proyecto${projectRef(url) ? ` (${projectRef(url)})` : ""}; si es la nueva, probá con la service_role de Legacy API Keys.`,
     };
   }
-  return { ok: true, hint: `Clave aceptada (${kind}), pero la consulta falló: ${error.message}. ¿Corriste la migración 14?` };
+  if (error.code === "PGRST205" || error.code === "42P01" || status === 404) {
+    return {
+      ok: false,
+      hint: `La clave funciona (${kind}), pero Supabase no encuentra la tabla notification_jobs: ${detail}. Corré la migración 14 en este proyecto${projectRef(url) ? ` (${projectRef(url)})` : ""}.`,
+    };
+  }
+  if (error.code === "42501" || status === 403) {
+    return {
+      ok: false,
+      hint: `La clave funciona (${kind}), pero no tiene permiso sobre notification_jobs: ${detail}.`,
+    };
+  }
+  return { ok: false, hint: `La consulta de prueba falló (${kind}): ${detail}.` };
 }
