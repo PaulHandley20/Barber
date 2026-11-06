@@ -71,6 +71,7 @@ export default function RootLayout({
     <html
       lang="es-AR"
       className={`${heading.variable} ${body.variable}`}
+      data-scroll-behavior="smooth"
     >
       <body className="bg-[#090909] text-[#F5F2EB] font-[family:var(--font-body)] antialiased">
         {children}

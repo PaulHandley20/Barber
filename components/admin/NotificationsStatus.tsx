@@ -17,6 +17,7 @@ type ServerStatus = {
   calendar: boolean;
   calendarId: string | null;
   serviceKey: boolean;
+  serviceKeyHint: string;
   cronSecret: boolean;
   siteUrl: string;
 };
@@ -188,7 +189,7 @@ export default function NotificationsStatus({ calendarEnabled }: { calendarEnabl
         <Check
           ok={Boolean(status?.serviceKey)}
           label="Clave de servicio de Supabase"
-          hint={status?.serviceKey ? "Configurada en el servidor." : "Falta SUPABASE_SERVICE_ROLE_KEY: sin ella no sale nada."}
+          hint={status?.serviceKeyHint ?? statusError ?? ""}
         />
         <Check
           ok={Boolean(status?.cronSecret)}
