@@ -185,8 +185,9 @@ export function buildIcs(payload: NotificationPayload, siteUrl: string, cancelle
    --------------------------------------------------------------- */
 
 export type EmailOptions = {
-  /* src del logo: "cid:..." (adjunto, por defecto) o una URL pública. */
-  logoSrc?: string | null;
+  /* Logos para fondo oscuro y claro: "cid:..." (adjuntos, por defecto)
+     o URLs. null = sin logo. */
+  logos?: { dark: string; light: string } | null;
   /* Franja de aviso arriba del ticket (ej. "Email de prueba"). */
   notice?: string | null;
   /* Para calcular "hoy" / "mañana" en el recordatorio (pruebas). */
@@ -302,7 +303,10 @@ export function buildAppointmentEmail(
   const price = formatPrice(service.price);
   const address = displayAddress(settings?.address ?? null);
   const instagram = settings?.instagram ? `@${settings.instagram.replace(/^@/, "")}` : "";
-  const logoSrc = options.logoSrc === undefined ? "cid:donsegundo-logo" : options.logoSrc;
+  const logos =
+    options.logos === undefined
+      ? { dark: "cid:donsegundo-logo-dark", light: "cid:donsegundo-logo-light" }
+      : options.logos;
   const date = formatDate(appointment.start_at);
   const time = formatTime(appointment.start_at);
 
@@ -349,23 +353,38 @@ export function buildAppointmentEmail(
     .ds-pad { padding-left: 22px !important; padding-right: 22px !important; }
     .ds-time { font-size: 40px !important; }
   }
+  /* Modo día (Apple Mail, Mail del iPhone, Outlook y otras apps que lo
+     informan): fondo crema y la insignia crema. Sin esa información
+     (Gmail) queda la versión oscura con el logo de siempre. */
+  @media (prefers-color-scheme: light) {
+    .ds-night { background: ${COLORS.paper} !important; }
+    .ds-brand { color: ${COLORS.ink} !important; }
+    .ds-brand-sub { color: ${COLORS.goldDeep} !important; }
+    .ds-card { background: #FBF8F2 !important; border: 1px solid ${COLORS.paperLine} !important; }
+    .ds-datebox { background: ${COLORS.paper} !important; }
+    .ds-foot { color: ${COLORS.inkSoft} !important; }
+    .ds-foot-note { color: ${COLORS.inkMuted} !important; }
+    .ds-logo-dark { display: none !important; }
+    .ds-logo-light { display: block !important; max-height: none !important; overflow: visible !important; }
+  }
 </style>
 </head>
-<body style="margin:0;padding:0;background:${COLORS.night};">
+<body class="ds-night" style="margin:0;padding:0;background:${COLORS.night};">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(copy.intro)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.night};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ds-night" style="background:${COLORS.night};">
     <tr><td align="center" style="padding:32px 12px 40px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 
         <tr><td align="center" style="padding:0 0 26px;">
-          ${logoSrc ? `<img src="${escapeHtml(logoSrc)}" width="120" height="120" alt="${escapeHtml(shop)}" style="display:block;width:120px;height:120px;margin:0 auto 16px;border:0;border-radius:50%;">` : ""}
-          <div style="font:400 22px/1.1 ${SERIF};letter-spacing:.24em;text-transform:uppercase;color:${COLORS.textOnNight};">${escapeHtml(shop)}</div>
-          <div style="margin-top:10px;font:700 10px/1.4 ${SANS};letter-spacing:.34em;text-transform:uppercase;color:${COLORS.gold};">Barbería exclusiva</div>
+          ${logos ? `<img class="ds-logo-dark" src="${escapeHtml(logos.dark)}" width="120" alt="${escapeHtml(shop)}" style="display:block;width:120px;height:auto;margin:0 auto 16px;border:0;">
+          <!--[if !mso]><!--><div class="ds-logo-light" style="display:none;max-height:0;overflow:hidden;mso-hide:all;"><img src="${escapeHtml(logos.light)}" width="120" height="120" alt="${escapeHtml(shop)}" style="display:block;width:120px;height:120px;margin:0 auto 16px;border:0;"></div><!--<![endif]-->` : ""}
+          <div class="ds-brand" style="font:400 22px/1.1 ${SERIF};letter-spacing:.24em;text-transform:uppercase;color:${COLORS.textOnNight};">${escapeHtml(shop)}</div>
+          <div class="ds-brand-sub" style="margin-top:10px;font:700 10px/1.4 ${SANS};letter-spacing:.34em;text-transform:uppercase;color:${COLORS.gold};">Barbería exclusiva</div>
         </td></tr>
 
         ${notice}
 
-        <tr><td style="background:${COLORS.paper};border-radius:22px;">
+        <tr><td class="ds-card" style="background:${COLORS.paper};border-radius:22px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr><td class="ds-pad" style="padding:30px 32px 6px;">
               <p style="margin:0 0 14px;font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${cancelled ? COLORS.danger : COLORS.goldDeep};">${escapeHtml(copy.eyebrow)}</p>
@@ -374,7 +393,7 @@ export function buildAppointmentEmail(
             </td></tr>
 
             <tr><td class="ds-pad" style="padding:22px 32px 6px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${COLORS.paperLine};border-radius:16px;background:#FBF8F2;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ds-datebox" style="border:1px solid ${COLORS.paperLine};border-radius:16px;background:#FBF8F2;">
                 <tr><td align="center" style="padding:20px 16px 18px;">
                   <div style="font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${COLORS.goldDeep};">${escapeHtml(date)}</div>
                   <div class="ds-time" style="margin-top:10px;font:400 46px/1 ${SERIF};color:${cancelled ? COLORS.inkMuted : COLORS.ink};"><span style="${cancelled ? "text-decoration:line-through;" : ""}">${escapeHtml(time)}</span><span style="font-size:18px;"> hs</span></div>
@@ -398,8 +417,8 @@ export function buildAppointmentEmail(
           </table>
         </td></tr>
 
-        <tr><td align="center" style="padding:24px 12px 0;font:12px/1.7 ${SANS};color:${COLORS.mutedOnNight};">
-          ${footerBits ? `${footerBits}<br>` : ""}<span style="color:#6f675d;">Recibiste este email porque tenés un turno en ${escapeHtml(shop)}.</span>
+        <tr><td align="center" class="ds-foot" style="padding:24px 12px 0;font:12px/1.7 ${SANS};color:${COLORS.mutedOnNight};">
+          ${footerBits ? `${footerBits}<br>` : ""}<span class="ds-foot-note" style="color:#6f675d;">Recibiste este email porque tenés un turno en ${escapeHtml(shop)}.</span>
         </td></tr>
       </table>
     </td></tr>

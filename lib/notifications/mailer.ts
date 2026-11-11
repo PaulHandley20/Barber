@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { EMAIL_LOGO_CID, EMAIL_LOGO_PNG_BASE64 } from "./logo";
+import { EMAIL_LOGOS } from "./logo";
 
 /*
   Envío de emails desde la cuenta de Gmail de la barbería, con una
@@ -66,15 +66,14 @@ export async function sendEmail(email: OutgoingEmail) {
     html: email.html,
     text: email.text,
     attachments: [
-      // Logo dentro del email (se ve aunque no carguen imágenes externas).
-      ...(email.html.includes(`cid:${EMAIL_LOGO_CID}`)
-        ? [{
-            filename: "don-segundo.png",
-            content: Buffer.from(EMAIL_LOGO_PNG_BASE64, "base64"),
-            contentType: "image/png",
-            cid: EMAIL_LOGO_CID,
-          }]
-        : []),
+      // Logos dentro del email (oscuro y claro): se ven aunque no carguen
+      // imágenes externas.
+      ...EMAIL_LOGOS.filter((logo) => email.html.includes(`cid:${logo.cid}`)).map((logo) => ({
+        filename: logo.filename,
+        content: Buffer.from(logo.base64, "base64"),
+        contentType: "image/png",
+        cid: logo.cid,
+      })),
       ...(email.ics
         ? [{ filename: "turno.ics", content: email.ics, contentType: "text/calendar; charset=utf-8" }]
         : []),

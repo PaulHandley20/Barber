@@ -53,7 +53,9 @@ test("la confirmación muestra fecha y hora de Argentina, barbero, precio y link
   assert.match(email.html, />16:00<\/span><span style="font-size:18px;"> hs/);
   assert.match(email.text, /Horario: 16:00 – 16:30 hs/);
   assert.match(email.html, /Manu/);
-  assert.match(email.html, /src="cid:donsegundo-logo"/);
+  assert.match(email.html, /class="ds-logo-dark" src="cid:donsegundo-logo-dark"/);
+  assert.match(email.html, /src="cid:donsegundo-logo-light"/);
+  assert.match(email.html, /@media \(prefers-color-scheme: light\)/);
   assert.match(email.text, /Total: \$\s?15\.000 \(se abona en el local\)/);
   assert.match(email.html, /https:\/\/donsegundo\.com\.ar\/gestionar-reserva\?codigo=DS-AB12CD34/);
   assert.ok(email.ics, "la confirmación adjunta el .ics");
@@ -85,7 +87,7 @@ test("el recordatorio dice 'mañana' o 'hoy', no adjunta .ics y pide avisar si n
 test("la dirección se muestra con mayúscula y 'Cómo llegar' agrega la ciudad si falta", () => {
   const data = payload();
   data.settings!.address = "mitre 866";
-  const email = buildAppointmentEmail("confirmation", data, SITE, { logoSrc: null, notice: "Email de prueba" });
+  const email = buildAppointmentEmail("confirmation", data, SITE, { logos: null, notice: "Email de prueba" });
   assert.match(email.html, /Mitre 866/);
   assert.match(email.html, /query=mitre%20866%2C%20Concepci%C3%B3n%20del%20Uruguay/);
   assert.doesNotMatch(email.html, /cid:donsegundo-logo/);
