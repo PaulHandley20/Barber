@@ -358,7 +358,7 @@ export function buildAppointmentEmail(
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 
         <tr><td align="center" style="padding:0 0 26px;">
-          ${logoSrc ? `<img src="${escapeHtml(logoSrc)}" width="112" alt="${escapeHtml(shop)}" style="display:block;width:112px;height:auto;margin:0 auto 14px;border:0;">` : ""}
+          ${logoSrc ? `<img src="${escapeHtml(logoSrc)}" width="120" height="120" alt="${escapeHtml(shop)}" style="display:block;width:120px;height:120px;margin:0 auto 16px;border:0;border-radius:50%;">` : ""}
           <div style="font:400 22px/1.1 ${SERIF};letter-spacing:.24em;text-transform:uppercase;color:${COLORS.textOnNight};">${escapeHtml(shop)}</div>
           <div style="margin-top:10px;font:700 10px/1.4 ${SANS};letter-spacing:.34em;text-transform:uppercase;color:${COLORS.gold};">Barbería exclusiva</div>
         </td></tr>
