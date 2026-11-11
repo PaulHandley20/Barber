@@ -44,17 +44,26 @@ export type BuiltEmail = {
 
 const TIME_ZONE = "America/Argentina/Buenos_Aires";
 
+/* Paleta de la web (landing y reservas). */
 const COLORS = {
-  page: "#100f0d",
-  card: "#171613",
-  border: "#2a2722",
-  cream: "#EADFCB",
-  text: "#F4EEE5",
-  muted: "#a39a8e",
-  gold: "#c9a46e",
-  ink: "#1b1915",
-  danger: "#e8a39a",
+  night: "#100f0d", // fondo oscuro del sitio
+  nightLine: "#2a2722",
+  paper: "#F4EEE5", // "ticket" color crema
+  paperLine: "#e2d7c4",
+  cream: "#EADFCB", // botones claros del sitio
+  ink: "#1b1915", // texto sobre crema
+  inkSoft: "#5d554a",
+  inkMuted: "#8a8174",
+  gold: "#C79A5A", // dorado de la landing
+  goldDeep: "#8a6a3c", // dorado legible sobre crema
+  textOnNight: "#F4EEE5",
+  mutedOnNight: "#a39a8e",
+  danger: "#a5473a",
 };
+
+const SERIF = "Georgia, 'Times New Roman', Times, serif";
+const SANS = "'Manrope', 'Helvetica Neue', Helvetica, Arial, sans-serif";
+const DEFAULT_LOCALITY = "Concepción del Uruguay, Entre Ríos";
 
 export function escapeHtml(value: string) {
   return value
@@ -113,10 +122,17 @@ export function manageUrl(siteUrl: string, code: string | null) {
     : `${base}/gestionar-reserva`;
 }
 
+/* "mitre 866" → "Mitre 866" (para mostrar). */
+function displayAddress(address: string | null) {
+  const value = (address ?? "").trim();
+  return value ? value.replace(/(^|\s)([a-záéíóúñ])/g, (_, space, letter) => space + letter.toUpperCase()) : "";
+}
+
 function mapsUrl(address: string | null) {
-  return address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-    : null;
+  const value = (address ?? "").trim();
+  if (!value) return null;
+  const query = value.includes(",") ? value : `${value}, ${DEFAULT_LOCALITY}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 /* ---------------------------------------------------------------
@@ -168,6 +184,15 @@ export function buildIcs(payload: NotificationPayload, siteUrl: string, cancelle
    Emails
    --------------------------------------------------------------- */
 
+export type EmailOptions = {
+  /* src del logo: "cid:..." (adjunto, por defecto) o una URL pública. */
+  logoSrc?: string | null;
+  /* Franja de aviso arriba del ticket (ej. "Email de prueba"). */
+  notice?: string | null;
+  /* Para calcular "hoy" / "mañana" en el recordatorio (pruebas). */
+  now?: Date;
+};
+
 type Copy = {
   subject: string;
   eyebrow: string;
@@ -176,45 +201,62 @@ type Copy = {
   tone: "ok" | "cancelled";
 };
 
-function copyFor(kind: EmailKind, payload: NotificationPayload): Copy {
+function argentinaDay(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(date);
+}
+
+/* "hoy" / "mañana" / null según el día del turno en Argentina. */
+export function relativeDay(iso: string, now = new Date()) {
+  const day = argentinaDay(new Date(iso));
+  if (day === argentinaDay(now)) return "hoy";
+  if (day === argentinaDay(new Date(now.getTime() + 24 * 3600 * 1000))) return "mañana";
+  return null;
+}
+
+function copyFor(kind: EmailKind, payload: NotificationPayload, now: Date): Copy {
   const shop = shopName(payload);
   const name = firstName(payload.customer.full_name);
   const date = formatDate(payload.appointment.start_at);
   const dateLower = `${date.charAt(0).toLowerCase()}${date.slice(1)}`;
-  const when = `${dateLower} a las ${formatTime(payload.appointment.start_at)} hs`;
+  const time = `${formatTime(payload.appointment.start_at)} hs`;
+  const when = `${dateLower} a las ${time}`;
+  const service = payload.service.name ?? "tu turno";
 
   switch (kind) {
     case "confirmation":
       return {
-        subject: `Turno confirmado · ${formatDate(payload.appointment.start_at)} ${formatTime(payload.appointment.start_at)} hs`,
+        subject: `Turno confirmado · ${date}, ${time}`,
         eyebrow: "Reserva confirmada",
-        title: `¡Listo, ${name}! Tu turno está confirmado.`,
-        intro: `Te esperamos en ${shop} el ${when}.`,
+        title: `${name}, tu turno está confirmado.`,
+        intro: `Te esperamos el ${when} para tu ${service.toLowerCase()}.`,
         tone: "ok",
       };
     case "updated":
       return {
-        subject: `Tu turno cambió · ${formatDate(payload.appointment.start_at)} ${formatTime(payload.appointment.start_at)} hs`,
+        subject: `Tu turno cambió · ${date}, ${time}`,
         eyebrow: "Turno actualizado",
-        title: `${name}, tu turno tiene cambios.`,
-        intro: `Estos son los datos actualizados de tu turno en ${shop}.`,
+        title: `${name}, actualizamos tu turno.`,
+        intro: `Estos son los datos nuevos: te esperamos el ${when}.`,
         tone: "ok",
       };
-    case "reminder":
+    case "reminder": {
+      const relative = relativeDay(payload.appointment.start_at, now);
+      const whenShort = relative ? `${relative} a las ${time}` : `el ${when}`;
       return {
-        subject: `Recordatorio: tu turno es el ${when}`,
+        subject: `Recordatorio: ${relative ? `${relative} a las ${time}` : `el ${when}`} te esperamos en ${shop}`,
         eyebrow: "Recordatorio",
-        title: `${name}, te esperamos pronto.`,
-        intro: `Te recordamos tu turno en ${shop}: ${when}. Si no podés venir, avisanos cancelándolo desde tu reserva así otro cliente puede usar el horario.`,
+        title: relative ? `${name}, te esperamos ${relative}.` : `${name}, se acerca tu turno.`,
+        intro: `Tu ${service.toLowerCase()} es ${whenShort}. Si no podés venir, cancelalo desde tu reserva así otro cliente puede usar el horario.`,
         tone: "ok",
       };
+    }
     case "cancelled":
       return payload.appointment.cancelled_by === "cliente"
         ? {
             subject: `Cancelaste tu turno del ${dateLower}`,
             eyebrow: "Turno cancelado",
             title: `${name}, tu turno quedó cancelado.`,
-            intro: `Cancelaste tu turno del ${when}. Cuando quieras, reservá uno nuevo.`,
+            intro: `Cancelaste tu turno del ${when}. Gracias por avisar: cuando quieras, reservá uno nuevo.`,
             tone: "cancelled",
           }
         : {
@@ -227,28 +269,30 @@ function copyFor(kind: EmailKind, payload: NotificationPayload): Copy {
   }
 }
 
-function detailRow(label: string, value: string) {
+function detailRow(label: string, value: string, options: { strong?: boolean; mono?: boolean } = {}) {
   return `
-    <tr>
-      <td style="padding:10px 0;border-bottom:1px solid ${COLORS.border};font:600 11px/1.4 Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:${COLORS.gold};width:38%;">${escapeHtml(label)}</td>
-      <td style="padding:10px 0;border-bottom:1px solid ${COLORS.border};font:15px/1.4 Georgia,serif;color:${COLORS.text};text-align:right;">${escapeHtml(value)}</td>
-    </tr>`;
+              <tr>
+                <td style="padding:11px 0;border-top:1px solid ${COLORS.paperLine};font:700 10px/1.4 ${SANS};letter-spacing:.2em;text-transform:uppercase;color:${COLORS.goldDeep};width:36%;vertical-align:top;">${escapeHtml(label)}</td>
+                <td style="padding:11px 0;border-top:1px solid ${COLORS.paperLine};font:${options.strong ? "700" : "400"} 15px/1.45 ${options.mono ? "'Courier New', Courier, monospace" : SERIF};${options.mono ? "letter-spacing:.08em;" : ""}color:${COLORS.ink};text-align:right;">${escapeHtml(value)}</td>
+              </tr>`;
 }
 
 function button(href: string, label: string, primary: boolean) {
-  return `<a href="${escapeHtml(href)}" style="display:inline-block;margin:0 6px 10px 0;padding:13px 22px;border-radius:999px;font:700 11px/1 Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;${
+  return `<a href="${escapeHtml(href)}" style="display:inline-block;margin:0 8px 10px 0;padding:14px 26px;border-radius:999px;font:700 11px/1 ${SANS};letter-spacing:.22em;text-transform:uppercase;text-decoration:none;${
     primary
-      ? `background:${COLORS.cream};color:${COLORS.ink};`
-      : `border:1px solid ${COLORS.border};color:${COLORS.text};`
+      ? `background:${COLORS.ink};color:${COLORS.cream};border:1px solid ${COLORS.ink};`
+      : `background:transparent;color:${COLORS.ink};border:1px solid ${COLORS.ink};`
   }">${escapeHtml(label)}</a>`;
 }
 
 export function buildAppointmentEmail(
   kind: EmailKind,
   payload: NotificationPayload,
-  siteUrl: string
+  siteUrl: string,
+  options: EmailOptions = {}
 ): BuiltEmail {
-  const copy = copyFor(kind, payload);
+  const now = options.now ?? new Date();
+  const copy = copyFor(kind, payload, now);
   const shop = shopName(payload);
   const { appointment, service, barber, settings } = payload;
   const cancelled = copy.tone === "cancelled";
@@ -256,53 +300,107 @@ export function buildAppointmentEmail(
   const book = `${siteUrl.replace(/\/+$/, "")}/reservar`;
   const maps = mapsUrl(settings?.address ?? null);
   const price = formatPrice(service.price);
+  const address = displayAddress(settings?.address ?? null);
+  const instagram = settings?.instagram ? `@${settings.instagram.replace(/^@/, "")}` : "";
+  const logoSrc = options.logoSrc === undefined ? "cid:donsegundo-logo" : options.logoSrc;
+  const date = formatDate(appointment.start_at);
+  const time = formatTime(appointment.start_at);
 
   const rows = [
-    detailRow("Día", formatDate(appointment.start_at)),
-    detailRow("Horario", `${formatTime(appointment.start_at)} – ${formatTime(appointment.end_at)} hs`),
     service.name ? detailRow("Servicio", service.name) : "",
     barber.name ? detailRow("Barbero", barber.name) : "",
-    price && !cancelled ? detailRow("Total", `${price} · se abona en el local`) : "",
-    appointment.reservation_code ? detailRow("Código", appointment.reservation_code) : "",
+    service.duration_minutes ? detailRow("Duración", `${service.duration_minutes} min`) : "",
+    address ? detailRow("Dónde", address) : "",
+    price && !cancelled ? detailRow("Total", `${price}`, { strong: true }) : "",
+    appointment.reservation_code ? detailRow("Código", appointment.reservation_code, { mono: true }) : "",
   ].join("");
 
   const actions = cancelled
     ? button(book, "Reservar otro turno", true)
-    : [
-        button(manage, "Ver mi reserva", true),
-        maps ? button(maps, "Cómo llegar", false) : "",
-      ].join("");
+    : [button(manage, "Ver mi reserva", true), maps ? button(maps, "Cómo llegar", false) : ""].join("");
 
   const policy = cancelled
     ? ""
-    : `<p style="margin:22px 0 0;font:13px/1.6 Arial,sans-serif;color:${COLORS.muted};">Podés cancelar en cualquier momento antes del turno${
+    : `<p style="margin:18px 0 0;font:13px/1.6 ${SANS};color:${COLORS.inkMuted};">${
+        price ? "Se abona en el local. " : ""
+      }Podés cancelar en cualquier momento antes del turno${
         settings && settings.cancellation_notice_hours > 0
           ? ` y cambiar el día u horario hasta ${settings.cancellation_notice_hours} h antes`
           : ""
       }, desde “Ver mi reserva”.</p>`;
 
-  const footerBits = [settings?.address, settings?.phone, settings?.instagram ? `@${settings.instagram.replace(/^@/, "")}` : null]
-    .filter(Boolean)
-    .map((item) => escapeHtml(String(item)))
-    .join(" · ");
+  const notice = options.notice
+    ? `<tr><td style="padding:0 0 14px;"><div style="border:1px dashed ${COLORS.gold};border-radius:12px;padding:10px 14px;font:600 12px/1.5 ${SANS};color:${COLORS.gold};text-align:center;">${escapeHtml(options.notice)}</div></td></tr>`
+    : "";
+
+  const footerBits = [address, settings?.phone, instagram].filter(Boolean).map((item) => escapeHtml(String(item))).join(" &nbsp;·&nbsp; ");
 
   const html = `<!doctype html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(copy.subject)}</title></head>
-<body style="margin:0;padding:0;background:${COLORS.page};">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.page};padding:28px 12px;">
-    <tr><td align="center">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>${escapeHtml(copy.subject)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  @media (max-width: 480px) {
+    .ds-pad { padding-left: 22px !important; padding-right: 22px !important; }
+    .ds-time { font-size: 40px !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:${COLORS.night};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(copy.intro)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.night};">
+    <tr><td align="center" style="padding:32px 12px 40px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-        <tr><td style="padding:0 6px 22px;font:400 15px/1 Georgia,serif;letter-spacing:.24em;color:${COLORS.text};text-transform:uppercase;">${escapeHtml(shop)}</td></tr>
-        <tr><td style="background:${COLORS.card};border:1px solid ${COLORS.border};border-radius:22px;padding:30px 26px;">
-          <p style="margin:0 0 12px;font:700 11px/1 Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:${cancelled ? COLORS.danger : COLORS.gold};">${escapeHtml(copy.eyebrow)}</p>
-          <h1 style="margin:0 0 12px;font:400 26px/1.25 Georgia,serif;color:${COLORS.text};">${escapeHtml(copy.title)}</h1>
-          <p style="margin:0 0 22px;font:15px/1.6 Arial,sans-serif;color:${COLORS.muted};">${escapeHtml(copy.intro)}</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;${cancelled ? "opacity:.75;" : ""}">${rows}</table>
-          ${actions}
-          ${policy}
+
+        <tr><td align="center" style="padding:0 0 26px;">
+          ${logoSrc ? `<img src="${escapeHtml(logoSrc)}" width="112" alt="${escapeHtml(shop)}" style="display:block;width:112px;height:auto;margin:0 auto 14px;border:0;">` : ""}
+          <div style="font:400 22px/1.1 ${SERIF};letter-spacing:.24em;text-transform:uppercase;color:${COLORS.textOnNight};">${escapeHtml(shop)}</div>
+          <div style="margin-top:10px;font:700 10px/1.4 ${SANS};letter-spacing:.34em;text-transform:uppercase;color:${COLORS.gold};">Barbería exclusiva</div>
         </td></tr>
-        <tr><td style="padding:20px 6px 0;font:12px/1.6 Arial,sans-serif;color:${COLORS.muted};">${footerBits || escapeHtml(shop)}<br>Recibiste este email porque tenés un turno en ${escapeHtml(shop)}.</td></tr>
+
+        ${notice}
+
+        <tr><td style="background:${COLORS.paper};border-radius:22px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td class="ds-pad" style="padding:30px 32px 6px;">
+              <p style="margin:0 0 14px;font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${cancelled ? COLORS.danger : COLORS.goldDeep};">${escapeHtml(copy.eyebrow)}</p>
+              <h1 style="margin:0 0 10px;font:400 28px/1.2 ${SERIF};color:${COLORS.ink};">${escapeHtml(copy.title)}</h1>
+              <p style="margin:0;font:15px/1.6 ${SANS};color:${COLORS.inkSoft};">${escapeHtml(copy.intro)}</p>
+            </td></tr>
+
+            <tr><td class="ds-pad" style="padding:22px 32px 6px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${COLORS.paperLine};border-radius:16px;background:#FBF8F2;">
+                <tr><td align="center" style="padding:20px 16px 18px;">
+                  <div style="font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${COLORS.goldDeep};">${escapeHtml(date)}</div>
+                  <div class="ds-time" style="margin-top:10px;font:400 46px/1 ${SERIF};color:${cancelled ? COLORS.inkMuted : COLORS.ink};"><span style="${cancelled ? "text-decoration:line-through;" : ""}">${escapeHtml(time)}</span><span style="font-size:18px;"> hs</span></div>
+                </td></tr>
+              </table>
+            </td></tr>
+
+            <tr><td class="ds-pad" style="padding:12px 32px 4px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}
+              </table>
+            </td></tr>
+
+            <tr><td class="ds-pad" style="padding:0 32px;">
+              <div style="height:0;border-top:2px dashed ${COLORS.paperLine};margin:14px 0 22px;"></div>
+            </td></tr>
+
+            <tr><td class="ds-pad" style="padding:0 32px 30px;">
+              ${actions}
+              ${policy}
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td align="center" style="padding:24px 12px 0;font:12px/1.7 ${SANS};color:${COLORS.mutedOnNight};">
+          ${footerBits ? `${footerBits}<br>` : ""}<span style="color:#6f675d;">Recibiste este email porque tenés un turno en ${escapeHtml(shop)}.</span>
+        </td></tr>
       </table>
     </td></tr>
   </table>
@@ -314,10 +412,11 @@ export function buildAppointmentEmail(
     "",
     copy.intro,
     "",
-    `Día: ${formatDate(appointment.start_at)}`,
-    `Horario: ${formatTime(appointment.start_at)} – ${formatTime(appointment.end_at)} hs`,
+    `Día: ${date}`,
+    `Horario: ${time} – ${formatTime(appointment.end_at)} hs`,
     service.name ? `Servicio: ${service.name}` : null,
     barber.name ? `Barbero: ${barber.name}` : null,
+    address ? `Dónde: ${address}` : null,
     price && !cancelled ? `Total: ${price} (se abona en el local)` : null,
     appointment.reservation_code ? `Código: ${appointment.reservation_code}` : null,
     "",

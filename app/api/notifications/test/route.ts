@@ -24,25 +24,35 @@ export async function POST(request: Request) {
     return Response.json({ error: "Ingresá un email válido." }, { status: 400 });
   }
 
+  // Datos reales de la barbería (configuración, un servicio y un barbero)
+  // para que la prueba se vea como un email de verdad.
   const supabase = await createClient();
-  const { data: settings } = await supabase.from("barbershop_settings").select("*").limit(1).maybeSingle();
+  const [{ data: settings }, { data: service }, { data: barber }] = await Promise.all([
+    supabase.from("barbershop_settings").select("*").limit(1).maybeSingle(),
+    supabase.from("services").select("name, duration_minutes, price").eq("active", true).order("price").limit(1).maybeSingle(),
+    supabase.from("barbers").select("name").order("name").limit(1).maybeSingle(),
+  ]);
 
   const start = new Date(Date.now() + 2 * 24 * 3600 * 1000);
-  start.setUTCHours(14, 0, 0, 0);
+  start.setUTCHours(14, 0, 0, 0); // 11:00 en Argentina
   const payload: NotificationPayload = {
     appointment: {
       id: "00000000-0000-0000-0000-000000000000",
       reservation_code: "DS-PRUEBA1",
       start_at: start.toISOString(),
-      end_at: new Date(start.getTime() + 30 * 60000).toISOString(),
+      end_at: new Date(start.getTime() + Number(service?.duration_minutes ?? 30) * 60000).toISOString(),
       status: "confirmed",
       notes: null,
       cancelled_by: null,
       source: "web",
     },
-    customer: { full_name: "Cliente de prueba", phone: null, email: to },
-    service: { name: "Corte clásico", duration_minutes: 30, price: 15000 },
-    barber: { name: "Manu" },
+    customer: { full_name: "Cliente", phone: null, email: to },
+    service: {
+      name: service?.name ?? "Corte clásico",
+      duration_minutes: Number(service?.duration_minutes ?? 30),
+      price: service ? Number(service.price) : 15000,
+    },
+    barber: { name: barber?.name ?? "Manu" },
     settings: {
       name: settings?.name ?? "Don Segundo",
       address: settings?.address ?? null,
@@ -58,7 +68,9 @@ export async function POST(request: Request) {
   };
 
   try {
-    const email = buildAppointmentEmail("confirmation", payload, siteUrl());
+    const email = buildAppointmentEmail("confirmation", payload, siteUrl(), {
+      notice: "Email de prueba: el turno es de ejemplo, así se ve una confirmación.",
+    });
     await sendEmail({
       ...email,
       subject: `[Prueba] ${email.subject}`,

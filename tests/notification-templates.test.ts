@@ -7,6 +7,7 @@ import {
   calendarEventId,
   escapeHtml,
   manageUrl,
+  relativeDay,
   type NotificationPayload,
 } from "../lib/notifications/templates.ts";
 
@@ -47,10 +48,12 @@ function payload(overrides: Partial<NotificationPayload["appointment"]> = {}): N
 test("la confirmación muestra fecha y hora de Argentina, barbero, precio y link a Mi reserva", () => {
   const email = buildAppointmentEmail("confirmation", payload(), SITE);
 
-  assert.match(email.subject, /Turno confirmado · Jueves, 15 de octubre 16:00 hs/);
-  assert.match(email.html, /¡Listo, Paul! Tu turno está confirmado\./);
-  assert.match(email.html, /16:00 – 16:30 hs/);
+  assert.match(email.subject, /Turno confirmado · Jueves, 15 de octubre, 16:00 hs/);
+  assert.match(email.html, /Paul, tu turno está confirmado\./);
+  assert.match(email.html, />16:00<\/span><span style="font-size:18px;"> hs/);
+  assert.match(email.text, /Horario: 16:00 – 16:30 hs/);
   assert.match(email.html, /Manu/);
+  assert.match(email.html, /src="cid:donsegundo-logo"/);
   assert.match(email.text, /Total: \$\s?15\.000 \(se abona en el local\)/);
   assert.match(email.html, /https:\/\/donsegundo\.com\.ar\/gestionar-reserva\?codigo=DS-AB12CD34/);
   assert.ok(email.ics, "la confirmación adjunta el .ics");
@@ -67,11 +70,26 @@ test("la cancelación distingue si canceló el cliente o la barbería", () => {
   assert.match(byShop.ics ?? "", /METHOD:CANCEL/);
 });
 
-test("el recordatorio no adjunta .ics y pide avisar si no puede venir", () => {
-  const email = buildAppointmentEmail("reminder", payload(), SITE);
-  assert.match(email.subject, /^Recordatorio:/);
-  assert.match(email.text, /cancelándolo/);
+test("el recordatorio dice 'mañana' o 'hoy', no adjunta .ics y pide avisar si no puede venir", () => {
+  // 14/10 20:00 en Argentina → el turno del 15/10 es "mañana"
+  const email = buildAppointmentEmail("reminder", payload(), SITE, { now: new Date("2026-10-14T23:00:00.000Z") });
+  assert.equal(email.subject, "Recordatorio: mañana a las 16:00 hs te esperamos en Don Segundo");
+  assert.match(email.html, /Paul, te esperamos mañana\./);
+  assert.match(email.text, /cancelalo/);
   assert.equal(email.ics, undefined);
+
+  assert.equal(relativeDay("2026-10-15T19:00:00.000Z", new Date("2026-10-15T12:00:00.000Z")), "hoy");
+  assert.equal(relativeDay("2026-10-15T19:00:00.000Z", new Date("2026-10-12T12:00:00.000Z")), null);
+});
+
+test("la dirección se muestra con mayúscula y 'Cómo llegar' agrega la ciudad si falta", () => {
+  const data = payload();
+  data.settings!.address = "mitre 866";
+  const email = buildAppointmentEmail("confirmation", data, SITE, { logoSrc: null, notice: "Email de prueba" });
+  assert.match(email.html, /Mitre 866/);
+  assert.match(email.html, /query=mitre%20866%2C%20Concepci%C3%B3n%20del%20Uruguay/);
+  assert.doesNotMatch(email.html, /cid:donsegundo-logo/);
+  assert.match(email.html, /Email de prueba/);
 });
 
 test("los datos del cliente se escapan en el HTML", () => {

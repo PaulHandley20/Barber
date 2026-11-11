@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const securityHeaders = [
@@ -16,6 +17,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // La raíz es la carpeta del proyecto, aunque haya otro package-lock.json
+  // más arriba (por ejemplo en la carpeta del usuario).
+  turbopack: {
+    root: path.join(__dirname),
+  },
+  outputFileTracingRoot: path.join(__dirname),
   images: {
     remotePatterns: [
       {
