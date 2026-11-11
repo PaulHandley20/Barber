@@ -346,8 +346,17 @@ export function buildAppointmentEmail(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark">
+<meta http-equiv="Content-Language" content="es">
 <title>${escapeHtml(copy.subject)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Gmail (web, iPhone y Android) no informa si está en modo día o noche
+     y en el celular invierte los colores por su cuenta: ahí se usa
+     siempre la insignia crema, que se ve bien con fondo oscuro y claro.
+     Va en un bloque aparte por si Gmail descarta el de abajo. */
+  u + .body .ds-logo-dark { display: none !important; }
+  u + .body .ds-logo-light { display: block !important; max-height: none !important; overflow: visible !important; }
+</style>
 <style>
   @media (max-width: 480px) {
     .ds-pad { padding-left: 22px !important; padding-right: 22px !important; }
@@ -379,9 +388,9 @@ export function buildAppointmentEmail(
   }
 </style>
 </head>
-<body class="ds-night" style="margin:0;padding:0;background:${COLORS.night};">
+<body class="body ds-night" lang="es" style="margin:0;padding:0;background:${COLORS.night};">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(copy.intro)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ds-night" style="background:${COLORS.night};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ds-night" lang="es" style="background:${COLORS.night};">
     <tr><td align="center" style="padding:32px 12px 40px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 

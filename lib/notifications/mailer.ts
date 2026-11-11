@@ -63,6 +63,8 @@ export async function sendEmail(email: OutgoingEmail) {
     from: { name: email.fromName, address: sender },
     to: email.to,
     subject: email.subject,
+    // Para que Gmail no ofrezca "Traducir al español".
+    headers: { "Content-Language": "es-AR" },
     html: email.html,
     text: email.text,
     attachments: [

@@ -56,6 +56,9 @@ test("la confirmación muestra fecha y hora de Argentina, barbero, precio y link
   assert.match(email.html, /class="ds-logo-dark" src="cid:donsegundo-logo-dark"/);
   assert.match(email.html, /src="cid:donsegundo-logo-light"/);
   assert.match(email.html, /@media \(prefers-color-scheme: light\)/);
+  // En Gmail (no informa el modo) se usa la insignia crema.
+  assert.match(email.html, /u \+ \.body \.ds-logo-light \{ display: block !important;/);
+  assert.match(email.html, /<body class="body ds-night" lang="es"/);
   assert.match(email.text, /Total: \$\s?15\.000 \(se abona en el local\)/);
   assert.match(email.html, /https:\/\/donsegundo\.com\.ar\/gestionar-reserva\?codigo=DS-AB12CD34/);
   assert.ok(email.ics, "la confirmación adjunta el .ics");
