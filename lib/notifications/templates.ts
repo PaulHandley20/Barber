@@ -273,13 +273,13 @@ function copyFor(kind: EmailKind, payload: NotificationPayload, now: Date): Copy
 function detailRow(label: string, value: string, options: { strong?: boolean; mono?: boolean } = {}) {
   return `
               <tr>
-                <td style="padding:11px 0;border-top:1px solid ${COLORS.paperLine};font:700 10px/1.4 ${SANS};letter-spacing:.2em;text-transform:uppercase;color:${COLORS.goldDeep};width:36%;vertical-align:top;">${escapeHtml(label)}</td>
-                <td style="padding:11px 0;border-top:1px solid ${COLORS.paperLine};font:${options.strong ? "700" : "400"} 15px/1.45 ${options.mono ? "'Courier New', Courier, monospace" : SERIF};${options.mono ? "letter-spacing:.08em;" : ""}color:${COLORS.ink};text-align:right;">${escapeHtml(value)}</td>
+                <td class="ds-row ds-gold" style="padding:11px 0;border-top:1px solid ${COLORS.paperLine};font:700 10px/1.4 ${SANS};letter-spacing:.2em;text-transform:uppercase;color:${COLORS.goldDeep};width:36%;vertical-align:top;">${escapeHtml(label)}</td>
+                <td class="ds-row ds-ink" style="padding:11px 0;border-top:1px solid ${COLORS.paperLine};font:${options.strong ? "700" : "400"} 15px/1.45 ${options.mono ? "'Courier New', Courier, monospace" : SERIF};${options.mono ? "letter-spacing:.08em;" : ""}color:${COLORS.ink};text-align:right;">${escapeHtml(value)}</td>
               </tr>`;
 }
 
 function button(href: string, label: string, primary: boolean) {
-  return `<a href="${escapeHtml(href)}" style="display:inline-block;margin:0 8px 10px 0;padding:14px 26px;border-radius:999px;font:700 11px/1 ${SANS};letter-spacing:.22em;text-transform:uppercase;text-decoration:none;${
+  return `<a href="${escapeHtml(href)}" class="${primary ? "ds-btn-primary" : "ds-btn-secondary"}" style="display:inline-block;margin:0 8px 10px 0;padding:14px 26px;border-radius:999px;font:700 11px/1 ${SANS};letter-spacing:.22em;text-transform:uppercase;text-decoration:none;${
     primary
       ? `background:${COLORS.ink};color:${COLORS.cream};border:1px solid ${COLORS.ink};`
       : `background:transparent;color:${COLORS.ink};border:1px solid ${COLORS.ink};`
@@ -325,7 +325,7 @@ export function buildAppointmentEmail(
 
   const policy = cancelled
     ? ""
-    : `<p style="margin:18px 0 0;font:13px/1.6 ${SANS};color:${COLORS.inkMuted};">${
+    : `<p class="ds-ink-muted" style="margin:18px 0 0;font:13px/1.6 ${SANS};color:${COLORS.inkMuted};">${
         price ? "Se abona en el local. " : ""
       }Podés cancelar en cualquier momento antes del turno${
         settings && settings.cancellation_notice_hours > 0
@@ -360,8 +360,18 @@ export function buildAppointmentEmail(
     .ds-night { background: ${COLORS.paper} !important; }
     .ds-brand { color: ${COLORS.ink} !important; }
     .ds-brand-sub { color: ${COLORS.goldDeep} !important; }
-    .ds-card { background: #FBF8F2 !important; border: 1px solid ${COLORS.paperLine} !important; }
-    .ds-datebox { background: ${COLORS.paper} !important; }
+    /* El ticket se invierte: negro con letras crema. */
+    .ds-card { background: ${COLORS.night} !important; }
+    .ds-datebox { background: #1a1815 !important; border-color: ${COLORS.nightLine} !important; }
+    .ds-ink { color: ${COLORS.textOnNight} !important; }
+    .ds-ink-soft { color: ${COLORS.mutedOnNight} !important; }
+    .ds-ink-muted { color: #8d857a !important; }
+    .ds-gold { color: ${COLORS.gold} !important; }
+    .ds-danger { color: #e8a39a !important; }
+    .ds-row { border-top-color: ${COLORS.nightLine} !important; }
+    .ds-dash { border-top-color: ${COLORS.nightLine} !important; }
+    .ds-btn-primary { background: ${COLORS.cream} !important; color: ${COLORS.ink} !important; border-color: ${COLORS.cream} !important; }
+    .ds-btn-secondary { color: ${COLORS.cream} !important; border-color: ${COLORS.cream} !important; }
     .ds-foot { color: ${COLORS.inkSoft} !important; }
     .ds-foot-note { color: ${COLORS.inkMuted} !important; }
     .ds-logo-dark { display: none !important; }
@@ -387,16 +397,16 @@ export function buildAppointmentEmail(
         <tr><td class="ds-card" style="background:${COLORS.paper};border-radius:22px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr><td class="ds-pad" style="padding:30px 32px 6px;">
-              <p style="margin:0 0 14px;font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${cancelled ? COLORS.danger : COLORS.goldDeep};">${escapeHtml(copy.eyebrow)}</p>
-              <h1 style="margin:0 0 10px;font:400 28px/1.2 ${SERIF};color:${COLORS.ink};">${escapeHtml(copy.title)}</h1>
-              <p style="margin:0;font:15px/1.6 ${SANS};color:${COLORS.inkSoft};">${escapeHtml(copy.intro)}</p>
+              <p class="${cancelled ? "ds-danger" : "ds-gold"}" style="margin:0 0 14px;font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${cancelled ? COLORS.danger : COLORS.goldDeep};">${escapeHtml(copy.eyebrow)}</p>
+              <h1 class="ds-ink" style="margin:0 0 10px;font:400 28px/1.2 ${SERIF};color:${COLORS.ink};">${escapeHtml(copy.title)}</h1>
+              <p class="ds-ink-soft" style="margin:0;font:15px/1.6 ${SANS};color:${COLORS.inkSoft};">${escapeHtml(copy.intro)}</p>
             </td></tr>
 
             <tr><td class="ds-pad" style="padding:22px 32px 6px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="ds-datebox" style="border:1px solid ${COLORS.paperLine};border-radius:16px;background:#FBF8F2;">
                 <tr><td align="center" style="padding:20px 16px 18px;">
-                  <div style="font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${COLORS.goldDeep};">${escapeHtml(date)}</div>
-                  <div class="ds-time" style="margin-top:10px;font:400 46px/1 ${SERIF};color:${cancelled ? COLORS.inkMuted : COLORS.ink};"><span style="${cancelled ? "text-decoration:line-through;" : ""}">${escapeHtml(time)}</span><span style="font-size:18px;"> hs</span></div>
+                  <div class="ds-gold" style="font:700 10px/1 ${SANS};letter-spacing:.28em;text-transform:uppercase;color:${COLORS.goldDeep};">${escapeHtml(date)}</div>
+                  <div class="ds-time ${cancelled ? "ds-ink-muted" : "ds-ink"}" style="margin-top:10px;font:400 46px/1 ${SERIF};color:${cancelled ? COLORS.inkMuted : COLORS.ink};"><span style="${cancelled ? "text-decoration:line-through;" : ""}">${escapeHtml(time)}</span><span style="font-size:18px;"> hs</span></div>
                 </td></tr>
               </table>
             </td></tr>
@@ -407,7 +417,7 @@ export function buildAppointmentEmail(
             </td></tr>
 
             <tr><td class="ds-pad" style="padding:0 32px;">
-              <div style="height:0;border-top:2px dashed ${COLORS.paperLine};margin:14px 0 22px;"></div>
+              <div class="ds-dash" style="height:0;border-top:2px dashed ${COLORS.paperLine};margin:14px 0 22px;"></div>
             </td></tr>
 
             <tr><td class="ds-pad" style="padding:0 32px 30px;">
