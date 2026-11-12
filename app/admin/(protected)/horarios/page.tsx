@@ -144,10 +144,6 @@ export default function HorariosPage() {
     text: string;
   } | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   async function loadData() {
     setLoading(true);
     setMessage(null);
@@ -206,6 +202,10 @@ export default function HorariosPage() {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   function updateSchedule(
     dayOfWeek: number,

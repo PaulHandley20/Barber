@@ -562,7 +562,7 @@ export default function ServiciosPage() {
 
       if (!appointmentsResponse.error) {
         setAppointments(
-          (appointmentsResponse.data ?? []).map((appointment: any) => ({
+          (appointmentsResponse.data ?? []).map((appointment) => ({
             ...appointment,
             service: Array.isArray(appointment.service)
               ? appointment.service[0] ?? null

@@ -34,6 +34,7 @@ import {
   bookingSecondaryButtonClass,
 } from "@/components/booking/kit";
 import { createClient } from "@/lib/supabase/client";
+import { kickNotifications } from "@/lib/notifications/kick";
 import {
   BARBERSHOP,
   LEGAL_VERSION,
@@ -603,6 +604,9 @@ export default function ReservarPage() {
 
     // Marca sin datos personales: si recarga la página, vuelve al inicio.
     sessionStorage.setItem(CONFIRMED_RESERVATION_STORAGE_KEY, "true");
+
+    // Confirmación por email y evento en el calendario, al instante.
+    kickNotifications();
 
     setConfirmedAppointment(appointmentResult);
     setShowReview(false);
