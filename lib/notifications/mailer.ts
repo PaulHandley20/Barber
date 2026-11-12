@@ -6,7 +6,7 @@ import { EMAIL_LOGOS } from "./logo";
   "contraseña de aplicación" (requiere verificación en 2 pasos).
 
   Variables de entorno (solo servidor):
-    GMAIL_USER           barberia.donsegundo@gmail.com
+    GMAIL_USER           donsegundobarberia@gmail.com
     GMAIL_APP_PASSWORD   la contraseña de aplicación de 16 letras
     NOTIFICATIONS_DRY_RUN=1  (opcional) no envía: muestra el email en la consola
 */

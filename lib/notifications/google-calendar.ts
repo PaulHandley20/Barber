@@ -6,7 +6,7 @@ import { createSign } from "node:crypto";
   Variables de entorno (solo servidor):
     GOOGLE_SERVICE_ACCOUNT_EMAIL        ej. barberos@proyecto.iam.gserviceaccount.com
     GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY  la "private_key" del JSON (con \n)
-    GOOGLE_CALENDAR_ID                  ej. barberia.donsegundo@gmail.com
+    GOOGLE_CALENDAR_ID                  ej. donsegundobarberia@gmail.com
 
   El calendario de la barbería se comparte con el email de la cuenta de
   servicio con permiso "Hacer cambios en eventos".

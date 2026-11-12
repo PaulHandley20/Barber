@@ -14,7 +14,7 @@ process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = privateKey
   .export({ type: "pkcs8", format: "pem" })
   .toString()
   .replace(/\n/g, "\\n");
-process.env.GOOGLE_CALENDAR_ID = "barberia.donsegundo@gmail.com";
+process.env.GOOGLE_CALENDAR_ID = "donsegundobarberia@gmail.com";
 
 const calendar = await import("../lib/notifications/google-calendar.ts");
 
@@ -61,7 +61,7 @@ test("crea el evento si no existe (PUT 404 → POST con el id del turno)", async
 
   const [put, post] = calls.filter((call) => call.url.includes("/calendar/v3/"));
   assert.equal(put.method, "PUT");
-  assert.match(put.url, /calendars\/barberia\.donsegundo%40gmail\.com\/events\/abc12345$/);
+  assert.match(put.url, /calendars\/donsegundobarberia%40gmail\.com\/events\/abc12345$/);
   assert.equal(post.method, "POST");
   assert.equal(JSON.parse(post.body).id, "abc12345");
 });
