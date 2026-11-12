@@ -29,7 +29,7 @@ export const BARBERSHOP = {
     "https://maps.google.com/?q=Mitre+866+Concepci%C3%B3n+del+Uruguay+Entre+R%C3%ADos",
   instagramHandle: "barberia.donsegundo",
   instagramUrl: "https://instagram.com/barberia.donsegundo",
-  email: "barberiadonsegundo@gmail.com",
+  email: "donsegundobarberia@gmail.com",
   /*
     WhatsApp en formato internacional sin "+" ni espacios
     (ej: 5493442123456). Se configura con la variable de entorno

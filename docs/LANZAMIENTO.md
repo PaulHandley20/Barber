@@ -208,12 +208,12 @@ puede, que un abogado revise los textos.
 | `NEXT_PUBLIC_BARBERSHOP_WHATSAPP` | Ej. `5493442123456` (opcional) |
 | `ADMIN_EMAILS` | Email(s) de Manu, separados por coma |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave **service_role** (Supabase → Project Settings → API). **Solo servidor**: nunca con `NEXT_PUBLIC_` |
-| `GMAIL_USER` | `barberia.donsegundo@gmail.com` |
+| `GMAIL_USER` | `donsegundobarberia@gmail.com` |
 | `GMAIL_APP_PASSWORD` | Contraseña de aplicación de Gmail (sección 7.1) |
 | `NOTIFICATIONS_CRON_SECRET` | Un texto largo al azar (sección 7.3) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email de la cuenta de servicio (sección 7.2) |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | `private_key` del JSON de la cuenta de servicio, tal cual (con los `\n`) |
-| `GOOGLE_CALENDAR_ID` | `barberia.donsegundo@gmail.com` |
+| `GOOGLE_CALENDAR_ID` | `donsegundobarberia@gmail.com` |
 
 ✅ Lo único que llega al navegador es la URL y la clave publicable, que
 son públicas por diseño. Las claves secretas (service_role, Gmail, Google,
@@ -304,7 +304,7 @@ Qué recibe el cliente (si dejó email):
 
 ### 7.1 Gmail de la barbería (contraseña de aplicación)
 
-1. Entrar a la cuenta `barberia.donsegundo@gmail.com` →
+1. Entrar a la cuenta `donsegundobarberia@gmail.com` →
    https://myaccount.google.com/security → activar **Verificación en 2
    pasos**.
 2. Ir a https://myaccount.google.com/apppasswords → nombre "BarberOS" →
@@ -313,6 +313,11 @@ Qué recibe el cliente (si dejó email):
 
 Gmail permite unos 500 emails por día: de sobra para la barbería. Si un
 cliente responde un email, le llega a esa misma casilla.
+
+⚠️ La cuenta **no puede estar supervisada** (Family Link): Google no deja
+crear contraseñas de aplicación en cuentas supervisadas. Por eso se creó
+`donsegundobarberia@gmail.com` como cuenta común, con la fecha de
+nacimiento y el celular de Manu.
 
 ### 7.2 Google Calendar (cuenta de servicio)
 
@@ -329,7 +334,7 @@ cliente responde un email, le llega a esa misma casilla.
    **Configuración** → el calendario → **Compartir con personas
    específicas** → agregar el `client_email` con permiso **"Hacer cambios
    en eventos"**.
-5. `GOOGLE_CALENDAR_ID` = `barberia.donsegundo@gmail.com` (el calendario
+5. `GOOGLE_CALENDAR_ID` = `donsegundobarberia@gmail.com` (el calendario
    principal de la cuenta).
 6. En el panel: **Configuración → Notificaciones → Google Calendar** =
    activado.
@@ -375,6 +380,17 @@ y volver a crearlo.
 Con `NOTIFICATIONS_DRY_RUN=1` en `.env.local` los emails no se envían: se
 muestran en la consola de `npm run dev`. También hace falta
 `SUPABASE_SERVICE_ROLE_KEY` para que el servidor pueda leer la cola.
+
+Si al mandar un email real desde la compu aparece *"self-signed
+certificate in certificate chain"*, es el antivirus revisando la conexión
+con Gmail. Sin desactivarlo, levantar el servidor así (cmd de Windows):
+
+```
+set NODE_OPTIONS=--use-system-ca&& npm run dev
+```
+
+(en PowerShell: `$env:NODE_OPTIONS="--use-system-ca"; npm run dev`). En
+Vercel no hace falta.
 
 ---
 
