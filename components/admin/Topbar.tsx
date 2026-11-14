@@ -13,8 +13,16 @@ import {
   CalendarDays,
   CheckCircle2,
   Menu,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  isNotificationSoundOn,
+  playNotificationSound,
+  setNotificationSoundOn,
+  unlockNotificationSound,
+} from "./notification-sound";
 import { useAdminShell } from "./AdminShellContext";
 import { createClient } from "@/lib/supabase/client";
 
@@ -196,6 +204,17 @@ export default function Topbar() {
 
   const [notifications, setNotifications] =
     useState<Notification[]>([]);
+
+  /* Sonido de avisos (preferencia de este dispositivo). */
+  // El botón solo se ve con la campanita abierta, así que leer la
+  // preferencia al crear el estado no genera diferencias con el servidor.
+  const [soundOn, setSoundOn] = useState(() =>
+    typeof window === "undefined" ? true : isNotificationSoundOn()
+  );
+
+  /* Novedades ya vistas en esta pestaña: solo suenan las que llegan
+     después de abrir el panel, no las viejas. */
+  const knownNewsRef = useRef<Set<string> | null>(null);
 
   const [shopName, setShopName] =
     useState("Don Segundo");
@@ -424,6 +443,20 @@ export default function Topbar() {
         (a, b) => (b.at ?? 0) - (a.at ?? 0)
       );
 
+      // Sonido si entró una reserva web o una cancelación nueva.
+      const known = knownNewsRef.current;
+      if (known) {
+        const fresh = news.filter(
+          (item) => item.unread && !known.has(item.id)
+        );
+        if (fresh.length > 0) {
+          playNotificationSound(
+            fresh.some((item) => item.web) ? "booking" : "cancel"
+          );
+        }
+      }
+      knownNewsRef.current = new Set(news.map((item) => item.id));
+
       const pending =
         ((pendingRes.data ?? []) as unknown as Row[])
           .filter((row) => !webIds.has(row.id))
@@ -477,6 +510,12 @@ export default function Topbar() {
 
     loadWorkspace();
     loadNotifications();
+
+    // "Desbloqueo" del audio con el primer clic (los navegadores no
+    // dejan sonar nada antes de que toques la página).
+    window.addEventListener("pointerdown", unlockNotificationSound, {
+      once: true,
+    });
 
     // Aviso al instante cuando entra o cambia un turno (Supabase
     // Realtime: reservas y cancelaciones) y, por las dudas, una revisión
@@ -539,6 +578,10 @@ export default function Topbar() {
 
       window.clearInterval(refresh);
       supabase.removeChannel(channel);
+      window.removeEventListener(
+        "pointerdown",
+        unlockNotificationSound
+      );
 
       window.removeEventListener(
         "barberos:workspace-logo-updated",
@@ -852,6 +895,35 @@ export default function Topbar() {
                     </p>
                   </div>
 
+                  <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !soundOn;
+                      setSoundOn(next);
+                      setNotificationSoundOn(next);
+                      if (next) playNotificationSound("booking", true);
+                    }}
+                    aria-pressed={soundOn}
+                    aria-label={
+                      soundOn
+                        ? "Silenciar el sonido de los avisos"
+                        : "Activar el sonido de los avisos"
+                    }
+                    title={
+                      soundOn
+                        ? "Sonido de avisos: activado"
+                        : "Sonido de avisos: silenciado"
+                    }
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.05] hover:text-white/80"
+                  >
+                    {soundOn ? (
+                      <Volume2 size={14} />
+                    ) : (
+                      <VolumeX size={14} />
+                    )}
+                  </button>
+
                   {unreadCount > 0 && (
                     <button
                       type="button"
@@ -869,6 +941,7 @@ export default function Topbar() {
                       Marcar leídas
                     </button>
                   )}
+                  </div>
                 </div>
 
                 <div className="max-h-[310px] overflow-y-auto">
