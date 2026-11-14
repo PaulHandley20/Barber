@@ -1,4 +1,4 @@
-import { isCalendarConfigured } from "@/lib/notifications/google-calendar";
+import { checkCalendarConfig, isCalendarConfigured } from "@/lib/notifications/google-calendar";
 import { currentAdminEmail } from "@/lib/notifications/auth";
 import { isMailConfigured, mailSender } from "@/lib/notifications/mailer";
 import { siteUrl } from "@/lib/notifications/processor";
@@ -11,12 +11,14 @@ export async function GET() {
   }
 
   const key = await checkServiceKey();
+  const calendar = checkCalendarConfig();
 
   return Response.json({
     mail: isMailConfigured(),
     sender: mailSender(),
     dryRun: process.env.NOTIFICATIONS_DRY_RUN === "1",
-    calendar: isCalendarConfigured(),
+    calendar: isCalendarConfigured() && calendar.ok,
+    calendarHint: calendar.hint,
     calendarId: process.env.GOOGLE_CALENDAR_ID?.trim() || null,
     serviceKey: key.ok,
     serviceKeyHint: key.hint,

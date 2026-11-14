@@ -1,4 +1,4 @@
-import { createSign } from "node:crypto";
+import { createPrivateKey, createSign } from "node:crypto";
 
 /*
   Google Calendar con una "cuenta de servicio" de Google Cloud.
@@ -18,15 +18,66 @@ const API = "https://www.googleapis.com/calendar/v3";
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
+/*
+  Arregla los errores comunes al pegar la "private_key" del JSON en
+  .env.local: comillas de más, "\n" escritos como texto, saltos de línea de
+  Windows (\r) o la clave partida/unida en una sola línea con espacios.
+  Devuelve un PEM limpio (encabezado, base64 en líneas de 64 y pie).
+*/
+export function normalizePrivateKey(raw: string | undefined | null) {
+  if (!raw) return null;
+  let value = raw.trim();
+  // Comillas sobrantes alrededor (una o dos capas) y la coma del JSON.
+  value = value.replace(/,$/, "").trim();
+  for (let i = 0; i < 2; i++) value = value.replace(/^["']|["']$/g, "").trim();
+  value = value.replace(/\\r/g, "").replace(/\\n/g, "\n").replace(/\r/g, "");
+
+  const match = value.match(/-----BEGIN ([A-Z ]*PRIVATE KEY)-----([\s\S]*?)-----END \1-----/);
+  if (!match) return null;
+  const body = match[2].replace(/[^A-Za-z0-9+/=]/g, "");
+  if (!body) return null;
+  const lines = body.match(/.{1,64}/g) ?? [];
+  return `-----BEGIN ${match[1]}-----\n${lines.join("\n")}\n-----END ${match[1]}-----\n`;
+}
+
 function config() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n").trim();
+  const key = normalizePrivateKey(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY);
   const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
   return email && key && calendarId ? { email, key, calendarId } : null;
 }
 
 export function isCalendarConfigured() {
   return config() !== null;
+}
+
+/* Diagnóstico para Configuración → Notificaciones (nunca muestra la clave). */
+export function checkCalendarConfig(): { ok: boolean; hint: string } {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
+
+  if (!email && !raw && !calendarId) return { ok: false, hint: "" };
+  if (!email) return { ok: false, hint: "Falta GOOGLE_SERVICE_ACCOUNT_EMAIL (el client_email del JSON)." };
+  if (!calendarId) return { ok: false, hint: "Falta GOOGLE_CALENDAR_ID (el email de la barbería)." };
+  if (!raw?.trim()) return { ok: false, hint: "Falta GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY (la private_key del JSON)." };
+
+  const key = normalizePrivateKey(raw);
+  if (!key) {
+    return {
+      ok: false,
+      hint: "La private_key no está completa: tiene que incluir desde -----BEGIN PRIVATE KEY----- hasta -----END PRIVATE KEY-----.",
+    };
+  }
+  try {
+    createPrivateKey(key);
+  } catch {
+    return {
+      ok: false,
+      hint: "La private_key está incompleta o tiene caracteres de más: volvé a copiarla del JSON, entera y en una sola línea, entre comillas dobles.",
+    };
+  }
+  return { ok: true, hint: `Calendario: ${calendarId}.` };
 }
 
 function base64url(input: string | Buffer) {
