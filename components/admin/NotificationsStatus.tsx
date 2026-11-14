@@ -183,11 +183,13 @@ export default function NotificationsStatus({ calendarEnabled }: { calendarEnabl
           }
         />
         <Check
-          ok={Boolean(status?.calendar) || !calendarEnabled}
+          ok={calendarEnabled ? Boolean(status?.calendar) : !status?.calendar && !status?.calendarHint}
           label="Google Calendar"
           hint={
             status?.calendar
-              ? `Calendario: ${status.calendarId}.`
+              ? calendarEnabled
+                ? `Conectado: los turnos se guardan en ${status.calendarId}.`
+                : "Configurado, pero el interruptor está apagado: prendelo y guardá los cambios."
               : status?.calendarHint
                 ? status.calendarHint
                 : calendarEnabled
