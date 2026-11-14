@@ -16,6 +16,7 @@ type ServerStatus = {
   dryRun: boolean;
   calendar: boolean;
   calendarId: string | null;
+  calendarHint: string;
   serviceKey: boolean;
   serviceKeyHint: string;
   cronSecret: boolean;
@@ -122,7 +123,7 @@ export default function NotificationsStatus({ calendarEnabled }: { calendarEnabl
     setBusy("process");
     setFeedback(null);
     try {
-      const response = await fetch("/api/notifications/process", { method: "POST" });
+      const response = await fetch("/api/notifications/process?retry=1", { method: "POST" });
       const body = (await response.json()) as {
         ok: boolean;
         jobs?: number;
@@ -142,9 +143,12 @@ export default function NotificationsStatus({ calendarEnabled }: { calendarEnabl
           body.skipped ? `${body.skipped} sin enviar (ver detalle)` : null,
           body.failed ? `${body.failed} con error` : null,
         ].filter(Boolean);
+        const firstError = body.errors?.[0];
         setFeedback({
-          type: body.failed ? "error" : "ok",
-          text: body.jobs || body.reminders ? parts.join(" · ") : "No había nada pendiente.",
+          type: body.failed || firstError ? "error" : "ok",
+          text:
+            (body.jobs || body.reminders ? parts.join(" · ") : "No había nada pendiente.") +
+            (firstError ? ` — Error: ${firstError}` : ""),
         });
       }
     } catch {
@@ -159,7 +163,10 @@ export default function NotificationsStatus({ calendarEnabled }: { calendarEnabl
   const calendarSynced = jobs?.filter((job) => job.kind === "calendar_sync" && job.status === "sent").length ?? 0;
   const pending = jobs?.filter((job) => job.status === "pending" || job.status === "processing").length ?? 0;
   const failed = jobs?.filter((job) => job.status === "failed") ?? [];
-  const recent = (jobs ?? []).filter((job) => job.status !== "pending").slice(0, 5);
+  // Lo procesado y lo que se está reintentando (con el motivo del error).
+  const recent = (jobs ?? [])
+    .filter((job) => job.status !== "pending" || job.last_error)
+    .slice(0, 5);
 
   return (
     <div className="mt-6 space-y-4">
@@ -181,9 +188,11 @@ export default function NotificationsStatus({ calendarEnabled }: { calendarEnabl
           hint={
             status?.calendar
               ? `Calendario: ${status.calendarId}.`
-              : calendarEnabled
-                ? "Falta configurar la cuenta de servicio de Google (ver docs/LANZAMIENTO.md)."
-                : "Apagado."
+              : status?.calendarHint
+                ? status.calendarHint
+                : calendarEnabled
+                  ? "Falta configurar la cuenta de servicio de Google (ver docs/LANZAMIENTO.md)."
+                  : "Apagado."
           }
         />
         <Check
@@ -241,12 +250,18 @@ export default function NotificationsStatus({ calendarEnabled }: { calendarEnabl
           </p>
           {recent.map((job, index) => (
             <div key={index} className="flex items-center justify-between gap-3 border-b border-white/[0.045] px-4 py-2.5 last:border-b-0">
-              <span className="min-w-0 truncate text-[12px] text-white/72">
+              <span className="min-w-0 text-[12px] text-white/72">
                 <span className="font-semibold text-white/86">{KIND_LABEL[job.kind] ?? job.kind}</span>
-                {job.detail ? ` · ${job.detail}` : ""}
+                {job.status === "failed" || job.status === "pending" ? (
+                  <span className="block break-words text-red-200/75">{job.last_error}</span>
+                ) : job.detail ? (
+                  ` · ${job.detail}`
+                ) : (
+                  ""
+                )}
               </span>
-              <span className={`shrink-0 text-[11px] font-semibold ${job.status === "sent" ? "text-emerald-300/85" : job.status === "failed" ? "text-red-300/85" : "text-white/45"}`}>
-                {job.status === "sent" ? "Enviado" : job.status === "failed" ? "Error" : "Omitido"} · {formatWhen(job.processed_at ?? job.created_at)}
+              <span className={`shrink-0 text-[11px] font-semibold ${job.status === "sent" ? "text-emerald-300/85" : job.status === "failed" ? "text-red-300/85" : job.status === "pending" ? "text-amber-200/85" : "text-white/45"}`}>
+                {job.status === "sent" ? "Enviado" : job.status === "failed" ? "Error" : job.status === "pending" ? "Reintentando" : "Omitido"} · {formatWhen(job.processed_at ?? job.created_at)}
               </span>
             </div>
           ))}

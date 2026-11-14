@@ -95,9 +95,19 @@ function errorText(error: unknown) {
 
 export async function processNotifications(
   supabase: SupabaseClient,
-  options: { limit?: number; maxAgeMinutes?: number; reminders?: boolean } = {}
+  options: { limit?: number; maxAgeMinutes?: number; reminders?: boolean; retryNow?: boolean } = {}
 ): Promise<ProcessSummary> {
   const summary: ProcessSummary = { jobs: 0, sent: 0, skipped: 0, failed: 0, reminders: 0, errors: [] };
+
+  // "Procesar pendientes" desde el panel: lo que espera un reintento se
+  // intenta ya, sin esperar los minutos de espera.
+  if (options.retryNow) {
+    await supabase
+      .from("notification_jobs")
+      .update({ run_after: new Date().toISOString() })
+      .eq("status", "pending")
+      .gt("run_after", new Date().toISOString());
+  }
 
   const { data: jobs, error } = await supabase.rpc("claim_notification_jobs", {
     p_limit: options.limit ?? 20,
@@ -121,7 +131,10 @@ export async function processNotifications(
     }
 
     summary[outcome.status] += 1;
-    if (outcome.error) summary.errors.push(`${job.kind}: ${outcome.error}`);
+    if (outcome.error) {
+      summary.errors.push(`${job.kind}: ${outcome.error}`);
+      console.warn(`[notificaciones] ${job.kind} falló: ${outcome.error}`);
+    }
 
     await supabase.rpc("finish_notification_job", {
       p_id: job.id,

@@ -22,11 +22,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const trusted = hasCronSecret(request) || (await currentAdminEmail()) !== null;
+  const fromCron = hasCronSecret(request);
+  const fromAdmin = !fromCron && (await currentAdminEmail()) !== null;
+  const trusted = fromCron || fromAdmin;
 
   try {
     const summary = trusted
-      ? await processNotifications(supabase, { limit: 25 })
+      ? await processNotifications(supabase, {
+          limit: 25,
+          // Solo el botón "Procesar pendientes" (?retry=1) adelanta los reintentos.
+          retryNow: fromAdmin && new URL(request.url).searchParams.get("retry") === "1",
+        })
       : await processNotifications(supabase, { limit: 5, maxAgeMinutes: 15, reminders: false });
 
     return trusted ? Response.json({ ok: true, ...summary }) : Response.json({ ok: true });

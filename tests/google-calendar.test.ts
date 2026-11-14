@@ -81,3 +81,34 @@ test("un error de Google se informa", async () => {
   responses = [{ status: 403, body: { error: "forbidden" } }];
   await assert.rejects(() => calendar.upsertCalendarEvent("abc12345", {}), /403/);
 });
+
+test("la private_key se acepta aunque se haya pegado con defectos comunes", async () => {
+  const { createPrivateKey } = await import("node:crypto");
+  const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+  const oneLine = pem.replace(/\n/g, "\\n");
+  const variants = {
+    "con \\n como texto": oneLine,
+    "con saltos reales": pem,
+    "con comillas de más": `"${oneLine}"`,
+    "con doble comilla": `""${oneLine}""`,
+    "con saltos de Windows": pem.replace(/\n/g, "\r\n"),
+    "con espacios en vez de saltos": pem.replace(/\n/g, " "),
+    "con la coma del JSON": `"${oneLine}",`,
+  };
+  for (const [label, raw] of Object.entries(variants)) {
+    const fixed = calendar.normalizePrivateKey(raw);
+    assert.ok(fixed, `no se pudo leer la clave ${label}`);
+    assert.doesNotThrow(() => createPrivateKey(fixed!), `clave inválida ${label}`);
+  }
+  assert.equal(calendar.normalizePrivateKey("cualquier cosa"), null);
+});
+
+test("el diagnóstico avisa si la private_key está incompleta", () => {
+  const saved = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADAN\\n-----END PRIVATE KEY-----\\n";
+  const result = calendar.checkCalendarConfig();
+  assert.equal(result.ok, false);
+  assert.match(result.hint, /incompleta/);
+  process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = saved;
+  assert.equal(calendar.checkCalendarConfig().ok, true);
+});
