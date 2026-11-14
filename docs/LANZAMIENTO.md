@@ -57,6 +57,7 @@ Revisar especialmente:
 | `…1200_cancel_anytime_and_audit.sql` | Reservar y reprogramar online hasta **1 hora antes**; cancelar online **en cualquier momento antes del turno**. Cada turno guarda quién lo canceló (cliente o panel, con el email del admin), cuándo, y cuándo se marcó "No asistió". Los cancelados no se borran |
 | `…1300_panel_services_and_barbers.sql` | **Servicios "solo panel"** (ej. Kids): no aparecen ni se pueden reservar en la web, pero se usan en la Agenda. **Varios barberos**: los horarios libres se calculan por barbero; la web deja elegir barbero o "Sin preferencia" (con un solo barbero activo no muestra la elección); reprogramar mantiene el barbero del turno |
 | `…1400_email_notifications_and_calendar.sql` | **Emails automáticos y Google Calendar**: cola de envíos (`notification_jobs`) que se llena sola al reservar, cambiar o cancelar un turno; recordatorio configurable (horas antes); sincronización con el calendario de la barbería. Ver sección 7 |
+| `…1500_reschedule_audit.sql` | **Registro de cambios de horario**: cada turno guarda cuándo se cambió de día u hora, si lo hizo el cliente (Mi reserva) o la barbería (panel) y el horario anterior. La campanita avisa cuando reprograma el cliente |
 
 #### Hallazgos del diagnóstico (13/10/2026)
 
