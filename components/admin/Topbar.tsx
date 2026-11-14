@@ -101,6 +101,8 @@ type Notification = {
   web?: boolean;
   /* Turno cancelado por el cliente desde Mi reserva. */
   cancelled?: boolean;
+  /* Turno que el cliente cambió de día u hora desde Mi reserva. */
+  rescheduled?: boolean;
   /* Para ordenar las novedades de la más nueva a la más vieja. */
   at?: number;
 };
@@ -312,6 +314,7 @@ export default function Topbar() {
         pendingRes,
         upcomingRes,
         cancelledRes,
+        rescheduledRes,
       ] = await Promise.all([
         // Reservas hechas desde la landing en los últimos 7 días.
         // Si la migración 11 todavía no corrió (no existe `source`),
@@ -367,6 +370,19 @@ export default function Topbar() {
             ascending: false,
           })
           .limit(8),
+
+        // Turnos que el cliente reprogramó desde Mi reserva (7 días).
+        // Sin la migración 15 (no existe `rescheduled_by`) no se muestran.
+        supabase
+          .from("appointments")
+          .select(`${columns}, rescheduled_at, previous_start_at`)
+          .eq("rescheduled_by", "cliente")
+          .gte("rescheduled_at", weekAgo)
+          .in("status", ["confirmed", "pending"])
+          .order("rescheduled_at", {
+            ascending: false,
+          })
+          .limit(8),
       ]);
 
       if (!active) return;
@@ -376,6 +392,8 @@ export default function Topbar() {
         start_at: string;
         created_at?: string;
         cancelled_at?: string;
+        rescheduled_at?: string;
+        previous_start_at?: string | null;
         customer:
           | {
               full_name: string;
@@ -438,8 +456,37 @@ export default function Topbar() {
         })
       );
 
-      // Novedades (reservas y cancelaciones) de la más nueva a la más vieja.
-      const news = [...web, ...cancelled].sort(
+      const rescheduled = (
+        rescheduledRes.error
+          ? []
+          : ((rescheduledRes.data ?? []) as unknown as Row[])
+      ).map(
+        (row): Notification => ({
+          // El id incluye la fecha del cambio: cada reprogramación avisa.
+          id: `resched-${row.id}-${row.rescheduled_at}`,
+          title: "Turno reprogramado por el cliente",
+          detail: `${
+            row.customer?.full_name ?? "Cliente"
+          } · ${
+            row.service?.name ?? "Servicio"
+          } · ${formatWhen(row.start_at)}${
+            row.previous_start_at
+              ? ` (antes ${formatWhen(row.previous_start_at)})`
+              : ""
+          }`,
+          time: timeAgo(row.rescheduled_at ?? row.start_at),
+          unread:
+            !seenAt ||
+            new Date(row.rescheduled_at ?? 0).getTime() >
+              new Date(seenAt).getTime(),
+          rescheduled: true,
+          at: new Date(row.rescheduled_at ?? row.start_at).getTime(),
+        })
+      );
+
+      // Novedades (reservas, cambios y cancelaciones), de la más nueva a
+      // la más vieja.
+      const news = [...web, ...rescheduled, ...cancelled].sort(
         (a, b) => (b.at ?? 0) - (a.at ?? 0)
       );
 
@@ -451,7 +498,9 @@ export default function Topbar() {
         );
         if (fresh.length > 0) {
           playNotificationSound(
-            fresh.some((item) => item.web) ? "booking" : "cancel"
+            fresh.some((item) => item.web || item.rescheduled)
+              ? "booking"
+              : "cancel"
           );
         }
       }
@@ -984,7 +1033,9 @@ export default function Topbar() {
                               notification.unread
                                 ? notification.cancelled
                                   ? "bg-red-400"
-                                  : "bg-[#ff5a00]"
+                                  : notification.rescheduled
+                                    ? "bg-amber-300"
+                                    : "bg-[#ff5a00]"
                                 : "bg-white/15",
                             ].join(" ")}
                           />
@@ -996,9 +1047,11 @@ export default function Topbar() {
                                   "font-[family:var(--font-barberos-ui)] text-[11px] font-medium",
                                   notification.cancelled
                                     ? "text-red-300/90"
-                                    : notification.web
-                                      ? "text-[#ff8a3d]"
-                                      : "text-white/75",
+                                    : notification.rescheduled
+                                      ? "text-amber-200/90"
+                                      : notification.web
+                                        ? "text-[#ff8a3d]"
+                                        : "text-white/75",
                                 ].join(" ")}
                               >
                                 {
